@@ -1,0 +1,31 @@
+# ---------- Backend (.NET) ----------
+[Bb]in/
+[Oo]bj/
+*.user
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# ---------- Frontend (React / Node) ----------
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ---------- Environment / Secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Editor / OS ----------
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+.DS_Store
+Thumbs.db
+
+# ---------- Logs ----------
+*.log
+npm-debug.log*
