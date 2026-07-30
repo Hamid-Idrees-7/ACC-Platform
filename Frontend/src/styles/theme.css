@@ -1,0 +1,46 @@
+:root {
+  /* ===== Brand Colors (ACC) ===== */
+  --color-primary: #F66435;        /* ACC orange - main brand color */
+  --color-primary-dark: #D94E22;   /* hover / darker shade */
+  --color-primary-light: #FF8A5F;  /* lighter accent */
+  --color-primary-soft: #FEEDE6;   /* very light orange background */
+
+  /* ===== Neutrals ===== */
+  --color-bg: #F7F8FA;             /* page background */
+  --color-surface: #FFFFFF;        /* cards, panels */
+  --color-border: #E4E7EC;         /* lines, borders */
+
+  /* ===== Text ===== */
+  --color-text: #1A1D21;           /* main text (dark) */
+  --color-text-muted: #667085;     /* secondary / muted text */
+  --color-text-inverse: #FFFFFF;   /* text on colored background */
+
+  /* ===== Status Colors ===== */
+  --color-success: #12B76A;        /* green - success */
+  --color-warning: #F79009;        /* yellow - warning */
+  --color-error: #F04438;          /* red - error */
+  --color-info: #2E90FA;           /* blue - info */
+
+  /* ===== Fonts ===== */
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* ===== Spacing ===== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* ===== Border Radius ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ===== Shadows ===== */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 12px 28px rgba(16, 24, 40, 0.12);
+}
