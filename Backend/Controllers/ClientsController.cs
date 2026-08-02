@@ -1,12 +1,14 @@
 ﻿using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers
 {
     // API endpoints for clients. Base route: /api/clients
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ClientsController : ControllerBase
     {
         private readonly IClientService _service;
