@@ -1,0 +1,12 @@
+/* Full-page login (standalone /login route) */
+.login-page-full {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.login-page-full .login-wrapper {
+  width: 100%;
+}
