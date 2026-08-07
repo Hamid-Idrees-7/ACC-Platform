@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Privacy from "./pages/Privacy";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import About from "./pages/About";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
