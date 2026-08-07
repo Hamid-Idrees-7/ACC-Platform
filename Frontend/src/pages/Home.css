@@ -401,7 +401,7 @@ main {
     line-height: 1.7;
 }
 
-/* ABOUT SECTION */
+/* ABOUT SECTION (Professional, no emoji)       */
 
 .about-section {
     padding: var(--section-padding);
@@ -506,7 +506,7 @@ main {
     align-items: flex-start;
 }
 
-/* SVG icon container */
+/* SVG icon container (NO emoji) */
 .about-point-icon {
     width: 48px;
     height: 48px;
@@ -668,7 +668,7 @@ main {
     letter-spacing: 1px;
 }
 
-/* "Our Approach" cards */
+/* "Our Approach" cards (replacing fake awards) */
 .approach-grid {
     max-width: var(--container-width);
     margin: 0 auto;
@@ -1329,7 +1329,7 @@ main {
 
 
 
-/* LOGIN FORM */
+/* LOGIN FORM — message boxes + states (pehle inline the)       */
 
 /* Error / success message boxes (login form ke andar) */
 .login-msg-box {
@@ -1385,7 +1385,9 @@ main {
 
 
 
-/* FORGOT PASSWORD MODAL */
+/* ============================================================ */
+/* FORGOT PASSWORD MODAL                                         */
+/* ============================================================ */
 
 .forgot-modal {
     display: none;
@@ -1471,7 +1473,9 @@ main {
         margin-bottom: 4px;
     }
 
-/* PUBLIC SITE ADDITIONS + FIXES (v2) */
+/* ============================================================ */
+/* PUBLIC SITE ADDITIONS + FIXES (v2)                          */
+/* ============================================================ */
 
 /* SCROLL REVEAL */
 .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
@@ -1542,7 +1546,9 @@ main {
 /* WHY US - yellow */
 .why-us-cream { background: var(--cream) !important; }
 
-/* CONTACT SECTION - white bg, compact form */
+/* ============================================================ */
+/* CONTACT SECTION - white bg, compact form                    */
+/* ============================================================ */
 .contact-section { padding: var(--section-padding); background: var(--white); }
 .contact-wrapper { max-width: 1050px; margin: 0 auto; background: var(--white); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow-lg); border: 1px solid #F0F0F0; display: grid; grid-template-columns: 1fr 1.15fr; }
 .contact-left { background: linear-gradient(135deg, var(--charcoal) 0%, var(--dark-brown) 100%); color: var(--white); padding: 48px 42px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
@@ -1585,3 +1591,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 /* PRIVACY BULLETS FIX - black dot, aligned */
 .privacy-block ul li::before { background: #444 !important; border: none !important; width: 6px !important; height: 6px !important; top: 9px !important; left: 4px !important; }
 .privacy-block ul li { padding-left: 22px !important; }
+
+
+/* Hide blueprint texture on project cards that have a real image */
+.project-card-image[style*="background-image"]::before { display: none; }

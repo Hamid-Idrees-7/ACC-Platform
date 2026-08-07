@@ -91,7 +91,7 @@ function About() {
         {/* OUR STORY */}
         <section className="about-story-section">
           <div className="about-story-grid">
-            <div className="about-story-visual reveal">
+            <div className="about-story-visual reveal" style={{ backgroundImage: "url('/images/founder-story.jpg')" }}>
               <div className="about-story-badge">
                 <span className="about-story-badge-year">Est. 2010</span>
                 <span className="about-story-badge-text">Lahore, Pakistan</span>
