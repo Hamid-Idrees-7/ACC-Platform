@@ -12,7 +12,7 @@ const projectList = [
     location: "Gulberg, Lahore",
     year: "2025",
     featured: true,
-    images: ["/images/proj-apartments-1.jpg"],
+    images: [],
     summary: "Our flagship development — a premium high-rise offering fully serviced luxury apartments in the heart of Gulberg.",
     story: "ACC Serviced Apartments is our proudest commercial venture. Spanning multiple floors of modern living space, the project combines contemporary architecture with premium finishing throughout. From the structural foundation to the final interiors, our team managed every phase in-house. The building offers spacious apartments, dedicated parking, and shared amenities designed for comfortable urban living. Investment and residency inquiries are welcome.",
     highlights: ["High-rise structure", "Premium finishing", "Now open for inquiries"],

@@ -232,7 +232,7 @@ function Home() {
                 <div className="project-card-location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>Ghari Shahu, Lahore</div>
               </div>
             </div>
-            <div className="project-card reveal">
+            <div className="project-card reveal"> {/* Here we have to put the url like the railway one before the span className */}
               <div className="project-card-image"><span className="project-card-badge">Residential</span></div>
               <div className="project-card-body">
                 <h3>Central Park Residences</h3>
@@ -240,7 +240,7 @@ function Home() {
               </div>
             </div>
             <div className="project-card reveal">
-              <div className="project-card-image" style={{ backgroundImage: "url('/images/home-apartments-cover.jpg')" }}><span className="project-card-badge">Commercial</span></div>
+              <div className="project-card-image"><span className="project-card-badge">Commercial</span></div>
               <div className="project-card-body">
                 <h3>ACC Serviced Apartments</h3>
                 <div className="project-card-location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>Gulberg, Lahore</div>
