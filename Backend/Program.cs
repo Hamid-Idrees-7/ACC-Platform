@@ -23,6 +23,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClientService, ClientService>();
 
+builder.Services.AddScoped<IInquiryRepository, InquiryRepository>();
+builder.Services.AddScoped<IInquiryService, InquiryService>();
+
 builder.Services.AddScoped<Backend.Auth.TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 

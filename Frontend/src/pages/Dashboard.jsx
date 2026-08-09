@@ -1,12 +1,31 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
+import { inquiryService } from "../services/inquiryService";
 import "./Dashboard.css";
 
 function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const firstName = (user?.fullName || user?.username || "there").split(" ")[0];
+
+  const [queries, setQueries] = useState([]);
+  const [loadingQueries, setLoadingQueries] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await inquiryService.getAll();
+        setQueries(data);
+      } catch {
+        // silent - dashboard still works without queries
+      } finally {
+        setLoadingQueries(false);
+      }
+    };
+    load();
+  }, []);
 
   const stats = [
     { label: "Total Users", value: "0", icon: "users" },
@@ -24,6 +43,15 @@ function Dashboard() {
     };
     return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{i[name]}</svg>;
   };
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-GB", {
+      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
+    });
+  };
+
+  const unreadCount = queries.filter((q) => !q.isRead).length;
 
   return (
     <DashboardLayout title="Dashboard">
@@ -58,15 +86,40 @@ function Dashboard() {
                 <p>Latest messages from your website</p>
               </div>
             </div>
+            {unreadCount > 0 && <span className="dash-queries-badge">{unreadCount} new</span>}
           </div>
 
-          <div className="dash-queries-empty">
-            <div className="dash-queries-empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          {loadingQueries ? (
+            <div className="dash-queries-empty">
+              <div className="dash-queries-spinner" />
             </div>
-            <h4>No queries yet</h4>
-            <p>Messages from your website contact form will appear here</p>
-          </div>
+          ) : queries.length === 0 ? (
+            <div className="dash-queries-empty">
+              <div className="dash-queries-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              </div>
+              <h4>No queries yet</h4>
+              <p>Messages from your website contact form will appear here</p>
+            </div>
+          ) : (
+            <div className="dash-queries-list">
+              {queries.map((q) => (
+                <div className={`dash-query-item ${!q.isRead ? "unread" : ""}`} key={q.inquiryID}>
+                  <div className="dash-query-avatar">{q.name.charAt(0).toUpperCase()}</div>
+                  <div className="dash-query-content">
+                    <div className="dash-query-top">
+                      <span className="dash-query-name">
+                        {q.name}
+                        {!q.isRead && <span className="dash-query-dot" />}
+                      </span>
+                      <span className="dash-query-time">{formatDate(q.createdAt)}</span>
+                    </div>
+                    <p className="dash-query-msg">{q.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <button className="dash-queries-viewall" onClick={() => navigate("/dashboard/queries")}>
             View all queries →

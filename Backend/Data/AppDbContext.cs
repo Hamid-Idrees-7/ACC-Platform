@@ -16,5 +16,6 @@ namespace Backend.Data
         // "Clients" is the table name; it holds records of type Client.
         public DbSet<Client> Clients { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Inquiry> Inquiries { get; set; }
     }
 }

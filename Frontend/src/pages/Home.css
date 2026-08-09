@@ -1589,3 +1589,32 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
 /* Hide blueprint texture on project cards that have a real image */
 .project-card-image[style*="background-image"]::before { display: none; }
+
+
+/* Honeypot field - hidden from real users */
+.contact-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+
+/* Message character counter */
+.form-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.char-counter {
+    font-size: 12px;
+    font-weight: 500;
+    color: #aaa;
+    transition: color 0.2s ease;
+}
+.char-counter.warn {
+    color: var(--color-error, #F04438);
+    font-weight: 600;
+}

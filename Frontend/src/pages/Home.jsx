@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import api from "../services/api";
 import "./Home.css";
 
 // Reusable navbar logo (with "by Hamid Idrees" tag) — used on all pages
@@ -41,10 +42,11 @@ function Home() {
   }, [location]);
 
   // Contact form state
-  const [form, setForm] = useState({ name: "", phone: "", email: "", service: "", message: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", service: "", message: "", website: "" });
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [shake, setShake] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,18 +91,58 @@ function Home() {
     setForm({ ...form, [field]: value });
   };
 
-  const handleContactSubmit = () => {
-    // Required: name, phone, service
-    if (!form.name.trim() || !form.phone.trim() || !form.service.trim()) {
-      setFormError("Please fill in your name, phone, and the service you need.");
-      setFormSuccess("");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+  const showError = (msg) => {
+    setFormError(msg);
+    setFormSuccess("");
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  };
+
+  const handleContactSubmit = async () => {
+    // Required: name, phone, service, message
+    if (!form.name.trim() || !form.phone.trim() || !form.service.trim() || !form.message.trim()) {
+      showError("Please fill in your name, phone, service, and message.");
       return;
     }
+
+    // Phone validation: starts with 0 or +92, and has 11 digits (after normalizing +92 to 0)
+    const rawPhone = form.phone.trim().replace(/[\s-]/g, "");
+    const normalized = rawPhone.startsWith("+92") ? "0" + rawPhone.slice(3) : rawPhone;
+    if (!/^0\d{10}$/.test(normalized)) {
+      showError("Please enter a valid phone number (11 digits, starting with 0 or +92).");
+      return;
+    }
+
+    // Email validation (only if provided, since it's optional)
+    if (form.email.trim()) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(form.email.trim())) {
+        showError("Please enter a valid email address.");
+        return;
+      }
+    }
+
+    setSubmitting(true);
     setFormError("");
-    setFormSuccess("Thank you! Your message has been sent. We'll be in touch within 24 hours.");
-    setForm({ name: "", phone: "", email: "", service: "", message: "" });
+    setFormSuccess("");
+
+    try {
+      const response = await api.post("/inquiries", {
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        service: form.service,
+        message: form.message,
+        website: form.website,
+      });
+      setFormSuccess(response.data.message || "Thank you! Your message has been sent.");
+      setForm({ name: "", phone: "", email: "", service: "", message: "", website: "" });
+    } catch (err) {
+      // Show the backend's message (e.g. rate limit) if available
+      showError(err.response?.data?.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -232,7 +274,7 @@ function Home() {
                 <div className="project-card-location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>Ghari Shahu, Lahore</div>
               </div>
             </div>
-            <div className="project-card reveal"> {/* Here we have to put the url like the railway one before the span className */}
+            <div className="project-card reveal">
               <div className="project-card-image"><span className="project-card-badge">Residential</span></div>
               <div className="project-card-body">
                 <h3>Central Park Residences</h3>
@@ -331,16 +373,16 @@ function Home() {
                 <div className="contact-form-row">
                   <div className="form-group">
                     <label className="form-label">Full Name <span className="req">*</span></label>
-                    <input type="text" className="form-input" placeholder="Your name" value={form.name} onChange={(e) => handleFormChange("name", e.target.value)} />
+                    <input type="text" className="form-input" placeholder="Your name" maxLength={50} value={form.name} onChange={(e) => handleFormChange("name", e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Phone <span className="req">*</span></label>
-                    <input type="text" className="form-input" placeholder="+92 300 0000000" value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} />
+                    <input type="text" className="form-input" placeholder="+92 300 0000000" maxLength={15} value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} />
                   </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
-                  <input type="email" className="form-input" placeholder="you@example.com" value={form.email} onChange={(e) => handleFormChange("email", e.target.value)} />
+                  <input type="email" className="form-input" placeholder="you@example.com" maxLength={50} value={form.email} onChange={(e) => handleFormChange("email", e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Service Needed <span className="req">*</span></label>
@@ -354,12 +396,37 @@ function Home() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Your Message</label>
-                  <textarea className="form-input contact-textarea" placeholder="Tell us about your project..." rows="3" value={form.message} onChange={(e) => handleFormChange("message", e.target.value)}></textarea>
+                  <div className="form-label-row">
+                    <label className="form-label">Your Message <span className="req">*</span></label>
+                    <span className={`char-counter ${form.message.length >= 450 ? "warn" : ""}`}>
+                      {form.message.length}/500
+                    </span>
+                  </div>
+                  <textarea
+                    className="form-input contact-textarea"
+                    placeholder="Tell us about your project..."
+                    rows="3"
+                    maxLength={500}
+                    value={form.message}
+                    onChange={(e) => handleFormChange("message", e.target.value)}
+                  ></textarea>
                 </div>
-                <button type="button" className="btn-submit" onClick={handleContactSubmit}>
-                  Send Message
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+
+                {/* Honeypot: hidden from real users, bots tend to fill it */}
+                <input
+                  type="text"
+                  className="contact-hp"
+                  tabIndex="-1"
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(e) => handleFormChange("website", e.target.value)}
+                />
+
+                <button type="button" className="btn-submit" onClick={handleContactSubmit} disabled={submitting}>
+                  {submitting ? "Sending..." : "Send Message"}
+                  {!submitting && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                  )}
                 </button>
               </div>
             </div>
