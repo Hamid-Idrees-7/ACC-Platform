@@ -244,7 +244,7 @@ a {
     }
 }
 
-main {
+.acc-site main {
     margin-top: 80px;
 }
 
@@ -1385,9 +1385,7 @@ main {
 
 
 
-/* ============================================================ */
-/* FORGOT PASSWORD MODAL                                         */
-/* ============================================================ */
+/* FORGOT PASSWORD MODAL*/
 
 .forgot-modal {
     display: none;
@@ -1473,9 +1471,7 @@ main {
         margin-bottom: 4px;
     }
 
-/* ============================================================ */
-/* PUBLIC SITE ADDITIONS + FIXES (v2)                          */
-/* ============================================================ */
+/* PUBLIC SITE ADDITIONS + FIXES */
 
 /* SCROLL REVEAL */
 .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
@@ -1517,7 +1513,7 @@ main {
 .btn-text-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 30px; color: var(--primary); font-weight: 600; font-size: 15px; transition: var(--transition); }
 .btn-text-link:hover { gap: 12px; color: var(--primary-dark); }
 
-/* ===== COLOR SCHEME: about(white) services(yellow) projects(white) whyus(yellow) contact(white) ===== */
+/*  COLOR SCHEME: about(white) services(yellow) projects(white) whyus(yellow) contact(white)  */
 
 /* SERVICES SECTION (yellow/cream) */
 .services-section { padding: var(--section-padding); background: var(--cream); }
@@ -1546,9 +1542,7 @@ main {
 /* WHY US - yellow */
 .why-us-cream { background: var(--cream) !important; }
 
-/* ============================================================ */
-/* CONTACT SECTION - white bg, compact form                    */
-/* ============================================================ */
+/* CONTACT SECTION - white bg, compact form */
 .contact-section { padding: var(--section-padding); background: var(--white); }
 .contact-wrapper { max-width: 1050px; margin: 0 auto; background: var(--white); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow-lg); border: 1px solid #F0F0F0; display: grid; grid-template-columns: 1fr 1.15fr; }
 .contact-left { background: linear-gradient(135deg, var(--charcoal) 0%, var(--dark-brown) 100%); color: var(--white); padding: 48px 42px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
