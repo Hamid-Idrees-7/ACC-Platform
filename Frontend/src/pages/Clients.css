@@ -111,7 +111,7 @@
 
 .cl-error {
     background: #fef3f2;
-    color: #d92d20;
+    color: var(--color-error);
     padding: 12px 16px;
     border-radius: 10px;
     margin-bottom: 16px;
@@ -225,7 +225,7 @@
 .cl-badge-external { background: #e7f8ef; color: #0e9456; }
 .cl-badge-internal { background: #fff2ee; color: var(--color-primary); }
 .cl-badge-active { background: #e7f8ef; color: #0e9456; }
-.cl-badge-inactive { background: #fef3f2; color: #d92d20; }
+.cl-badge-inactive { background: #fef3f2; color: var(--color-error); }
 
 .cl-card-info {
     border-top: 1px solid #f0f0f0;
@@ -342,7 +342,7 @@
 .cl-detail-disable:hover { background: #f4f5f7; }
 .cl-detail-enable { background: #fff; border-color: #bbe8cf; color: #0e9456; }
 .cl-detail-enable:hover { background: #f0fdf4; }
-.cl-detail-delete { background: #fff; border-color: #f0d0d0; color: #e5484d; }
+.cl-detail-delete { background: #fff; border-color: #f0d0d0; color: var(--color-error); }
 .cl-detail-delete:hover { background: #fdf0f0; }
 
 /* Confirm dialog */
@@ -362,7 +362,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #e5484d;
+    color: var(--color-error);
     margin: 0 auto 18px;
 }
 .cl-confirm-icon svg { width: 30px; height: 30px; }
@@ -381,8 +381,8 @@
 }
 .cl-confirm-cancel { background: #f4f5f7; color: #555; }
 .cl-confirm-cancel:hover { background: #ebedf0; }
-.cl-confirm-delete { background: #e5484d; color: #fff; }
-.cl-confirm-delete:hover { background: #d13b40; }
+.cl-confirm-delete { background: var(--color-error); color: #fff; }
+.cl-confirm-delete:hover { background: var(--color-error); }
 
 /* Toast */
 .cl-toast {
@@ -404,7 +404,7 @@
 }
 .cl-toast-success { background: #12b76a; }
 .cl-toast-warn { background: #667085; }
-.cl-toast-error { background: #e5484d; }
+.cl-toast-error { background: var(--color-error); }
 
 /* Responsive */
 @media (max-width: 900px) {

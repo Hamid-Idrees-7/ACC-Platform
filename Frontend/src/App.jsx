@@ -48,11 +48,14 @@ function App() {
           <Route path="/dashboard/attendance" element={<UnderConstruction title="Attendance" />} />
           <Route path="/dashboard/salaries" element={<UnderConstruction title="Salaries" />} />
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
-          <Route path="/dashboard/reports" element={<UnderConstruction title="Reports" />} />
           <Route path="/dashboard/notifications" element={<UnderConstruction title="Notifications" />} />
           <Route path="/dashboard/settings" element={<UnderConstruction title="Settings" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
           <Route path="/dashboard/control-unit" element={<UnderConstruction title="Control Unit" />} />
+          <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
+          <Route path="/dashboard/reports" element={<UnderConstruction title="Reports" />} />
+
+
 
           {/* ===== Fallback ===== */}
           <Route path="*" element={<Navigate to="/" replace />} />

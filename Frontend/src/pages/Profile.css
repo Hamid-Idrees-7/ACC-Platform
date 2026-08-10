@@ -109,7 +109,7 @@
     background: none;
     border: 1px solid #f0d0d0;
     border-radius: 10px;
-    color: #e5484d;
+    color: var(--color-error);
     font-family: 'Inter', sans-serif;
     font-size: 13.5px;
     font-weight: 600;
@@ -203,7 +203,7 @@
 }
 .pf-label-row label { margin-bottom: 0; }
 .pf-counter { font-size: 12px; font-weight: 500; color: #aaa; transition: color 0.2s ease; }
-.pf-counter.warn { color: var(--color-error, #F04438); font-weight: 600; }
+.pf-counter.warn { color: var(--color-error, var(--color-error)); font-weight: 600; }
 .pf-field .req { color: var(--color-primary); }
 .pf-field input, .pf-field textarea {
     padding: 11px 14px;
@@ -244,7 +244,7 @@
     margin-bottom: 18px;
 }
 .pf-msg-success { background: #ecfdf3; color: #027a48; }
-.pf-msg-error { background: #fef3f2; color: #d92d20; }
+.pf-msg-error { background: #fef3f2; color: var(--color-error); }
 
 .pf-section-actions { display: flex; justify-content: flex-end; margin-top: 22px; }
 .pf-btn-save {

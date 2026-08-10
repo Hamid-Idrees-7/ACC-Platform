@@ -1,6 +1,4 @@
-/* ============================================================ */
-/* DASHBOARD LAYOUT - fixed header, scrollable content        */
-/* ============================================================ */
+/* DASHBOARD LAYOUT */
 
 /* Lock the whole layout to the viewport */
 .dash-layout {
@@ -63,7 +61,7 @@
 .dash-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 .dash-nav::-webkit-scrollbar-track { background: transparent; }
 
-.dash-nav-section { margin-bottom: 20px; }
+.dash-nav-section { margin-bottom: 16px; }
 .dash-nav-title {
     font-size: 11px;
     font-weight: 700;
@@ -109,8 +107,8 @@
 }
 .dash-nav-icon svg { width: 19px; height: 19px; }
 
-.dash-nav-logout { color: #ff6b6b; }
-.dash-nav-logout:hover { background: rgba(255,107,107,0.12); color: #ff6b6b; }
+.dash-nav-logout { color: var(--color-error); margin-top: 4px; }
+.dash-nav-logout:hover { background: rgba(220,38,38,0.12); color: var(--color-error); }
 
 /* ===================== MAIN ===================== */
 .dash-main {

@@ -25,7 +25,6 @@ const navSections = [
       { id: "attendance", label: "Attendance", path: "/dashboard/attendance", icon: "clipboard" },
       { id: "salaries", label: "Salaries", path: "/dashboard/salaries", icon: "card" },
       { id: "billing", label: "Billing & Invoices", path: "/dashboard/billing", icon: "dollar" },
-      { id: "reports", label: "Reports", path: "/dashboard/reports", icon: "chart" },
       { id: "notifications", label: "Notifications", path: "/dashboard/notifications", icon: "bell" },
     ],
   },

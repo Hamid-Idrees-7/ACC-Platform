@@ -19,7 +19,7 @@ function Dashboard() {
         const data = await inquiryService.getAll();
         setQueries(data);
       } catch {
-        // silent - dashboard still works without queries
+        // silent
       } finally {
         setLoadingQueries(false);
       }
@@ -44,13 +44,6 @@ function Dashboard() {
     return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{i[name]}</svg>;
   };
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleString("en-GB", {
-      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
-    });
-  };
-
   const unreadCount = queries.filter((q) => !q.isRead).length;
 
   return (
@@ -72,83 +65,67 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* Bottom grid: Queries (left) + Approvals/Control (right) */}
-      <div className="dash-bottom">
-        {/* QUERIES */}
-        <div className="dash-queries">
-          <div className="dash-queries-head">
-            <div className="dash-queries-title">
-              <div className="dash-queries-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-              </div>
-              <div>
-                <h3>Recent Queries</h3>
-                <p>Latest messages from your website</p>
-              </div>
+      {/* Action grid: 2 columns of module cards + tall AI card */}
+      <div className="dash-grid">
+        {/* Messages */}
+        <button className="dash-mod-card" onClick={() => navigate("/dashboard/queries")}>
+          <div className="dash-mod-top">
+            <div className="dash-mod-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             </div>
-            {unreadCount > 0 && <span className="dash-queries-badge">{unreadCount} new</span>}
+            <span className="dash-mod-count">{loadingQueries ? 0 : unreadCount}</span>
           </div>
+          <h3>Messages</h3>
+          <p>New inquiries from your website</p>
+        </button>
 
-          {loadingQueries ? (
-            <div className="dash-queries-empty">
-              <div className="dash-queries-spinner" />
+        {/* Control Unit */}
+        <button className="dash-mod-card" onClick={() => navigate("/dashboard/control-unit")}>
+          <div className="dash-mod-top">
+            <div className="dash-mod-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
             </div>
-          ) : queries.length === 0 ? (
-            <div className="dash-queries-empty">
-              <div className="dash-queries-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-              </div>
-              <h4>No queries yet</h4>
-              <p>Messages from your website contact form will appear here</p>
-            </div>
-          ) : (
-            <div className="dash-queries-list">
-              {queries.map((q) => (
-                <div className={`dash-query-item ${!q.isRead ? "unread" : ""}`} key={q.inquiryID}>
-                  <div className="dash-query-avatar">{q.name.charAt(0).toUpperCase()}</div>
-                  <div className="dash-query-content">
-                    <div className="dash-query-top">
-                      <span className="dash-query-name">
-                        {q.name}
-                        {!q.isRead && <span className="dash-query-dot" />}
-                      </span>
-                      <span className="dash-query-time">{formatDate(q.createdAt)}</span>
-                    </div>
-                    <p className="dash-query-msg">{q.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
+          <h3>Control Unit</h3>
+          <p>Manage user access and permissions</p>
+        </button>
 
-          <button className="dash-queries-viewall" onClick={() => navigate("/dashboard/queries")}>
-            View all queries →
-          </button>
-        </div>
-
-        {/* RIGHT: Approvals + Control Unit */}
-        <div className="dash-side-cards">
-          <button className="dash-action-card" onClick={() => navigate("/dashboard/approvals")}>
-            <div className="dash-action-top">
-              <div className="dash-action-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-              </div>
-              <span className="dash-action-count">0</span>
+        {/* AI card - special, spans both rows */}
+        <button className="dash-ai-card" onClick={() => navigate("/dashboard/ai")}>
+          <div className="dash-ai-glow" />
+          <div className="dash-ai-content">
+            <div className="dash-ai-badge">Coming Soon</div>
+            <div className="dash-ai-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" /><circle cx="8.5" cy="13.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="13.5" r="1.5" fill="currentColor" /></svg>
             </div>
-            <h3>Pending Approvals</h3>
-            <p>Requests waiting for your review</p>
-          </button>
+            <h3>AI Assistant</h3>
+            <p>Chat with your intelligent construction assistant. Ask questions, get insights, and manage work — like having an expert on call.</p>
+            <span className="dash-ai-link">Explore <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></span>
+          </div>
+        </button>
 
-          <button className="dash-action-card" onClick={() => navigate("/dashboard/control-unit")}>
-            <div className="dash-action-top">
-              <div className="dash-action-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-              </div>
+        {/* Approvals */}
+        <button className="dash-mod-card" onClick={() => navigate("/dashboard/approvals")}>
+          <div className="dash-mod-top">
+            <div className="dash-mod-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
             </div>
-            <h3>Control Unit</h3>
-            <p>Manage user access and permissions</p>
-          </button>
-        </div>
+            <span className="dash-mod-count">0</span>
+          </div>
+          <h3>Pending Approvals</h3>
+          <p>Requests waiting for your review</p>
+        </button>
+
+        {/* Reports */}
+        <button className="dash-mod-card" onClick={() => navigate("/dashboard/reports")}>
+          <div className="dash-mod-top">
+            <div className="dash-mod-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+            </div>
+          </div>
+          <h3>Reports</h3>
+          <p>Business insights and analytics</p>
+        </button>
       </div>
     </DashboardLayout>
   );

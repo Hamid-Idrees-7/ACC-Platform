@@ -9,6 +9,12 @@ function Queries() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // id to delete, or "all"
+  const [toast, setToast] = useState(null);
+
+  const showToast = (text) => {
+    setToast(text);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const loadInquiries = async () => {
     setLoading(true);
@@ -47,6 +53,7 @@ function Queries() {
       await inquiryService.delete(id);
       setInquiries((prev) => prev.filter((i) => i.inquiryID !== id));
       if (selected?.inquiryID === id) setSelected(null);
+      showToast("Message deleted.");
     } catch {
       setError("Could not delete the message.");
     }
@@ -58,6 +65,7 @@ function Queries() {
       await inquiryService.deleteAll();
       setInquiries([]);
       setSelected(null);
+      showToast("All messages deleted.");
     } catch {
       setError("Could not clear messages.");
     }
@@ -188,6 +196,9 @@ function Queries() {
           </div>
         </div>
       )}
+
+      {/* Delete toast (bottom-right, red) */}
+      {toast && <div className="q-toast">{toast}</div>}
 
       {/* Confirm delete modal */}
       {confirmDelete !== null && (
