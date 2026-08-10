@@ -11,7 +11,7 @@ namespace Backend.Models.Entities
 
         // Client's full name - required, max 100 characters
         [Required]
-        [MaxLength(100)]
+        [MaxLength(50)]
         public string FullName { get; set; } = string.Empty;
 
         // Email address - optional, max 100 characters
@@ -20,16 +20,17 @@ namespace Backend.Models.Entities
 
         // Primary phone number - required, max 20 characters
         [Required]
-        [MaxLength(20)]
+        [MaxLength(15)]
         public string Phone { get; set; } = string.Empty;
 
         // Secondary phone number - optional
-        [MaxLength(20)]
+        [MaxLength(15)]
         public string? SecondaryPhone { get; set; }
 
-        // CNIC (national ID) - optional, max 15 characters
+        // CNIC (national ID) - required, 13 digits
+        [Required]
         [MaxLength(15)]
-        public string? CNIC { get; set; }
+        public string CNIC { get; set; } = string.Empty;
 
         // Physical address - optional
         [MaxLength(255)]
@@ -43,6 +44,7 @@ namespace Backend.Models.Entities
         [Required]
         [MaxLength(20)]
         public string ClientType { get; set; } = "External";
+
 
         // Status: "Active" or "Inactive" - defaults to Active
         [Required]

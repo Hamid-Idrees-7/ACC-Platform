@@ -14,6 +14,9 @@ import Dashboard from "./pages/Dashboard";
 import Queries from "./pages/Queries";
 import Profile from "./pages/Profile";
 
+// Modules
+import Clients from "./pages/Clients";
+
 
 import UnderConstruction from "./pages/UnderConstruction";
 
@@ -34,8 +37,10 @@ function App() {
           <Route path="/dashboard/queries" element={<Queries />} />
           <Route path="/dashboard/profile" element={<Profile />} />
 
+          {/* ===== Modules ===== */}
+          <Route path="/dashboard/clients" element={<Clients />} />
+
           <Route path="/dashboard/users" element={<UnderConstruction title="Users" />} />
-          <Route path="/dashboard/clients" element={<UnderConstruction title="Clients" />} />
           <Route path="/dashboard/employees" element={<UnderConstruction title="Employees" />} />
           <Route path="/dashboard/materials" element={<UnderConstruction title="Materials" />} />
           <Route path="/dashboard/assignments" element={<UnderConstruction title="Assignments" />} />
