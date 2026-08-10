@@ -81,7 +81,8 @@ namespace Backend.Services
                 UserID = user.UserID,
                 Username = user.Username,
                 FullName = user.FullName,
-                Role = user.Role
+                Role = user.Role,
+                ProfilePicture = user.ProfilePicture
             };
         }
     }

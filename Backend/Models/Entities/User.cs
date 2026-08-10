@@ -38,6 +38,17 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string? Phone { get; set; }
 
+        // Secondary phone - optional
+        [MaxLength(20)]
+        public string? SecondaryPhone { get; set; }
+
+        // Short bio / description - optional
+        [MaxLength(300)]
+        public string? Bio { get; set; }
+
+        // Profile picture stored as a Base64 string - optional
+        public string? ProfilePicture { get; set; }
+
         // Whether the account is active - defaults to true
         public bool IsActive { get; set; } = true;
 

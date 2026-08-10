@@ -8,9 +8,12 @@ import Projects from "./pages/Projects";
 import Privacy from "./pages/Privacy";
 import Login from "./pages/Login";
 
+
 // Dashboard pages
 import Dashboard from "./pages/Dashboard";
 import Queries from "./pages/Queries";
+import Profile from "./pages/Profile";
+
 
 import UnderConstruction from "./pages/UnderConstruction";
 
@@ -29,6 +32,7 @@ function App() {
           {/* ===== Dashboard ===== */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/queries" element={<Queries />} />
+          <Route path="/dashboard/profile" element={<Profile />} />
 
           <Route path="/dashboard/users" element={<UnderConstruction title="Users" />} />
           <Route path="/dashboard/clients" element={<UnderConstruction title="Clients" />} />
@@ -41,7 +45,6 @@ function App() {
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
           <Route path="/dashboard/reports" element={<UnderConstruction title="Reports" />} />
           <Route path="/dashboard/notifications" element={<UnderConstruction title="Notifications" />} />
-          <Route path="/dashboard/profile" element={<UnderConstruction title="My Profile" />} />
           <Route path="/dashboard/settings" element={<UnderConstruction title="Settings" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
           <Route path="/dashboard/control-unit" element={<UnderConstruction title="Control Unit" />} />

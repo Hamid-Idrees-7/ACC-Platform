@@ -105,6 +105,7 @@ function DashboardLayout({ title, children }) {
   const displayName = user?.fullName || user?.username || "User";
   const initials = displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   const role = user?.role || "User";
+  const photo = user?.profilePicture || null;
 
   return (
     <div className="dash-layout">
@@ -164,7 +165,11 @@ function DashboardLayout({ title, children }) {
 
             <div className="dash-profile" ref={profileRef}>
               <button className="dash-profile-btn" onClick={() => setProfileOpen(!profileOpen)}>
-                <span className="dash-avatar">{initials}</span>
+                {photo ? (
+                  <img src={photo} alt="" className="dash-avatar-img" />
+                ) : (
+                  <span className="dash-avatar">{initials}</span>
+                )}
                 <span className="dash-profile-info">
                   <strong>{displayName}</strong>
                   <span>{role}</span>

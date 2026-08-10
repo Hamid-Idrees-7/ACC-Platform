@@ -20,20 +20,23 @@ export function AuthProvider({ children }) {
   // Called after a successful login - save token and user info
   const login = (authData) => {
     localStorage.setItem("token", authData.token);
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
-        userID: authData.userID,
-        username: authData.username,
-        fullName: authData.fullName,
-        role: authData.role,
-      })
-    );
-    setUser({
+    const userInfo = {
       userID: authData.userID,
       username: authData.username,
       fullName: authData.fullName,
       role: authData.role,
+      profilePicture: authData.profilePicture || null,
+    };
+    localStorage.setItem("user", JSON.stringify(userInfo));
+    setUser(userInfo);
+  };
+
+  // Update user info only (keeps the token untouched)
+  const updateUser = (updatedFields) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...updatedFields };
+      localStorage.setItem("user", JSON.stringify(merged));
+      return merged;
     });
   };
 
@@ -45,7 +48,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

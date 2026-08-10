@@ -20,12 +20,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register our N-tier services (Dependency Injection)
+// Client
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClientService, ClientService>();
-
+// Inquiry
 builder.Services.AddScoped<IInquiryRepository, InquiryRepository>();
 builder.Services.AddScoped<IInquiryService, InquiryService>();
-
+// My Profile
+builder.Services.AddScoped<IProfileService, ProfileService>();
+// Auth
 builder.Services.AddScoped<Backend.Auth.TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 

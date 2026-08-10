@@ -1,0 +1,107 @@
+.crop-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: cropfade 0.15s ease;
+}
+@keyframes cropfade { from { opacity: 0; } to { opacity: 1; } }
+
+.crop-modal {
+    background: #fff;
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    animation: cropin 0.2s ease;
+}
+@keyframes cropin {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+.crop-modal h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+}
+.crop-modal > p { color: #999; font-size: 13.5px; margin-bottom: 20px; }
+
+.crop-area {
+    position: relative;
+    margin: 0 auto 20px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #1a1a1a;
+    cursor: grab;
+    touch-action: none;
+}
+.crop-area:active { cursor: grabbing; }
+.crop-frame {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+    pointer-events: none;
+    border: 2px solid rgba(255,255,255,0.8);
+}
+
+.crop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    color: #999;
+}
+.crop-zoom input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: #e4e7ec;
+    outline: none;
+}
+.crop-zoom input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.crop-zoom input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 2px solid #fff;
+}
+
+.crop-actions {
+    display: flex;
+    gap: 12px;
+}
+.crop-cancel, .crop-done {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.18s ease;
+}
+.crop-cancel { background: #f4f5f7; color: #555; }
+.crop-cancel:hover { background: #ebedf0; }
+.crop-done { background: var(--color-primary); color: #fff; }
+.crop-done:hover { background: #d94f24; }

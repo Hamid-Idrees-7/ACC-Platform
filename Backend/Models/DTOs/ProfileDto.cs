@@ -1,13 +1,15 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // What we send back after a successful login/register
-    public class AuthResponseDto
+    public class ProfileDto
     {
-        public string Token { get; set; } = string.Empty;
         public int UserID { get; set; }
         public string Username { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? SecondaryPhone { get; set; }
+        public string? Bio { get; set; }
         public string? ProfilePicture { get; set; }
     }
 }
