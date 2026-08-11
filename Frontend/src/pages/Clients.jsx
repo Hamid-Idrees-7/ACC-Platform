@@ -11,8 +11,8 @@ function Clients() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");    // All | External | Internal
-  const [statusFilter, setStatusFilter] = useState("All"); // All | Active | Inactive
+  const [typeFilter, setTypeFilter] = useState("All");    // All | External | Internal (via buttons)
+  const [statusFilter, setStatusFilter] = useState("All"); // All | Active | Inactive (via cards)
 
   // Modals
   const [formModal, setFormModal] = useState(null); // { mode, data }
@@ -43,11 +43,11 @@ function Clients() {
 
   useEffect(() => { loadClients(); }, []);
 
-  // Stats
+  // Stats (now Total / Active / Inactive)
   const stats = useMemo(() => ({
     total: clients.length,
-    external: clients.filter((c) => c.clientType === "External").length,
-    internal: clients.filter((c) => c.clientType === "Internal").length,
+    active: clients.filter((c) => c.status === "Active").length,
+    inactive: clients.filter((c) => c.status === "Inactive").length,
   }), [clients]);
 
   // Filtered + sorted (inactive always last)
@@ -108,30 +108,31 @@ function Clients() {
 
   const initials = (name) => (name || "C").charAt(0).toUpperCase();
 
+  // Stat cards now filter by STATUS (Total / Active / Inactive)
   const statCards = [
-    { key: "All", label: "Total Clients", value: loading ? "" : stats.total, icon: "users", color: "blue" },
-    { key: "External", label: "External Clients", value: loading ? "" : stats.external, icon: "alert", color: "green" },
-    { key: "Internal", label: "Internal Clients", value: loading ? "" : stats.internal, icon: "home", color: "orange" },
+    { key: "All", label: "Total Clients", value: loading ? "" : stats.total, icon: "users" },
+    { key: "Active", label: "Active", value: loading ? "" : stats.active, icon: "check" },
+    { key: "Inactive", label: "Inactive", value: loading ? "" : stats.inactive, icon: "pause" },
   ];
 
   const statIcon = (name) => {
     const i = {
       users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-      alert: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>,
-      home: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>,
+      check: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></>,
+      pause: <><circle cx="12" cy="12" r="10" /><line x1="10" y1="15" x2="10" y2="9" /><line x1="14" y1="15" x2="14" y2="9" /></>,
     };
     return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{i[name]}</svg>;
   };
 
   return (
     <DashboardLayout title="Client Management">
-      {/* Stat cards (clickable to filter type) */}
+      {/* Stat cards (clickable to filter by status: Total / Active / Inactive) */}
       <div className="cl-stats">
         {statCards.map((s) => (
           <button
             key={s.key}
-            className={`cl-stat ${typeFilter === s.key ? "active" : ""} cl-stat-${s.color}`}
-            onClick={() => setTypeFilter(s.key)}
+            className={`cl-stat ${statusFilter === s.key ? "active" : ""} cl-stat-${s.key.toLowerCase()}`}
+            onClick={() => setStatusFilter(s.key)}
           >
             <div className="cl-stat-icon">{statIcon(s.icon)}</div>
             <div className="cl-stat-text">
@@ -142,7 +143,7 @@ function Clients() {
         ))}
       </div>
 
-      {/* Toolbar: search + status filter + add */}
+      {/* Toolbar: search + type filter (All / External / Internal) + add */}
       <div className="cl-toolbar">
         <div className="cl-search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -150,8 +151,8 @@ function Clients() {
         </div>
 
         <div className="cl-status-filter">
-          {["All", "Active", "Inactive"].map((s) => (
-            <button key={s} className={statusFilter === s ? "active" : ""} onClick={() => setStatusFilter(s)}>{s}</button>
+          {["All", "External", "Internal"].map((t) => (
+            <button key={t} className={typeFilter === t ? "active" : ""} onClick={() => setTypeFilter(t)}>{t}</button>
           ))}
         </div>
 
