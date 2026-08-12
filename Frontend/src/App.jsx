@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Queries from "./pages/Queries";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 // Modules
 import Clients from "./pages/Clients";
@@ -38,6 +39,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/queries" element={<Queries />} />
           <Route path="/dashboard/profile" element={<Profile />} />
+          <Route path="/dashboard/settings" element={<Settings />} />
 
           {/* ===== Modules ===== */}
           <Route path="/dashboard/clients" element={<Clients />} />
@@ -52,7 +54,6 @@ function App() {
           <Route path="/dashboard/salaries" element={<UnderConstruction title="Salaries" />} />
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
           <Route path="/dashboard/notifications" element={<UnderConstruction title="Notifications" />} />
-          <Route path="/dashboard/settings" element={<UnderConstruction title="Settings" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
           <Route path="/dashboard/control-unit" element={<UnderConstruction title="Control Unit" />} />
           <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />

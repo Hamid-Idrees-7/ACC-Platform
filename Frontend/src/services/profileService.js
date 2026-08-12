@@ -24,4 +24,16 @@ export const profileService = {
     const response = await api.put("/profile/password", { currentPassword, newPassword });
     return response.data;
   },
+
+  // Change my username (requires current password for re-authentication)
+  changeUsername: async (currentPassword, newUsername) => {
+    const response = await api.put("/profile/username", { currentPassword, newUsername });
+    return response.data;
+  },
+
+  // Verify the current password (for sensitive-action re-authentication)
+  verifyPassword: async (password) => {
+    const response = await api.post("/profile/verify-password", { password });
+    return response.data;
+  },
 };

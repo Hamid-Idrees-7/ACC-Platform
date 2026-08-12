@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./DashboardLayout.css";
@@ -31,7 +31,6 @@ const navSections = [
   {
     title: "Account",
     items: [
-      { id: "profile", label: "My Profile", path: "/dashboard/profile", icon: "user" },
       { id: "settings", label: "Settings", path: "/dashboard/settings", icon: "settings" },
     ],
   },
@@ -49,7 +48,6 @@ function Icon({ name }) {
     clipboard: <><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /></>,
     card: <><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></>,
     dollar: <><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>,
-    chart: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
     bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>,
@@ -64,24 +62,11 @@ function Icon({ name }) {
 }
 
 function DashboardLayout({ title, children }) {
-  const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const profileRef = useRef(null);
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  // Close mobile sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
@@ -108,7 +93,6 @@ function DashboardLayout({ title, children }) {
 
   return (
     <div className="dash-layout">
-      {/* Mobile overlay */}
       {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} />}
 
       {/* SIDEBAR */}
@@ -120,7 +104,7 @@ function DashboardLayout({ title, children }) {
         </div>
 
         <nav className="dash-nav">
-          {navSections.map((section) => (
+          {navSections.map((section, idx) => (
             <div className="dash-nav-section" key={section.title}>
               <div className="dash-nav-title">{section.title}</div>
               {section.items.map((item) => (
@@ -133,21 +117,20 @@ function DashboardLayout({ title, children }) {
                   {item.label}
                 </button>
               ))}
+              {/* Logout sits inside the last (Account) section - no separate gap */}
+              {idx === navSections.length - 1 && (
+                <button className="dash-nav-item dash-nav-logout" onClick={handleLogout}>
+                  <span className="dash-nav-icon"><Icon name="logout" /></span>
+                  Logout
+                </button>
+              )}
             </div>
           ))}
-
-          <div className="dash-nav-section">
-            <button className="dash-nav-item dash-nav-logout" onClick={handleLogout}>
-              <span className="dash-nav-icon"><Icon name="logout" /></span>
-              Logout
-            </button>
-          </div>
         </nav>
       </aside>
 
       {/* MAIN */}
       <div className="dash-main">
-        {/* HEADER */}
         <header className="dash-header">
           <div className="dash-header-left">
             <button className="dash-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Menu">
@@ -162,8 +145,8 @@ function DashboardLayout({ title, children }) {
               <span className="dash-bell-count">0</span>
             </button>
 
-            <div className="dash-profile" ref={profileRef}>
-              <button className="dash-profile-btn" onClick={() => setProfileOpen(!profileOpen)}>
+            <div className="dash-profile">
+              <button className="dash-profile-btn" onClick={() => navigate("/dashboard/profile")} title="View profile">
                 {photo ? (
                   <img src={photo} alt="" className="dash-avatar-img" />
                 ) : (
@@ -173,27 +156,11 @@ function DashboardLayout({ title, children }) {
                   <strong>{displayName}</strong>
                   <span>{role}</span>
                 </span>
-                <svg className="dash-profile-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
               </button>
-
-              {profileOpen && (
-                <div className="dash-profile-menu">
-                  <button onClick={() => { setProfileOpen(false); navigate("/dashboard/profile"); }}>
-                    <Icon name="user" /> My Profile
-                  </button>
-                  <button onClick={() => { setProfileOpen(false); navigate("/dashboard/settings"); }}>
-                    <Icon name="settings" /> Settings
-                  </button>
-                  <button className="dash-profile-logout" onClick={handleLogout}>
-                    <Icon name="logout" /> Logout
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </header>
 
-        {/* PAGE CONTENT */}
         <main className="dash-content">{children}</main>
       </div>
     </div>

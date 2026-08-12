@@ -1,4 +1,4 @@
-/* DASHBOARD LAYOUT */
+/* DASHBOARD LAYOUT  */
 
 /* Lock the whole layout to the viewport */
 .dash-layout {
@@ -62,6 +62,7 @@
 .dash-nav::-webkit-scrollbar-track { background: transparent; }
 
 .dash-nav-section { margin-bottom: 16px; }
+.dash-nav-logout-section { margin-bottom: 0; margin-top: 0; }
 .dash-nav-title {
     font-size: 11px;
     font-weight: 700;
@@ -107,7 +108,7 @@
 }
 .dash-nav-icon svg { width: 19px; height: 19px; }
 
-.dash-nav-logout { color: var(--color-error); margin-top: 4px; }
+.dash-nav-logout { color: var(--color-error); }
 .dash-nav-logout:hover { background: rgba(220,38,38,0.12); color: var(--color-error); }
 
 /* ===================== MAIN ===================== */

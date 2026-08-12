@@ -43,6 +43,28 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
+        // CHANGE username
+        [HttpPut("username")]
+        public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto dto)
+        {
+            var (success, error) = await _service.ChangeUsernameAsync(GetUserId(), dto);
+            if (!success)
+                return BadRequest(new { message = error });
+
+            return Ok(new { message = "Username changed successfully" });
+        }
+
+        // POST: /api/profile/verify-password
+        [HttpPost("verify-password")]
+        public async Task<IActionResult> VerifyPassword([FromBody] VerifyPasswordDto dto)
+        {
+            var ok = await _service.VerifyPasswordAsync(GetUserId(), dto.Password);
+            if (!ok)
+                return BadRequest(new { message = "Password is incorrect." });
+
+            return Ok(new { message = "Verified" });
+        }
+
         // CHANGE password
         [HttpPut("password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)

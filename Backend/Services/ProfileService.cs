@@ -72,6 +72,46 @@ namespace Backend.Services
             return (true, "Password changed successfully.");
         }
 
+        // Change username after verifying the current password (re-authentication)
+        public async Task<(bool Success, string? Error)> ChangeUsernameAsync(int userId, ChangeUsernameDto dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return (false, "User not found.");
+
+            // Re-authenticate: verify the current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                return (false, "Password is incorrect.");
+
+            var newUsername = dto.NewUsername.Trim();
+
+            if (newUsername.Length < 3)
+                return (false, "Username must be at least 3 characters.");
+            if (newUsername.Contains(" "))
+                return (false, "Username cannot contain spaces.");
+
+            // Must be unique (ignoring this same user)
+            var taken = await _context.Users
+                .AnyAsync(u => u.Username == newUsername && u.UserID != userId);
+            if (taken) return (false, "That username is already taken.");
+
+            // Same as current?
+            if (user.Username == newUsername)
+                return (false, "That's already your username.");
+
+            user.Username = newUsername;
+            user.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            return (true, null);
+        }
+
+        // Verify the user's current password (for sensitive-action re-authentication)
+        public async Task<bool> VerifyPasswordAsync(int userId, string password)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+            return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+        }
+
         // Update profile picture (Base64 string)
         public async Task<(bool Success, string Message)> UpdatePictureAsync(int userId, string? base64Image)
         {
