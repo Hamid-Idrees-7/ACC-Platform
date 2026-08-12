@@ -35,11 +35,10 @@ namespace Backend.Models.Entities
         public string Role { get; set; } = string.Empty;
 
         // Phone number - optional
-        [MaxLength(20)]
+        [MaxLength(15)]
         public string? Phone { get; set; }
 
-        // Secondary phone - optional
-        [MaxLength(20)]
+        [MaxLength(15)]
         public string? SecondaryPhone { get; set; }
 
         // Short bio / description - optional
@@ -48,6 +47,9 @@ namespace Backend.Models.Entities
 
         // Profile picture stored as a Base64 string - optional
         public string? ProfilePicture { get; set; }
+
+        // Optional link to an employee record (used for field staff like site engineers)
+        public int? EmployeeID { get; set; }
 
         // Whether the account is active - defaults to true
         public bool IsActive { get; set; } = true;
