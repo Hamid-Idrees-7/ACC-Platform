@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Backend.Auth;
 using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,9 +8,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace Backend.Controllers
 {
     // API endpoints for managing users. Base route: /api/users
+    // Users management is an admin-only area - never delegated through permissions.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [AdminOnly]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _service;

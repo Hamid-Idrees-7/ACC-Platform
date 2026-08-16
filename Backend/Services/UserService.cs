@@ -7,10 +7,12 @@ namespace Backend.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _repository;
+        private readonly IPermissionRepository _permissionRepository;
 
-        public UserService(IUserRepository repository)
+        public UserService(IUserRepository repository, IPermissionRepository permissionRepository)
         {
             _repository = repository;
+            _permissionRepository = permissionRepository;
         }
 
         public async Task<List<UserDto>> GetAllUsersAsync()
@@ -86,6 +88,9 @@ namespace Backend.Services
             // Safety: a user cannot delete their own account
             if (id == currentUserId)
                 return (false, "You cannot delete your own account.");
+
+            // Clean up this user's permissions before deleting the account
+            await _permissionRepository.DeleteAllForUserAsync(id);
 
             var deleted = await _repository.DeleteAsync(id);
             return deleted ? (true, null) : (false, "User not found.");

@@ -1,0 +1,142 @@
+/* CONTROL UNIT - users list */
+.cu-head { margin-bottom: 24px; }
+.cu-head h2 {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.cu-head p { color: var(--color-text-muted); font-size: 14px; }
+
+.cu-error {
+    background: #fef3f2;
+    color: var(--color-error);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.cu-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 70px 20px;
+    text-align: center;
+}
+.cu-empty-icon {
+    width: 72px; height: 72px;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    margin-bottom: 18px;
+}
+.cu-empty-icon svg { width: 34px; height: 34px; }
+.cu-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
+.cu-empty p { color: var(--color-text-muted); font-size: 14px; }
+.cu-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: cuspin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+@keyframes cuspin { to { transform: rotate(360deg); } }
+
+.cu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.cu-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+.cu-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.cu-card-avatar {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #fff;
+    font-size: 30px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+.cu-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cu-card-name {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 8px;
+}
+.cu-card-role {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+}
+.cu-card-username { color: var(--color-text-muted); font-size: 13.5px; margin-bottom: 18px; }
+
+.cu-progress {
+    width: 100%;
+    height: 6px;
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.cu-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    border-radius: var(--radius-full);
+    transition: width 0.3s ease;
+}
+.cu-progress-text { color: var(--color-text-muted); font-size: 13px; margin-bottom: 18px; }
+
+.cu-manage-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.cu-manage-btn:hover { background: var(--color-primary-dark); }
+
+@media (max-width: 600px) {
+    .cu-grid { grid-template-columns: 1fr; }
+}

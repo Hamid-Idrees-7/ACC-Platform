@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+﻿using Backend.Auth;
+using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ namespace Backend.Controllers
 
         // GET: /api/employees
         [HttpGet]
+        [RequirePermission("Employees", "View")]
         public async Task<IActionResult> GetAll()
         {
             var employees = await _service.GetAllEmployeesAsync();
@@ -28,6 +30,7 @@ namespace Backend.Controllers
 
         // GET: /api/employees/5
         [HttpGet("{id}")]
+        [RequirePermission("Employees", "View")]
         public async Task<IActionResult> GetById(int id)
         {
             var employee = await _service.GetEmployeeByIdAsync(id);
@@ -39,14 +42,16 @@ namespace Backend.Controllers
 
         // POST: /api/employees
         [HttpPost]
+        [RequirePermission("Employees", "Add")]
         public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
         {
             var employee = await _service.CreateEmployeeAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = employee.EmployeeID }, employee);
         }
 
-        // PUT: /api/employees/5
+        // PUT: /api/employees/5 (also covers enable/disable)
         [HttpPut("{id}")]
+        [RequirePermission("Employees", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateEmployeeDto dto)
         {
             var employee = await _service.UpdateEmployeeAsync(id, dto);
@@ -58,6 +63,7 @@ namespace Backend.Controllers
 
         // DELETE: /api/employees/5
         [HttpDelete("{id}")]
+        [RequirePermission("Employees", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _service.DeleteEmployeeAsync(id);

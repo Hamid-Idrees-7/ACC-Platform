@@ -38,7 +38,7 @@ function Login() {
       setSuccess("Login successful. Redirecting to your dashboard...");
       setTimeout(() => navigate("/dashboard"), 800);
     } catch (err) {
-      setError("Invalid username or password. Please try again.");
+      setError(err.response?.data?.message || "Invalid username or password. Please try again.");
       triggerShake();
       setLoading(false);
     }

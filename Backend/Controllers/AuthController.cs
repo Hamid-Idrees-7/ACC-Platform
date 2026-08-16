@@ -1,4 +1,4 @@
-﻿using Backend.Models.DTOs;
+using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,11 +31,11 @@ namespace Backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var result = await _authService.LoginAsync(dto);
-            if (result == null)
-                return Unauthorized(new { message = "Invalid username or password" });
+            var (success, error, data) = await _authService.LoginAsync(dto);
+            if (!success)
+                return Unauthorized(new { message = error });
 
-            return Ok(result);
+            return Ok(data);
         }
     }
 }

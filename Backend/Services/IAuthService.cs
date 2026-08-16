@@ -1,4 +1,4 @@
-﻿using Backend.Models.DTOs;
+using Backend.Models.DTOs;
 
 namespace Backend.Services
 {
@@ -8,7 +8,7 @@ namespace Backend.Services
         // Register a new user; returns auth response, or null if username already taken
         Task<AuthResponseDto?> RegisterAsync(RegisterDto dto);
 
-        // Log in; returns auth response, or null if credentials are wrong
-        Task<AuthResponseDto?> LoginAsync(LoginDto dto);
+        // Log in; returns success flag, an optional error message, and the auth data on success
+        Task<(bool Success, string? Error, AuthResponseDto? Data)> LoginAsync(LoginDto dto);
     }
 }

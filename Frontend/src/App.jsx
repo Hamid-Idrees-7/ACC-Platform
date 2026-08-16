@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
+import { PermissionProvider } from "./context/PermissionContext";
+
 // Public pages
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -14,6 +16,8 @@ import Dashboard from "./pages/Dashboard";
 import Queries from "./pages/Queries";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import ControlUnit from "./pages/ControlUnit";
+import ManageAccess from "./pages/ManageAccess";
 
 // Modules
 import Clients from "./pages/Clients";
@@ -26,6 +30,7 @@ import UnderConstruction from "./pages/UnderConstruction";
 function App() {
   return (
     <AuthProvider>
+      <PermissionProvider>
       <BrowserRouter>
         <Routes>
           {/* ===== Public website ===== */}
@@ -40,6 +45,8 @@ function App() {
           <Route path="/dashboard/queries" element={<Queries />} />
           <Route path="/dashboard/profile" element={<Profile />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          <Route path="/dashboard/control-unit" element={<ControlUnit />} />
+          <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
 
           {/* ===== Modules ===== */}
           <Route path="/dashboard/clients" element={<Clients />} />
@@ -55,7 +62,6 @@ function App() {
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
           <Route path="/dashboard/notifications" element={<UnderConstruction title="Notifications" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
-          <Route path="/dashboard/control-unit" element={<UnderConstruction title="Control Unit" />} />
           <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
           <Route path="/dashboard/reports" element={<UnderConstruction title="Reports" />} />
 
@@ -65,6 +71,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </PermissionProvider>
     </AuthProvider>
   );
 }

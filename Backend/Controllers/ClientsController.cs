@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+﻿using Backend.Auth;
+using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +22,7 @@ namespace Backend.Controllers
 
         // GET: /api/clients  -> get all clients
         [HttpGet]
+        [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetAll()
         {
             var clients = await _service.GetAllClientsAsync();
@@ -29,6 +31,7 @@ namespace Backend.Controllers
 
         // GET: /api/clients/5  -> get one client by ID
         [HttpGet("{id}")]
+        [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetById(int id)
         {
             var client = await _service.GetClientByIdAsync(id);
@@ -40,14 +43,16 @@ namespace Backend.Controllers
 
         // POST: /api/clients  -> create a new client
         [HttpPost]
+        [RequirePermission("Clients", "Add")]
         public async Task<IActionResult> Create([FromBody] ClientDto dto)
         {
             var client = await _service.CreateClientAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = client.ClientID }, client);
         }
 
-        // PUT: /api/clients/5  -> update a client
+        // PUT: /api/clients/5  -> update a client (also covers enable/disable)
         [HttpPut("{id}")]
+        [RequirePermission("Clients", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] ClientDto dto)
         {
             var client = await _service.UpdateClientAsync(id, dto);
@@ -59,6 +64,7 @@ namespace Backend.Controllers
 
         // DELETE: /api/clients/5  -> delete a client
         [HttpDelete("{id}")]
+        [RequirePermission("Clients", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _service.DeleteClientAsync(id);
