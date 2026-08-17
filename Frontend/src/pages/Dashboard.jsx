@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
 import DashboardLayout from "../components/DashboardLayout";
 import { inquiryService } from "../services/inquiryService";
+import { approvalService } from "../services/approvalService";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -14,6 +15,7 @@ function Dashboard() {
 
   const [queries, setQueries] = useState([]);
   const [loadingQueries, setLoadingQueries] = useState(true);
+  const [approvalCount, setApprovalCount] = useState(0);
 
   // Which cards can this user see?
   const showMessages = isAdmin || canView("Messages");
@@ -38,6 +40,20 @@ function Dashboard() {
     };
     load();
   }, [showMessages]);
+
+  // Load pending approval count (Admin only)
+  useEffect(() => {
+    if (!showApprovals) return;
+    const loadCount = async () => {
+      try {
+        const count = await approvalService.getCount();
+        setApprovalCount(count);
+      } catch {
+        // silent
+      }
+    };
+    loadCount();
+  }, [showApprovals]);
 
   const stats = [
     { label: "Total Users", value: "0", icon: "users" },
@@ -132,7 +148,7 @@ function Dashboard() {
                 <div className="dash-mod-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                 </div>
-                <span className="dash-mod-count">0</span>
+                <span className="dash-mod-count">{approvalCount}</span>
               </div>
               <h3>Pending Approvals</h3>
               <p>Requests waiting for your review</p>
@@ -158,7 +174,7 @@ function Dashboard() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></svg>
           </div>
           <h3>Your workspace is ready</h3>
-          <p>No Moudules yet on the main.</p>
+          <p>Modules you have access to will appear here. Use the sidebar to get started.</p>
         </div>
       )}
     </DashboardLayout>

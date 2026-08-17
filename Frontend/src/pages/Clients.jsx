@@ -102,11 +102,17 @@ function Clients() {
 
   const handleDelete = async (id) => {
     try {
-      await clientService.delete(id);
-      showToast("Client deleted.", "error");
+      const res = await clientService.delete(id);
       setConfirmDelete(null);
       setDetailClient(null);
-      loadClients();
+      // If the backend queued an approval request instead of deleting
+      if (res?.requiresApproval) {
+        // A duplicate request shows a neutral (grey) toast
+        showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
+      } else {
+        showToast("Client deleted.", "error");
+        loadClients();
+      }
     } catch {
       showToast("Could not delete client.", "error");
     }

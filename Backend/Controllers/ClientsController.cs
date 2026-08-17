@@ -1,4 +1,5 @@
-﻿using Backend.Auth;
+using System.Security.Claims;
+using Backend.Auth;
 using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -13,12 +14,33 @@ namespace Backend.Controllers
     public class ClientsController : ControllerBase
     {
         private readonly IClientService _service;
+        private readonly IPermissionService _permissionService;
+        private readonly IPendingActionService _approvalService;
 
-        // The service is injected here (Dependency Injection)
-        public ClientsController(IClientService service)
+        public ClientsController(
+            IClientService service,
+            IPermissionService permissionService,
+            IPendingActionService approvalService)
         {
             _service = service;
+            _permissionService = permissionService;
+            _approvalService = approvalService;
         }
+
+        private int GetUserId()
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(idClaim, out var id) ? id : 0;
+        }
+
+        private string GetUserName() =>
+            User.FindFirst("FullName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+        private string GetUserRole() =>
+            User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+        private bool IsAdmin() =>
+            string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
         // GET: /api/clients  -> get all clients
         [HttpGet]
@@ -62,11 +84,35 @@ namespace Backend.Controllers
             return Ok(client);
         }
 
-        // DELETE: /api/clients/5  -> delete a client
+        // DELETE: /api/clients/5  -> delete a client (or request approval if required)
         [HttpDelete("{id}")]
         [RequirePermission("Clients", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
+            var client = await _service.GetClientByIdAsync(id);
+            if (client == null)
+                return NotFound(new { message = "Client not found" });
+
+            // Non-admins may need approval before a delete actually runs
+            if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Clients", "Delete"))
+            {
+                var created = await _approvalService.CreateAsync(
+                    new CreatePendingActionDto
+                    {
+                        Module = "Clients",
+                        Action = "Delete",
+                        TargetID = id,
+                        TargetName = client.FullName
+                    },
+                    GetUserId(), GetUserName(), GetUserRole());
+
+                if (!created)
+                    return Ok(new { requiresApproval = true, alreadyPending = true, message = $"A delete request for \"{client.FullName}\" is already awaiting approval." });
+
+                return Ok(new { requiresApproval = true, message = $"Request to delete \"{client.FullName}\" sent to administration for approval." });
+            }
+
+            // Otherwise delete directly
             var deleted = await _service.DeleteClientAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Client not found" });

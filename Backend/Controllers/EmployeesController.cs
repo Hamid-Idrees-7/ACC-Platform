@@ -1,4 +1,5 @@
-﻿using Backend.Auth;
+using System.Security.Claims;
+using Backend.Auth;
 using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,11 +14,33 @@ namespace Backend.Controllers
     public class EmployeesController : ControllerBase
     {
         private readonly IEmployeeService _service;
+        private readonly IPermissionService _permissionService;
+        private readonly IPendingActionService _approvalService;
 
-        public EmployeesController(IEmployeeService service)
+        public EmployeesController(
+            IEmployeeService service,
+            IPermissionService permissionService,
+            IPendingActionService approvalService)
         {
             _service = service;
+            _permissionService = permissionService;
+            _approvalService = approvalService;
         }
+
+        private int GetUserId()
+        {
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(idClaim, out var id) ? id : 0;
+        }
+
+        private string GetUserName() =>
+            User.FindFirst("FullName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+        private string GetUserRole() =>
+            User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+        private bool IsAdmin() =>
+            string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
         // GET: /api/employees
         [HttpGet]
@@ -61,11 +84,35 @@ namespace Backend.Controllers
             return Ok(employee);
         }
 
-        // DELETE: /api/employees/5
+        // DELETE: /api/employees/5 (or request approval if required)
         [HttpDelete("{id}")]
         [RequirePermission("Employees", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
+            var employee = await _service.GetEmployeeByIdAsync(id);
+            if (employee == null)
+                return NotFound(new { message = "Employee not found" });
+
+            // Non-admins may need approval before a delete actually runs
+            if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Employees", "Delete"))
+            {
+                var created = await _approvalService.CreateAsync(
+                    new CreatePendingActionDto
+                    {
+                        Module = "Employees",
+                        Action = "Delete",
+                        TargetID = id,
+                        TargetName = employee.FullName
+                    },
+                    GetUserId(), GetUserName(), GetUserRole());
+
+                if (!created)
+                    return Ok(new { requiresApproval = true, alreadyPending = true, message = $"A delete request for \"{employee.FullName}\" is already awaiting approval." });
+
+                return Ok(new { requiresApproval = true, message = $"Request to delete \"{employee.FullName}\" sent to administration for approval." });
+            }
+
+            // Otherwise delete directly
             var deleted = await _service.DeleteEmployeeAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Employee not found" });

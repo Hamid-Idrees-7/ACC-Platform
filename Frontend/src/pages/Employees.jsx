@@ -106,11 +106,17 @@ function Employees() {
 
   const handleDelete = async (id) => {
     try {
-      await employeeService.delete(id);
-      showToast("Employee deleted.", "error");
+      const res = await employeeService.delete(id);
       setConfirmDelete(null);
       setDetailEmp(null);
-      loadEmployees();
+      // If the backend queued an approval request instead of deleting
+      if (res?.requiresApproval) {
+        // A duplicate request shows a neutral (grey) toast
+        showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
+      } else {
+        showToast("Employee deleted.", "error");
+        loadEmployees();
+      }
     } catch {
       showToast("Could not delete employee.", "error");
     }

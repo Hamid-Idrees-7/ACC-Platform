@@ -19,5 +19,6 @@ namespace Backend.Data
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Inquiry> Inquiries { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<PendingAction> PendingActions { get; set; }
     }
 }

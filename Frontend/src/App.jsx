@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import ControlUnit from "./pages/ControlUnit";
 import ManageAccess from "./pages/ManageAccess";
+import Approvals from "./pages/Approvals";
 
 // Modules
 import Clients from "./pages/Clients";
@@ -47,6 +48,7 @@ function App() {
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/control-unit" element={<ControlUnit />} />
           <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
+          <Route path="/dashboard/approvals" element={<Approvals />} />
 
           {/* ===== Modules ===== */}
           <Route path="/dashboard/clients" element={<Clients />} />
