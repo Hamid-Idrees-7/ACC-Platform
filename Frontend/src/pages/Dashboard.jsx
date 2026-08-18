@@ -22,7 +22,7 @@ function Dashboard() {
   const showReports = isAdmin || canView("Reports");
   const showAI = isAdmin || canView("AI");
   const showControlUnit = isAdmin; // Admin-only
-  const showApprovals = isAdmin;   // Admin-only (for now)
+  const showApprovals = isAdmin || canView("Approvals");
 
   const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals;
 

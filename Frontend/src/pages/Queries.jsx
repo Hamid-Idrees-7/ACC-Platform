@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import { usePermissions } from "../context/PermissionContext";
 import { inquiryService } from "../services/inquiryService";
 import "./Queries.css";
 
 function Queries() {
+  const { can } = usePermissions();
+  const canDelete = can("Messages", "Delete");
+
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,9 +91,9 @@ function Queries() {
       <div className="q-header">
         <div className="q-header-info">
           <h2>Customer Messages</h2>
-          <p>{inquiries.length} total{unreadCount > 0 ? ` · ${unreadCount} unread` : ""}</p>
+          <p>{inquiries.length} total{unreadCount > 0 ? ` \u00b7 ${unreadCount} unread` : ""}</p>
         </div>
-        {inquiries.length > 0 && (
+        {inquiries.length > 0 && canDelete && (
           <button className="q-clear-all" onClick={() => setConfirmDelete("all")}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             Clear All
@@ -135,13 +139,15 @@ function Queries() {
                 </div>
                 <p className="q-card-preview">{inq.message}</p>
               </div>
-              <button
-                className="q-card-delete"
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(inq.inquiryID); }}
-                aria-label="Delete"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
+              {canDelete && (
+                <button
+                  className="q-card-delete"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(inq.inquiryID); }}
+                  aria-label="Delete"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -187,12 +193,14 @@ function Queries() {
               <p>{selected.message}</p>
             </div>
 
-            <div className="q-modal-actions">
-              <button className="q-modal-delete" onClick={() => setConfirmDelete(selected.inquiryID)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                Delete Message
-              </button>
-            </div>
+            {canDelete && (
+              <div className="q-modal-actions">
+                <button className="q-modal-delete" onClick={() => setConfirmDelete(selected.inquiryID)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  Delete Message
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

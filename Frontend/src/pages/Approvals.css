@@ -1,4 +1,4 @@
-/* APPROVALS PAGE */
+/* APPROVALS PAGE (theme vars) */
 .ap-head {
     display: flex;
     align-items: flex-start;
@@ -333,3 +333,13 @@
 .ap-toast-success { background: var(--color-success); }
 .ap-toast-warn { background: var(--color-warning); }
 .ap-toast-error { background: var(--color-error); }
+
+/* View-only note (when user lacks Manage access) */
+.ap-view-note {
+    text-align: center;
+    padding: 14px;
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: 13.5px;
+}

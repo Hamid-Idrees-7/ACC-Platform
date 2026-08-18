@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+using Backend.Auth;
+using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,27 +29,30 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
-        // ADMIN ONLY - dashboard reads all inquiries
+        // Read all inquiries (needs Messages View access)
         [HttpGet]
         [Authorize]
+        [RequirePermission("Messages", "View")]
         public async Task<IActionResult> GetAll()
         {
             var inquiries = await _service.GetAllInquiriesAsync();
             return Ok(inquiries);
         }
 
-        // ADMIN ONLY - unread count for the badge
+        // Unread count for the badge (needs Messages View access)
         [HttpGet("unread-count")]
         [Authorize]
+        [RequirePermission("Messages", "View")]
         public async Task<IActionResult> GetUnreadCount()
         {
             var count = await _service.GetUnreadCountAsync();
             return Ok(new { count });
         }
 
-        // ADMIN ONLY - mark one as read
+        // Mark one as read (needs Messages View access - reading action)
         [HttpPut("{id}/read")]
         [Authorize]
+        [RequirePermission("Messages", "View")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
             var result = await _service.MarkAsReadAsync(id);
@@ -56,9 +60,10 @@ namespace Backend.Controllers
             return Ok(result);
         }
 
-        // ADMIN ONLY - delete one
+        // Delete one (needs Messages Delete access)
         [HttpDelete("{id}")]
         [Authorize]
+        [RequirePermission("Messages", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _service.DeleteInquiryAsync(id);
@@ -66,9 +71,10 @@ namespace Backend.Controllers
             return Ok(new { message = "Inquiry deleted." });
         }
 
-        // ADMIN ONLY - delete all
+        // Delete all (needs Messages Delete access)
         [HttpDelete]
         [Authorize]
+        [RequirePermission("Messages", "Delete")]
         public async Task<IActionResult> DeleteAll()
         {
             await _service.DeleteAllInquiriesAsync();

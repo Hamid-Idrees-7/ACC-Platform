@@ -26,11 +26,8 @@ export function PermissionProvider({ children }) {
     try {
       const myId = user.userID ?? user.userId ?? user.id;
       const data = await permissionService.getForUser(myId);
-      // Debug: see what permissions loaded (remove later)
-      console.log("[Permissions] loaded for user", myId, data);
       setPermissions(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("[Permissions] load failed", err);
+    } catch {
       setPermissions([]);
     } finally {
       setLoading(false);

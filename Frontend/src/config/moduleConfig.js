@@ -5,15 +5,20 @@ export const MODULE_GROUPS = [
   {
     group: "Management",
     modules: [
-      { key: "Clients", label: "Clients", actions: ["View", "Add", "Edit", "Delete"] },
-      { key: "Employees", label: "Employees", actions: ["View", "Add", "Edit", "Delete"] },
+      // approvalActions: which actions can show the "approval needed" option for this module
+      { key: "Clients", label: "Clients", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
+      { key: "Employees", label: "Employees", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
     ],
   },
-  // Operations group will be added as those modules are built
+  {
+    group: "Workspace",
+    modules: [
+      // Messages and Approvals delete directly - no approval workflow (it would be circular)
+      { key: "Messages", label: "Messages", actions: ["View", "Delete"], approvalActions: [] },
+      { key: "Approvals", label: "Approvals", actions: ["View", "Manage", "Delete"], approvalActions: [] },
+    ],
+  },
 ];
 
 // Flat list of all modules (handy for lookups)
 export const ALL_MODULES = MODULE_GROUPS.flatMap((g) => g.modules);
-
-// Actions that support the "approval needed" option
-export const APPROVAL_ACTIONS = ["Delete"];

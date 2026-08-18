@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
 import { permissionService } from "../services/permissionService";
-import { MODULE_GROUPS, APPROVAL_ACTIONS } from "../config/moduleConfig";
+import { MODULE_GROUPS } from "../config/moduleConfig";
 import "./ManageAccess.css";
 
 function ManageAccess() {
@@ -155,7 +155,7 @@ function ManageAccess() {
                     <div className="ma-actions">
                       {mod.actions.map((action) => {
                         const p = getPerm(mod.key, action);
-                        const canApprove = APPROVAL_ACTIONS.includes(action);
+                        const canApprove = (mod.approvalActions || []).includes(action);
                         return (
                           <div key={action} className="ma-action-row">
                             <button
