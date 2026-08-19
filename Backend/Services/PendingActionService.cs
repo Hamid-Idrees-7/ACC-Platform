@@ -9,15 +9,18 @@ namespace Backend.Services
         private readonly IPendingActionRepository _repository;
         private readonly IClientRepository _clientRepository;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly INotificationService _notificationService;
 
         public PendingActionService(
             IPendingActionRepository repository,
             IClientRepository clientRepository,
-            IEmployeeRepository employeeRepository)
+            IEmployeeRepository employeeRepository,
+            INotificationService notificationService)
         {
             _repository = repository;
             _clientRepository = clientRepository;
             _employeeRepository = employeeRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<List<PendingActionDto>> GetAllAsync()
@@ -58,6 +61,17 @@ namespace Backend.Services
                 CreatedAt = DateTime.Now
             };
             await _repository.AddAsync(action);
+
+            // Notify the requester that their request was sent
+            await _notificationService.NotifyPersonalAsync(
+                requestedByUserId, "Approval", "Request sent",
+                $"You sent a request to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.");
+
+            // Notify admins of the new request
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Approval", "New approval request",
+                $"{requestedByName} requested to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.");
+
             return true;
         }
 
@@ -84,6 +98,13 @@ namespace Backend.Services
             action.Reason = dto.Reason?.Trim();
             action.ResolvedAt = DateTime.Now;
             await _repository.UpdateAsync(action);
+
+            // Notify the original requester of the outcome
+            var verb = status == "Approved" ? "approved" : "rejected";
+            await _notificationService.NotifyPersonalAsync(
+                action.RequestedByUserID, "Approval", $"Request {verb}",
+                $"Your request to {action.Action.ToLower()} {action.Module.TrimEnd('s').ToLower()}: {action.TargetName} was {verb}.",
+                action.Reason);
 
             return (true, null);
         }

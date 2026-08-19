@@ -1,4 +1,4 @@
-﻿using Backend.Models.DTOs;
+using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
 
@@ -8,11 +8,16 @@ namespace Backend.Services
     {
         private readonly IUserRepository _repository;
         private readonly IPermissionRepository _permissionRepository;
+        private readonly INotificationRepository _notificationRepository;
 
-        public UserService(IUserRepository repository, IPermissionRepository permissionRepository)
+        public UserService(
+            IUserRepository repository,
+            IPermissionRepository permissionRepository,
+            INotificationRepository notificationRepository)
         {
             _repository = repository;
             _permissionRepository = permissionRepository;
+            _notificationRepository = notificationRepository;
         }
 
         public async Task<List<UserDto>> GetAllUsersAsync()
@@ -89,8 +94,9 @@ namespace Backend.Services
             if (id == currentUserId)
                 return (false, "You cannot delete your own account.");
 
-            // Clean up this user's permissions before deleting the account
+            // Clean up this user's related data before deleting the account
             await _permissionRepository.DeleteAllForUserAsync(id);
+            await _notificationRepository.DeleteAllForUserAsync(id);
 
             var deleted = await _repository.DeleteAsync(id);
             return deleted ? (true, null) : (false, "User not found.");

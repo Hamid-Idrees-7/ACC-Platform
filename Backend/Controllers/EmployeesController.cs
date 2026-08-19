@@ -16,15 +16,18 @@ namespace Backend.Controllers
         private readonly IEmployeeService _service;
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
+        private readonly INotificationService _notificationService;
 
         public EmployeesController(
             IEmployeeService service,
             IPermissionService permissionService,
-            IPendingActionService approvalService)
+            IPendingActionService approvalService,
+            INotificationService notificationService)
         {
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
+            _notificationService = notificationService;
         }
 
         private int GetUserId()
@@ -69,6 +72,12 @@ namespace Backend.Controllers
         public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
         {
             var employee = await _service.CreateEmployeeAsync(dto);
+
+            await _notificationService.NotifyPersonalAsync(
+                GetUserId(), "Employee", "Employee added", $"You added employee: {employee.FullName}.");
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Employee", "New employee", $"{GetUserName()} added employee: {employee.FullName}.");
+
             return CreatedAtAction(nameof(GetById), new { id = employee.EmployeeID }, employee);
         }
 
@@ -116,6 +125,11 @@ namespace Backend.Controllers
             var deleted = await _service.DeleteEmployeeAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Employee not found" });
+
+            await _notificationService.NotifyPersonalAsync(
+                GetUserId(), "Employee", "Employee deleted", $"You deleted employee: {employee.FullName}.");
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Employee", "Employee deleted", $"{GetUserName()} deleted employee: {employee.FullName}.");
 
             return Ok(new { message = "Employee deleted successfully" });
         }

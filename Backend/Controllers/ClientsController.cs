@@ -16,15 +16,18 @@ namespace Backend.Controllers
         private readonly IClientService _service;
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
+        private readonly INotificationService _notificationService;
 
         public ClientsController(
             IClientService service,
             IPermissionService permissionService,
-            IPendingActionService approvalService)
+            IPendingActionService approvalService,
+            INotificationService notificationService)
         {
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
+            _notificationService = notificationService;
         }
 
         private int GetUserId()
@@ -42,7 +45,7 @@ namespace Backend.Controllers
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
-        // GET: /api/clients  -> get all clients
+        // GET: /api/clients  = get all clients
         [HttpGet]
         [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetAll()
@@ -51,7 +54,7 @@ namespace Backend.Controllers
             return Ok(clients);
         }
 
-        // GET: /api/clients/5  -> get one client by ID
+        // GET: /api/clients/5  = get one client by ID
         [HttpGet("{id}")]
         [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetById(int id)
@@ -63,16 +66,23 @@ namespace Backend.Controllers
             return Ok(client);
         }
 
-        // POST: /api/clients  -> create a new client
+        // POST: /api/clients = create a new client
         [HttpPost]
         [RequirePermission("Clients", "Add")]
         public async Task<IActionResult> Create([FromBody] ClientDto dto)
         {
             var client = await _service.CreateClientAsync(dto);
+
+            // Notifications: personal (to the actor) + activity (to admins)
+            await _notificationService.NotifyPersonalAsync(
+                GetUserId(), "Client", "Client added", $"You added client: {client.FullName}.");
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Client", "New client", $"{GetUserName()} added client: {client.FullName}.");
+
             return CreatedAtAction(nameof(GetById), new { id = client.ClientID }, client);
         }
 
-        // PUT: /api/clients/5  -> update a client (also covers enable/disable)
+        // PUT: /api/clients/5 = update a client (also covers enable/disable)
         [HttpPut("{id}")]
         [RequirePermission("Clients", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] ClientDto dto)
@@ -84,7 +94,7 @@ namespace Backend.Controllers
             return Ok(client);
         }
 
-        // DELETE: /api/clients/5  -> delete a client (or request approval if required)
+        // DELETE: /api/clients/5  = delete a client (or request approval if required)
         [HttpDelete("{id}")]
         [RequirePermission("Clients", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -116,6 +126,11 @@ namespace Backend.Controllers
             var deleted = await _service.DeleteClientAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Client not found" });
+
+            await _notificationService.NotifyPersonalAsync(
+                GetUserId(), "Client", "Client deleted", $"You deleted client: {client.FullName}.");
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Client", "Client deleted", $"{GetUserName()} deleted client: {client.FullName}.");
 
             return Ok(new { message = "Client deleted successfully" });
         }

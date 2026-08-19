@@ -11,11 +11,13 @@ namespace Backend.Services
     {
         private readonly AppDbContext _context;
         private readonly TokenService _tokenService;
+        private readonly Backend.Services.INotificationService _notificationService;
 
-        public AuthService(AppDbContext context, TokenService tokenService)
+        public AuthService(AppDbContext context, TokenService tokenService, Backend.Services.INotificationService notificationService)
         {
             _context = context;
             _tokenService = tokenService;
+            _notificationService = notificationService;
         }
 
         // Register a new user
@@ -75,6 +77,11 @@ namespace Backend.Services
             // Update last login time
             user.LastLogin = DateTime.Now;
             await _context.SaveChangesAsync();
+
+            // Record a login notification for the user
+            await _notificationService.NotifyPersonalAsync(
+                user.UserID, "Login", "Welcome back",
+                $"You logged in on {DateTime.Now:dd MMMM yyyy 'at' h:mm tt}.");
 
             return (true, null, BuildAuthResponse(user));
         }

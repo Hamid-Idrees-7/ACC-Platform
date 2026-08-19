@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
+import { notificationService } from "../services/notificationService";
 import "./DashboardLayout.css";
 
 // Sidebar structure. Each item can declare how its visibility is decided:
@@ -69,10 +70,29 @@ function Icon({ name }) {
 
 function DashboardLayout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout } = useAuth();
   const { canView, isAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Load the unread notification count for the bell / sidebar badge
+  useEffect(() => {
+    const loadCount = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch {
+        // silent
+      }
+    };
+    loadCount();
+
+    // Refresh the badge immediately when notifications are marked read
+    const onUpdate = () => loadCount();
+    window.addEventListener("notifications-updated", onUpdate);
+    return () => window.removeEventListener("notifications-updated", onUpdate);
+  }, [location.pathname]);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -135,6 +155,9 @@ function DashboardLayout({ title, children }) {
                 >
                   <span className="dash-nav-icon"><Icon name={item.icon} /></span>
                   {item.label}
+                  {item.id === "notifications" && unreadCount > 0 && (
+                    <span className="dash-nav-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                  )}
                 </button>
               ))}
               {/* Logout sits inside the last section - no separate gap */}
@@ -162,7 +185,7 @@ function DashboardLayout({ title, children }) {
           <div className="dash-header-right">
             <button className="dash-bell" onClick={() => navigate("/dashboard/notifications")}>
               <Icon name="bell" />
-              <span className="dash-bell-count">0</span>
+              {unreadCount > 0 && <span className="dash-bell-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </button>
 
             <div className="dash-profile">

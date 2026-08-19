@@ -20,6 +20,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register our N-tier services (Dependency Injection)
+// Notifications
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 // Approvals
 builder.Services.AddScoped<IPendingActionRepository, PendingActionRepository>();
 builder.Services.AddScoped<IPendingActionService, PendingActionService>();

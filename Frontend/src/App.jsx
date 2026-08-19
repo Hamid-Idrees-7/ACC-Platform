@@ -19,6 +19,8 @@ import Settings from "./pages/Settings";
 import ControlUnit from "./pages/ControlUnit";
 import ManageAccess from "./pages/ManageAccess";
 import Approvals from "./pages/Approvals";
+import Notifications from "./pages/Notifications";
+
 
 // Modules
 import Clients from "./pages/Clients";
@@ -49,6 +51,7 @@ function App() {
           <Route path="/dashboard/control-unit" element={<ControlUnit />} />
           <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
           <Route path="/dashboard/approvals" element={<Approvals />} />
+          <Route path="/dashboard/notifications" element={<Notifications />} />
 
           {/* ===== Modules ===== */}
           <Route path="/dashboard/clients" element={<Clients />} />
@@ -62,7 +65,6 @@ function App() {
           <Route path="/dashboard/attendance" element={<UnderConstruction title="Attendance" />} />
           <Route path="/dashboard/salaries" element={<UnderConstruction title="Salaries" />} />
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
-          <Route path="/dashboard/notifications" element={<UnderConstruction title="Notifications" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
           <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
           <Route path="/dashboard/reports" element={<UnderConstruction title="Reports" />} />

@@ -20,5 +20,6 @@ namespace Backend.Data
         public DbSet<Inquiry> Inquiries { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<PendingAction> PendingActions { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
     }
 }
