@@ -26,6 +26,8 @@ import Notifications from "./pages/Notifications";
 import Clients from "./pages/Clients";
 import Employees from "./pages/Employees";
 import Users from "./pages/Users";
+import Materials from "./pages/Materials";
+import MaterialHistory from "./pages/MaterialHistory";
 
 
 import UnderConstruction from "./pages/UnderConstruction";
@@ -57,9 +59,10 @@ function App() {
           <Route path="/dashboard/clients" element={<Clients />} />
           <Route path="/dashboard/employees" element={<Employees />} />
           <Route path="/dashboard/users" element={<Users />} />
+          <Route path="/dashboard/materials" element={<Materials />} />
+          <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
           
 
-          <Route path="/dashboard/materials" element={<UnderConstruction title="Materials" />} />
           <Route path="/dashboard/assignments" element={<UnderConstruction title="Assignments" />} />
           <Route path="/dashboard/projects" element={<UnderConstruction title="Projects" />} />
           <Route path="/dashboard/attendance" element={<UnderConstruction title="Attendance" />} />

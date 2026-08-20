@@ -13,7 +13,7 @@ namespace Backend.Data
         }
 
         // Each DbSet represents a table in the database.
-        // "Clients" is the table name; it holds records of type Client.
+        // Clients is the table name; it holds records of type Client.
         public DbSet<Client> Clients { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Employee> Employees { get; set; }
@@ -21,5 +21,7 @@ namespace Backend.Data
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<PendingAction> PendingActions { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Material> Materials { get; set; }
+        public DbSet<MaterialTransaction> MaterialTransactions { get; set; }
     }
 }
