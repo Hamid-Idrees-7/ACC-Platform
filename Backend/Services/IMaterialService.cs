@@ -12,6 +12,8 @@ namespace Backend.Services
         Task<StockResult> RestockAsync(int id, RestockDto dto);
         Task<StockResult> IssueAsync(int id, IssueDto dto);
         Task<MaterialHistoryDto?> GetHistoryAsync(int id);
+        Task<bool> HasIssuesAsync(int id);
+        Task<StockResult> CancelTransactionAsync(int transactionId);
     }
 
     // Outcome of a restock/issue: either the updated material, or a reason it failed.

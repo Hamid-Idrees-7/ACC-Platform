@@ -7,10 +7,12 @@ namespace Backend.Services
     public class MaterialService : IMaterialService
     {
         private readonly IMaterialRepository _repository;
+        private readonly IProjectRepository _projectRepository;
 
-        public MaterialService(IMaterialRepository repository)
+        public MaterialService(IMaterialRepository repository, IProjectRepository projectRepository)
         {
             _repository = repository;
+            _projectRepository = projectRepository;
         }
 
         public async Task<List<MaterialDto>> GetAllMaterialsAsync()
@@ -87,6 +89,14 @@ namespace Backend.Services
             return await _repository.DeleteAsync(id);
         }
 
+        // True if this material has ever been issued to a project — such a
+        // material must be deactivated, not deleted, to protect project history.
+        public async Task<bool> HasIssuesAsync(int id)
+        {
+            var transactions = await _repository.GetTransactionsAsync(id);
+            return transactions.Any(t => t.Type == "Issue" && !t.IsCancelled);
+        }
+
         public async Task<StockResult> RestockAsync(int id, RestockDto dto)
         {
             var material = await _repository.GetByIdAsync(id);
@@ -124,7 +134,7 @@ namespace Backend.Services
             if (dto.Quantity <= 0)
                 return new StockResult { Success = false, Error = "Quantity must be greater than zero." };
 
-            var transactions = await _repository.GetTransactionsAsync(id);
+            var transactions = (await _repository.GetTransactionsAsync(id)).Where(t => !t.IsCancelled).ToList();
             var restocks = transactions.Where(t => t.Type == "Restock").ToList();
             var stock = transactions.Sum(t => t.Type == "Restock" ? t.Quantity : -t.Quantity);
             var purchasedQty = restocks.Sum(t => t.Quantity);
@@ -145,6 +155,8 @@ namespace Backend.Services
                 Quantity = dto.Quantity,
                 Rate = costAtIssue,
                 ProjectName = dto.ProjectName.Trim(),
+                ProjectID = dto.ProjectID,
+                PhaseID = dto.PhaseID,
                 Note = dto.Note?.Trim(),
                 CreatedAt = DateTime.Now
             });
@@ -161,13 +173,24 @@ namespace Backend.Services
             if (material == null) return null;
 
             var transactions = await _repository.GetTransactionsAsync(id);
-            var restocks = transactions.Where(t => t.Type == "Restock").ToList();
-            var issues = transactions.Where(t => t.Type == "Issue").ToList();
+
+            // Totals count only active (non-cancelled) transactions.
+            var restocks = transactions.Where(t => t.Type == "Restock" && !t.IsCancelled).ToList();
+            var issues = transactions.Where(t => t.Type == "Issue" && !t.IsCancelled).ToList();
 
             var purchasedQty = restocks.Sum(t => t.Quantity);
             var invested = restocks.Sum(t => t.Quantity * t.Rate);
             var issuedQty = issues.Sum(t => t.Quantity);
             var issuedCost = issues.Sum(t => t.Quantity * t.Rate);
+
+            // An issue is "locked" (can't be cancelled) once its project is Completed.
+            var projectIds = transactions.Where(t => t.ProjectID.HasValue).Select(t => t.ProjectID!.Value).Distinct().ToList();
+            var completedProjects = new HashSet<int>();
+            foreach (var pid in projectIds)
+            {
+                var proj = await _projectRepository.GetByIdAsync(pid);
+                if (proj != null && proj.Status == "Completed") completedProjects.Add(pid);
+            }
 
             return new MaterialHistoryDto
             {
@@ -192,14 +215,59 @@ namespace Backend.Services
                     ProjectName = t.ProjectName,
                     Note = t.Note,
                     CreatedAt = t.CreatedAt,
-                    Amount = t.Quantity * t.Rate
+                    Amount = t.Quantity * t.Rate,
+                    IsCancelled = t.IsCancelled,
+                    Locked = t.Type == "Issue" && t.ProjectID.HasValue && completedProjects.Contains(t.ProjectID.Value)
                 }).ToList()
             };
         }
 
+        // Reverse a transaction: keep the record but mark it cancelled so it no
+        // longer counts toward stock, cost, or totals.
+        public async Task<StockResult> CancelTransactionAsync(int transactionId)
+        {
+            var tx = await _repository.GetTransactionByIdAsync(transactionId);
+            if (tx == null)
+                return new StockResult { Success = false, Error = "Transaction not found." };
+            if (tx.IsCancelled)
+                return new StockResult { Success = false, Error = "This transaction is already cancelled." };
+
+            // An issue on a completed project is locked.
+            if (tx.Type == "Issue" && tx.ProjectID.HasValue)
+            {
+                var proj = await _projectRepository.GetByIdAsync(tx.ProjectID.Value);
+                if (proj != null && proj.Status == "Completed")
+                    return new StockResult { Success = false, Error = "This issue is locked — its project is completed." };
+            }
+
+            // Cancelling a purchase removes its quantity from stock; block if that
+            // stock has already been issued (would push stock negative).
+            if (tx.Type == "Restock")
+            {
+                var stock = await _repository.GetStockAsync(tx.MaterialID);
+                if (stock - tx.Quantity < 0)
+                {
+                    var issuedAway = tx.Quantity - stock;
+                    return new StockResult { Success = false, Error = $"Can't cancel this purchase of {tx.Quantity}: only {stock} is still in stock ({issuedAway} was already issued to projects). Cancel those issues first." };
+                }
+            }
+
+            tx.IsCancelled = true;
+            await _repository.UpdateTransactionAsync(tx);
+
+            var material = await _repository.GetByIdAsync(tx.MaterialID);
+            if (material != null)
+            {
+                material.UpdatedAt = DateTime.Now;
+                await _repository.UpdateAsync(material);
+            }
+
+            return new StockResult { Success = true, Material = material != null ? await ToDtoAsync(material) : null };
+        }
+
         private async Task<MaterialDto> ToDtoAsync(Material material)
         {
-            var transactions = await _repository.GetTransactionsAsync(material.MaterialID);
+            var transactions = (await _repository.GetTransactionsAsync(material.MaterialID)).Where(t => !t.IsCancelled).ToList();
             var restocks = transactions.Where(t => t.Type == "Restock").ToList();
 
             var stock = transactions.Sum(t => t.Type == "Restock" ? t.Quantity : -t.Quantity);

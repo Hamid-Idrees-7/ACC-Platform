@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { materialService } from "../services/materialService";
+import { projectService } from "../services/projectService";
 import MaterialFormModal from "../components/MaterialFormModal";
 import StockModal from "../components/StockModal";
 import { formatQty, rupees, rupeesShort, rupeesPK, amountInWords } from "../utils/format";
@@ -17,6 +18,7 @@ function Materials() {
   const canManage = can("Materials", "Manage");
 
   const [materials, setMaterials] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -51,7 +53,16 @@ function Materials() {
     }
   };
 
-  useEffect(() => { loadMaterials(); }, []);
+  const loadProjects = async () => {
+    try {
+      const data = await projectService.getAll();
+      setProjects(Array.isArray(data) ? data : []);
+    } catch {
+      setProjects([]);
+    }
+  };
+
+  useEffect(() => { loadMaterials(); loadProjects(); }, []);
 
   const isOut = (m) => Number(m.currentStock) <= 0;
   const isLow = (m) => Number(m.currentStock) > 0 && Number(m.currentStock) <= Number(m.lowStockThreshold);
@@ -121,8 +132,8 @@ function Materials() {
         showToast("Material deleted.", "error");
         loadMaterials();
       }
-    } catch {
-      showToast("Could not delete material.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not delete material.", "error");
     }
   };
 
@@ -299,6 +310,7 @@ function Materials() {
         <StockModal
           mode={stockModal.mode}
           material={stockModal.material}
+          projects={projects}
           onClose={() => setStockModal(null)}
           onSave={handleStock}
         />

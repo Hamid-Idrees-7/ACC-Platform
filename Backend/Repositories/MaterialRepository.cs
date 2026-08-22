@@ -59,11 +59,11 @@ namespace Backend.Repositories
         public async Task<decimal> GetStockAsync(int materialId)
         {
             var restocked = await _context.MaterialTransactions
-                .Where(t => t.MaterialID == materialId && t.Type == "Restock")
+                .Where(t => t.MaterialID == materialId && t.Type == "Restock" && !t.IsCancelled)
                 .SumAsync(t => (decimal?)t.Quantity) ?? 0m;
 
             var issued = await _context.MaterialTransactions
-                .Where(t => t.MaterialID == materialId && t.Type == "Issue")
+                .Where(t => t.MaterialID == materialId && t.Type == "Issue" && !t.IsCancelled)
                 .SumAsync(t => (decimal?)t.Quantity) ?? 0m;
 
             return restocked - issued;
@@ -74,6 +74,7 @@ namespace Backend.Repositories
         public async Task<Dictionary<int, MaterialStats>> GetStatsMapAsync()
         {
             var rows = await _context.MaterialTransactions
+                .Where(t => !t.IsCancelled)
                 .GroupBy(t => t.MaterialID)
                 .Select(g => new
                 {
@@ -101,6 +102,28 @@ namespace Backend.Repositories
                 .OrderByDescending(t => t.CreatedAt)
                 .ThenByDescending(t => t.TransactionID)
                 .ToListAsync();
+        }
+
+        // Active (non-cancelled) "Issue" transactions for one project, with the
+        // material loaded (name/unit) for the phase-by-phase cost breakdown.
+        public async Task<List<MaterialTransaction>> GetIssuesByProjectAsync(int projectId)
+        {
+            return await _context.MaterialTransactions
+                .Include(t => t.Material)
+                .Where(t => t.Type == "Issue" && t.ProjectID == projectId && !t.IsCancelled)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<MaterialTransaction?> GetTransactionByIdAsync(int transactionId)
+        {
+            return await _context.MaterialTransactions.FindAsync(transactionId);
+        }
+
+        public async Task UpdateTransactionAsync(MaterialTransaction transaction)
+        {
+            _context.MaterialTransactions.Update(transaction);
+            await _context.SaveChangesAsync();
         }
     }
 }

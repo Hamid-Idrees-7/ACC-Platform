@@ -10,6 +10,7 @@ namespace Backend.Services
         private readonly IClientRepository _clientRepository;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IMaterialRepository _materialRepository;
+        private readonly IProjectRepository _projectRepository;
         private readonly INotificationService _notificationService;
 
         public PendingActionService(
@@ -17,12 +18,14 @@ namespace Backend.Services
             IClientRepository clientRepository,
             IEmployeeRepository employeeRepository,
             IMaterialRepository materialRepository,
+            IProjectRepository projectRepository,
             INotificationService notificationService)
         {
             _repository = repository;
             _clientRepository = clientRepository;
             _employeeRepository = employeeRepository;
             _materialRepository = materialRepository;
+            _projectRepository = projectRepository;
             _notificationService = notificationService;
         }
 
@@ -124,6 +127,8 @@ namespace Backend.Services
                     return await _employeeRepository.DeleteAsync(action.TargetID);
                 if (action.Module == "Materials")
                     return await _materialRepository.DeleteAsync(action.TargetID);
+                if (action.Module == "Projects")
+                    return await _projectRepository.DeleteAsync(action.TargetID);
             }
             return false;
         }

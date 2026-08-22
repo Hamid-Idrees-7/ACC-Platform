@@ -8,8 +8,8 @@ export const MODULE_GROUPS = [
       // approvalActions: which actions can show the "approval needed" option for this module
       { key: "Clients", label: "Clients", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
       { key: "Employees", label: "Employees", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
-            { key: "Materials", label: "Materials", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
-
+      { key: "Materials", label: "Materials", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
+      { key: "Projects", label: "Projects", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
     ],
   },
   {

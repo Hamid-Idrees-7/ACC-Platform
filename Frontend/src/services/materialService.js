@@ -43,4 +43,10 @@ export const materialService = {
     const response = await api.get(`/materials/${id}/history`);
     return response.data;
   },
+
+  // Reverse a transaction (returns/removes stock; record kept as cancelled)
+  cancelTransaction: async (txId) => {
+    const response = await api.post(`/materials/transactions/${txId}/cancel`);
+    return response.data;
+  },
 };

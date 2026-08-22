@@ -23,5 +23,7 @@ namespace Backend.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Material> Materials { get; set; }
         public DbSet<MaterialTransaction> MaterialTransactions { get; set; }
+        public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectPhase> ProjectPhases { get; set; }
     }
 }

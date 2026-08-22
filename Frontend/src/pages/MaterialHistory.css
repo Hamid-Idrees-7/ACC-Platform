@@ -171,6 +171,120 @@
     border-radius: var(--radius-md);
 }
 
+/* Cancelled rows + cancel controls */
+.mhist-row.cancelled { opacity: 0.7; background: var(--color-bg); border-left-color: var(--color-text-muted); }
+.mhist-row-icon.cancelled { background: #eef0f3; color: var(--color-text-muted); }
+.mhist-cancel-badge {
+    background: #eef0f3;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-left: 8px;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+}
+.mhist-row-amount.struck { text-decoration: line-through; color: var(--color-text-muted); }
+.mhist-row-action { flex-shrink: 0; display: flex; align-items: center; margin-left: 12px; }
+.mhist-lock { color: #b7bcc4; display: flex; padding: 7px; }
+.mhist-cancel-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.mhist-cancel-btn:hover { border-color: var(--color-error); color: var(--color-error); }
+
+/* Cancel confirm modal */
+.mhist-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    padding: 20px;
+    animation: mhistfade 0.15s ease;
+}
+@keyframes mhistfade { from { opacity: 0; } to { opacity: 1; } }
+.mhist-confirm {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 30px 28px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+}
+.mhist-confirm-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #fef3f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-error);
+    margin: 0 auto 16px;
+}
+.mhist-confirm-icon svg { width: 30px; height: 30px; }
+.mhist-confirm h3 { font-family: var(--font-heading); font-size: 20px; font-weight: 700; color: var(--color-text); margin: 0 0 8px; }
+.mhist-confirm p { font-size: 14px; color: var(--color-text-muted); margin: 0 0 14px; line-height: 1.5; }
+.mhist-confirm-warn {
+    background: #fdf6e3;
+    color: #a05a00;
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+}
+.mhist-confirm-actions { display: flex; gap: 12px; }
+.mhist-confirm-keep,
+.mhist-confirm-do {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+.mhist-confirm-keep { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
+.mhist-confirm-keep:hover { background: var(--color-bg); }
+.mhist-confirm-do { background: var(--color-error); color: #fff; }
+.mhist-confirm-do:hover { filter: brightness(0.92); }
+
+/* Toast */
+.mhist-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 22px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    z-index: 2000;
+    box-shadow: var(--shadow-lg);
+    animation: mhisttoastin 0.25s ease;
+}
+@keyframes mhisttoastin {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.mhist-toast-success { background: var(--color-success); }
+.mhist-toast-warn { background: var(--color-text-muted); }
+.mhist-toast-error { background: var(--color-error); }
+
 @media (max-width: 900px) {
     .mhist-stats { grid-template-columns: 1fr 1fr; }
 }

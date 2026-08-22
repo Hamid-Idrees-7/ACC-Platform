@@ -144,6 +144,18 @@ namespace Backend.Controllers
             return Ok(material);
         }
 
+        // POST: /api/materials/transactions/9/cancel
+        [HttpPost("transactions/{txId}/cancel")]
+        [RequirePermission("Materials", "Manage")]
+        public async Task<IActionResult> CancelTransaction(int txId)
+        {
+            var result = await _service.CancelTransactionAsync(txId);
+            if (!result.Success)
+                return BadRequest(new { message = result.Error });
+
+            return Ok(result.Material);
+        }
+
         // DELETE: /api/materials/5 (or request approval if required)
         [HttpDelete("{id}")]
         [RequirePermission("Materials", "Delete")]
@@ -152,6 +164,10 @@ namespace Backend.Controllers
             var material = await _service.GetMaterialByIdAsync(id);
             if (material == null)
                 return NotFound(new { message = "Material not found" });
+
+            // Protect history: a material issued to projects can't be deleted.
+            if (await _service.HasIssuesAsync(id))
+                return BadRequest(new { message = "This material has been issued to projects. Cancel its issues from the History page first, or set it Inactive." });
 
             // Non-admins may need approval before a delete actually runs
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Materials", "Delete"))

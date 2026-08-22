@@ -113,8 +113,9 @@ function Clients() {
         showToast("Client deleted.", "error");
         loadClients();
       }
-    } catch {
-      showToast("Could not delete client.", "error");
+    } catch (err) {
+      setConfirmDelete(null);
+      showToast(err.response?.data?.message || "Could not delete client.", "error");
     }
   };
 

@@ -14,6 +14,9 @@ namespace Backend.Repositories
         Task<decimal> GetStockAsync(int materialId);
         Task<Dictionary<int, MaterialStats>> GetStatsMapAsync();
         Task<List<MaterialTransaction>> GetTransactionsAsync(int materialId);
+        Task<List<MaterialTransaction>> GetIssuesByProjectAsync(int projectId);
+        Task<MaterialTransaction?> GetTransactionByIdAsync(int transactionId);
+        Task UpdateTransactionAsync(MaterialTransaction transaction);
     }
 
     // Aggregated numbers derived from a material's ledger.

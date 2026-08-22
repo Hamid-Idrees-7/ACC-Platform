@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Backend.Auth;
 using Backend.Models.DTOs;
+using Backend.Repositories;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -17,17 +18,20 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
         private readonly INotificationService _notificationService;
+        private readonly IProjectRepository _projectRepository;
 
         public ClientsController(
             IClientService service,
             IPermissionService permissionService,
             IPendingActionService approvalService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IProjectRepository projectRepository)
         {
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
             _notificationService = notificationService;
+            _projectRepository = projectRepository;
         }
 
         private int GetUserId()
@@ -102,6 +106,10 @@ namespace Backend.Controllers
             var client = await _service.GetClientByIdAsync(id);
             if (client == null)
                 return NotFound(new { message = "Client not found" });
+
+            // Protect project links: a client with projects can't be deleted.
+            if (await _projectRepository.AnyForClientAsync(id))
+                return BadRequest(new { message = "This client has projects and can't be deleted. Reassign or remove those projects first, or set the client Inactive." });
 
             // Non-admins may need approval before a delete actually runs
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Clients", "Delete"))

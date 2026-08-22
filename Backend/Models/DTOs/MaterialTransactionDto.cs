@@ -10,5 +10,7 @@ namespace Backend.Models.DTOs
         public string? Note { get; set; }
         public DateTime CreatedAt { get; set; }
         public decimal Amount { get; set; }
+        public bool IsCancelled { get; set; }
+        public bool Locked { get; set; }
     }
 }

@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { formatQty, rupees, amountInWords } from "../utils/format";
+import { projectService } from "../services/projectService";
 import "./StockModal.css";
 
-function StockModal({ mode, material, onClose, onSave }) {
+function StockModal({ mode, material, projects = [], onClose, onSave }) {
   const isIssue = mode === "issue";
   const [quantity, setQuantity] = useState("");
   const [rate, setRate] = useState("");
-  const [project, setProject] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [phases, setPhases] = useState([]);
+  const [phaseId, setPhaseId] = useState("");
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -16,12 +19,25 @@ function StockModal({ mode, material, onClose, onSave }) {
   const avgCost = Number(material.avgCost) || 0;
   const qty = Number(quantity) || 0;
 
-  // Restock uses the buying price the user enters; an issue is costed
-  // automatically at the current average cost (locked on the server).
   const unitCost = isIssue ? avgCost : Number(rate) || 0;
   const resulting = isIssue ? current - qty : current + qty;
   const total = qty * unitCost;
   const notEnough = isIssue && qty > current;
+
+  const onProjectChange = async (pid) => {
+    setProjectId(pid);
+    setPhaseId("");
+    setPhases([]);
+    setErrors((e) => ({ ...e, project: "" }));
+    if (pid) {
+      try {
+        const p = await projectService.getById(pid);
+        setPhases(p.phases || []);
+      } catch {
+        setPhases([]);
+      }
+    }
+  };
 
   const validate = () => {
     const e = {};
@@ -29,7 +45,7 @@ function StockModal({ mode, material, onClose, onSave }) {
     else if (notEnough) e.quantity = `Only ${formatQty(current)} ${material.unit} available.`;
 
     if (!isIssue && (rate === "" || Number(rate) < 0)) e.rate = "Enter a valid buying price.";
-    if (isIssue && !project.trim()) e.project = "Project is required.";
+    if (isIssue && !projectId) e.project = "Select a project.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -43,7 +59,10 @@ function StockModal({ mode, material, onClose, onSave }) {
     try {
       const payload = { quantity: qty, note: note.trim() || null };
       if (isIssue) {
-        payload.projectName = project.trim();
+        const proj = projects.find((p) => String(p.projectID) === String(projectId));
+        payload.projectName = proj ? proj.title : "";
+        payload.projectID = Number(projectId);
+        payload.phaseID = phaseId ? Number(phaseId) : null;
       } else {
         payload.rate = Number(rate);
       }
@@ -71,10 +90,22 @@ function StockModal({ mode, material, onClose, onSave }) {
 
         <div className="stm-body">
           {isIssue && (
-            <div className="stm-field">
-              <label>Project <span className="req">*</span></label>
-              <input type="text" maxLength={100} value={project} onChange={(e) => { setProject(e.target.value); setErrors({ ...errors, project: "" }); }} className={errors.project ? "err" : ""} placeholder="e.g. 1 Kanal Villa, Bahria Town" autoComplete="off" />
-              {errors.project && <span className="stm-err">{errors.project}</span>}
+            <div className="stm-row">
+              <div className="stm-field">
+                <label>Project <span className="req">*</span></label>
+                <select value={projectId} onChange={(e) => onProjectChange(e.target.value)} className={errors.project ? "err" : ""}>
+                  <option value="">-- Select Project --</option>
+                  {projects.map((p) => <option key={p.projectID} value={p.projectID}>{p.title}</option>)}
+                </select>
+                {errors.project && <span className="stm-err">{errors.project}</span>}
+              </div>
+              <div className="stm-field">
+                <label>Phase</label>
+                <select value={phaseId} onChange={(e) => setPhaseId(e.target.value)} disabled={!projectId || phases.length === 0}>
+                  <option value="">{phases.length === 0 ? "No phases" : "-- Whole project --"}</option>
+                  {phases.map((ph) => <option key={ph.phaseID} value={ph.phaseID}>{ph.name}</option>)}
+                </select>
+              </div>
             </div>
           )}
 
