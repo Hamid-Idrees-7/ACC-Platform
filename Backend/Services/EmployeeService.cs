@@ -7,10 +7,12 @@ namespace Backend.Services
     public class EmployeeService : IEmployeeService
     {
         private readonly IEmployeeRepository _repository;
+        private readonly IAssignmentRepository _assignmentRepository;
 
-        public EmployeeService(IEmployeeRepository repository)
+        public EmployeeService(IEmployeeRepository repository, IAssignmentRepository assignmentRepository)
         {
             _repository = repository;
+            _assignmentRepository = assignmentRepository;
         }
 
         public async Task<List<EmployeeDto>> GetAllEmployeesAsync()
@@ -71,6 +73,13 @@ namespace Backend.Services
         public async Task<bool> DeleteEmployeeAsync(int id)
         {
             return await _repository.DeleteAsync(id);
+        }
+
+        // True if the employee has ever been assigned to a project. Such a record
+        // is referenced by assignment history and must not be deleted outright.
+        public async Task<bool> HasAssignmentsAsync(int id)
+        {
+            return await _assignmentRepository.AnyForEmployeeAsync(id);
         }
 
         // Convert entity to DTO

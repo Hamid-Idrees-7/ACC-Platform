@@ -24,6 +24,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Project
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+// Assignment
+builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 // Material
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();

@@ -30,6 +30,7 @@ import Materials from "./pages/Materials";
 import MaterialHistory from "./pages/MaterialHistory";
 import ProjectManagement from "./pages/ProjectManagement";
 import ProjectDetail from "./pages/ProjectDetail";
+import Assignments from "./pages/Assignments";
 
 import UnderConstruction from "./pages/UnderConstruction";
 
@@ -64,8 +65,10 @@ function App() {
           <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
           <Route path="/dashboard/projects" element={<ProjectManagement />} />  
           <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />        
+          <Route path="/dashboard/assignments" element={<Assignments />} />
 
-          <Route path="/dashboard/assignments" element={<UnderConstruction title="Assignments" />} />
+
+          
           <Route path="/dashboard/attendance" element={<UnderConstruction title="Attendance" />} />
           <Route path="/dashboard/salaries" element={<UnderConstruction title="Salaries" />} />
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />

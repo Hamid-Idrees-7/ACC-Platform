@@ -102,6 +102,11 @@ namespace Backend.Controllers
             if (employee == null)
                 return NotFound(new { message = "Employee not found" });
 
+            // Referential-integrity guard: an employee tied to any assignment must be
+            // kept for history. Recommend Inactive over deletion.
+            if (await _service.HasAssignmentsAsync(id))
+                return Conflict(new { message = $"\"{employee.FullName}\" has project assignments and cannot be deleted. Set the employee to Inactive instead to keep the assignment history." });
+
             // Non-admins may need approval before a delete actually runs
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Employees", "Delete"))
             {

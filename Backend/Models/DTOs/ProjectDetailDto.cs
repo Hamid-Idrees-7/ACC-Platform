@@ -19,6 +19,7 @@ namespace Backend.Models.DTOs
 
         public ProjectFinancialsDto Financials { get; set; } = new();
         public List<ProjectPhaseDto> Phases { get; set; } = new();
+        public List<AssignmentDto> Team { get; set; } = new();
         public List<PhaseMaterialsDto> MaterialsByPhase { get; set; } = new();
 
         public DateTime CreatedAt { get; set; }

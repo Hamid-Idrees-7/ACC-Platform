@@ -167,7 +167,10 @@
 .pd-profit.pos strong { color: #0a7d43; }
 .pd-profit.neg strong { color: var(--color-error); }
 .pd-profit em { font-style: normal; font-size: 11px; color: var(--color-text-muted); text-transform: capitalize; }
+/* Amber tag for figures estimated from elapsed days (until Attendance is live) */
+.pd-tag.est { background: #fde68a; color: #92400e; }   /* amber = provisional estimate, intentional */
 .pd-fin-note { margin-top: 16px; font-size: 12.5px; color: var(--color-text-muted); background: var(--color-bg); padding: 10px 14px; border-radius: var(--radius-md); }
+.pd-fin-note .pd-tag.est { display: inline-block; }
 
 /* Phases + Team columns */
 .pd-columns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
@@ -270,7 +273,53 @@
 .pd-team-box { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
 .pd-team-row { display: flex; flex-direction: column; gap: 6px; }
 .pd-team-row > span { font-size: 11px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.4px; }
-.pd-team-empty { background: #fdecec; color: var(--color-error); font-size: 13px; padding: 8px 12px; border-radius: var(--radius-md); }
+.pd-team-empty { background: var(--color-bg); color: var(--color-text-muted); font-size: 13px; padding: 8px 12px; border-radius: var(--radius-md); }
+.pd-team-people { display: flex; flex-direction: column; gap: 8px; }
+.pd-team-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+}
+.pd-team-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+.pd-team-avatar.lead { background: linear-gradient(135deg, var(--color-info), #1c6fd6); }   /* blue for a lead role, intentional */
+.pd-team-info { flex: 1; min-width: 0; }
+.pd-team-name { font-size: 14px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-team-role { font-size: 12px; color: var(--color-text-muted); }
+.pd-team-person.past { opacity: 0.6; }
+.pd-team-person.past .pd-team-avatar { filter: grayscale(0.7); }
+.pd-team-done-tag {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--color-info);
+    background: #e8f1fe;   /* soft blue, matches completed status, intentional */
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    vertical-align: middle;
+}
+.pd-team-wage { text-align: right; flex-shrink: 0; }
+.pd-team-wage strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--color-text); }
+.pd-team-wage span { font-size: 11px; color: var(--color-text-muted); }
+.pd-team-wage small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: #92400e; }   /* amber-800, accrued-so-far, intentional */
 .pd-manage-team { border: none; background: transparent; color: var(--color-primary); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; padding: 0; font-family: var(--font-body); }
 .pd-team-note { font-size: 12px; color: var(--color-text-muted); margin: 14px 0 0; }
 

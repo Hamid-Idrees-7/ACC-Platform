@@ -11,6 +11,9 @@ const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const PHASE_STATUSES = ["Pending", "In Progress", "Completed"];
 const PHASE_SUGGESTIONS = ["Swimming Pool", "Basement", "Lift Installation", "Home Theater"];
 const slug = (s) => (s || "").toLowerCase().replace(/[\s/]+/g, "");
+// Roles that lead a site rather than labour on it
+const LEAD_ROLE = /engineer|supervisor|manager|incharge|in-charge|architect|foreman/i;
+const wageSuffix = (type) => (type === "Monthly" ? "/mo" : type === "Contract" ? " contract" : "/day");
 
 function ProgressRing({ value }) {
   const r = 32;
@@ -154,6 +157,53 @@ function ProjectDetail() {
     pending: project.phases.filter((p) => p.status === "Pending").length,
   };
 
+  // Site team = every assignment (active + completed), leads split from workers.
+  // Active are listed before completed so the current crew stays on top.
+  const byActiveFirst = (a, b) => (a.status === "Active" ? 0 : 1) - (b.status === "Active" ? 0 : 1);
+  const team = [...(project.team || [])].sort(byActiveFirst);
+  const engineers = team.filter((m) => LEAD_ROLE.test(m.role || ""));
+  const workers = team.filter((m) => !LEAD_ROLE.test(m.role || ""));
+
+  // Estimated labour so far for daily & monthly wages (contract is already confirmed).
+  // Without attendance we assume work ran from each start date up to the end date, or today.
+  // Daily accrues per elapsed day (1500/day -> 3000 after two days); monthly accrues pro-rata by days.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const elapsedDays = (start, end) => {
+    const s = new Date(start); s.setHours(0, 0, 0, 0);
+    const e = new Date(end); e.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.floor((e - s) / 86400000) + 1);
+  };
+  let estDailyAmt = 0, estDailyCount = 0, estMonthlyAmt = 0, estMonthlyCount = 0;
+  team.forEach((m) => {
+    if (!m.startDate) return;
+    const days = elapsedDays(m.startDate, m.endDate || today);
+    if (m.wageType === "Daily") { estDailyCount++; estDailyAmt += days * (m.wageAmount || 0); }
+    else if (m.wageType === "Monthly") { estMonthlyCount++; estMonthlyAmt += (days / 30) * (m.wageAmount || 0); }
+  });
+  // One financials box: contract is confirmed, daily & monthly are estimated from
+  // elapsed days until the Attendance module makes them exact. All labour is deducted
+  // together so the single profit figure reflects the full picture.
+  const contractLabour = f.labourCost || 0;
+  const dailyEst = Math.round(estDailyAmt);
+  const monthlyEst = Math.round(estMonthlyAmt);
+  const totalLabour = contractLabour + dailyEst + monthlyEst;
+  const actualCostAll = (f.materialCost || 0) + totalLabour;
+  const netProfit = (f.budget || 0) - actualCostAll;
+  const netMargin = (f.budget || 0) > 0 ? Math.round((netProfit / f.budget) * 100) : 0;
+  const hasEstLabour = dailyEst > 0 || monthlyEst > 0;
+
+  // Per-person accrued wage so far — shown on each team card for transparency.
+  // Contract is a fixed lump sum, so it has no day-by-day accrual line.
+  const accrualText = (m) => {
+    if (!m.startDate || m.wageType === "Contract") return null;
+    const days = elapsedDays(m.startDate, m.endDate || today);
+    const amount = m.wageType === "Monthly"
+      ? Math.round((days / 30) * (m.wageAmount || 0))
+      : days * (m.wageAmount || 0);
+    return `${days} ${days === 1 ? "day" : "days"} = ${rupees(amount)}`;
+  };
+
   return (
     <DashboardLayout title="Project">
       <button className="pd-back" onClick={() => navigate("/dashboard/projects")}>← Back to Projects</button>
@@ -201,7 +251,7 @@ function ProjectDetail() {
         <div className="pd-fin-card">
           <div className="pd-fin-head">
             <span>PROJECT FINANCIALS</span>
-            <span className="pd-margin">{f.marginPercent}% margin</span>
+            <span className="pd-margin">{netMargin}% margin{hasEstLabour ? " (est.)" : ""}</span>
           </div>
           <div className="pd-fin-body">
             <div className="pd-fin-rows">
@@ -214,21 +264,33 @@ function ProjectDetail() {
                 <div className="pd-fin-amt neg"><strong>− {rupees(f.materialCost)}</strong><em>{amountInWords(f.materialCost)}</em></div>
               </div>
               <div className="pd-fin-row">
-                <span>Labour Cost <b className="pd-tag">CONTRACT</b></span>
-                <div className="pd-fin-amt neg"><strong>− {rupees(f.labourCost)}</strong><em>{amountInWords(f.labourCost)}</em></div>
+                <span>Contract Labour <b className="pd-tag">FIXED</b></span>
+                <div className="pd-fin-amt neg"><strong>− {rupees(contractLabour)}</strong><em>{amountInWords(contractLabour)}</em></div>
               </div>
+              {dailyEst > 0 && (
+                <div className="pd-fin-row">
+                  <span>Daily Wages <b className="pd-tag est">EST · {estDailyCount}</b></span>
+                  <div className="pd-fin-amt neg"><strong>− {rupees(dailyEst)}</strong><em>{amountInWords(dailyEst)}</em></div>
+                </div>
+              )}
+              {monthlyEst > 0 && (
+                <div className="pd-fin-row">
+                  <span>Monthly Wages <b className="pd-tag est">EST · {estMonthlyCount}</b></span>
+                  <div className="pd-fin-amt neg"><strong>− {rupees(monthlyEst)}</strong><em>{amountInWords(monthlyEst)}</em></div>
+                </div>
+              )}
               <div className="pd-fin-row pd-fin-total">
                 <span>Actual Cost</span>
-                <div className="pd-fin-amt"><strong>{rupees(f.actualCost)}</strong><em>{amountInWords(f.actualCost)}</em></div>
+                <div className="pd-fin-amt"><strong>{rupees(actualCostAll)}</strong><em>{amountInWords(actualCostAll)}</em></div>
               </div>
             </div>
-            <div className={`pd-profit ${f.profit >= 0 ? "pos" : "neg"}`}>
-              <span>{f.profit >= 0 ? "CONFIRMED PROFIT" : "LOSS"}</span>
-              <strong>{rupees(f.profit)}</strong>
-              <em>{amountInWords(f.profit)}</em>
+            <div className={`pd-profit ${netProfit >= 0 ? "pos" : "neg"}`}>
+              <span>{netProfit >= 0 ? (hasEstLabour ? "PROFIT (EST.)" : "PROFIT") : (hasEstLabour ? "LOSS (EST.)" : "LOSS")}</span>
+              <strong>{rupees(netProfit)}</strong>
+              <em>{amountInWords(netProfit)}</em>
             </div>
           </div>
-          <div className="pd-fin-note">Material cost fills in as stock is issued to this project's phases. Labour cost comes from the Attendance module.</div>
+          <div className="pd-fin-note">Budget, material and contract labour are confirmed. Daily &amp; monthly wages are estimated from elapsed days (marked <b className="pd-tag est">EST</b>) — once the Attendance module is live they turn into exact, attendance-based amounts.</div>
         </div>
 
         {/* Phases + Team */}
@@ -298,15 +360,53 @@ function ProjectDetail() {
             )}
           </div>
 
-          {/* Team (placeholder — filled by Assignments module) */}
+          {/* Construction site team — live from the Assignments module */}
           <div className="pd-team">
             <h3>Construction Site</h3>
             <div className="pd-team-box">
-              <div className="pd-team-row"><span>SITE ENGINEER</span><div className="pd-team-empty">Not assigned</div></div>
-              <div className="pd-team-row"><span>WORKERS (0)</span><div className="pd-team-empty">No workers assigned yet</div></div>
-              <button className="pd-manage-team" onClick={() => navigate("/dashboard/assignments")}>Manage Team →</button>
+              <div className="pd-team-row">
+                <span>SITE ENGINEER</span>
+                {engineers.length === 0 ? (
+                  <div className="pd-team-empty">Not assigned</div>
+                ) : (
+                  <div className="pd-team-people">
+                    {engineers.map((m) => (
+                      <div key={m.assignmentID} className={`pd-team-person ${m.status === "Completed" ? "past" : ""}`}>
+                        <div className="pd-team-avatar lead">{(m.employeeName || "?").charAt(0).toUpperCase()}</div>
+                        <div className="pd-team-info">
+                          <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
+                          <div className="pd-team-role">{m.role}</div>
+                        </div>
+                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="pd-team-row">
+                <span>WORKERS ({workers.length})</span>
+                {workers.length === 0 ? (
+                  <div className="pd-team-empty">No workers assigned yet</div>
+                ) : (
+                  <div className="pd-team-people">
+                    {workers.map((m) => (
+                      <div key={m.assignmentID} className={`pd-team-person ${m.status === "Completed" ? "past" : ""}`}>
+                        <div className="pd-team-avatar">{(m.employeeName || "?").charAt(0).toUpperCase()}</div>
+                        <div className="pd-team-info">
+                          <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
+                          <div className="pd-team-role">{m.role}</div>
+                        </div>
+                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {canManage && !cancelled && (
+                <button className="pd-manage-team" onClick={() => navigate("/dashboard/assignments")}>Manage Team →</button>
+              )}
             </div>
-            <p className="pd-team-note">Team &amp; labour cost come from the Assignments module (coming next).</p>
+            <p className="pd-team-note">Only contract wages count toward labour cost. Daily &amp; monthly wages will roll up from the Attendance module.</p>
           </div>
         </div>
 

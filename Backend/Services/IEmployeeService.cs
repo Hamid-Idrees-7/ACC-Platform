@@ -9,5 +9,6 @@ namespace Backend.Services
         Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto dto);
         Task<EmployeeDto?> UpdateEmployeeAsync(int id, CreateEmployeeDto dto);
         Task<bool> DeleteEmployeeAsync(int id);
+        Task<bool> HasAssignmentsAsync(int id);
     }
 }

@@ -9,6 +9,8 @@ namespace Backend.Services
         private readonly IProjectRepository _repository;
         private readonly IClientRepository _clientRepository;
         private readonly IMaterialRepository _materialRepository;
+        private readonly IAssignmentRepository _assignmentRepository;
+        private readonly IEmployeeRepository _employeeRepository;
 
         private static readonly string[] StandardPhases =
         {
@@ -27,11 +29,18 @@ namespace Backend.Services
             "In Progress", "On Hold", "Completed", "Cancelled"
         };
 
-        public ProjectService(IProjectRepository repository, IClientRepository clientRepository, IMaterialRepository materialRepository)
+        public ProjectService(
+            IProjectRepository repository,
+            IClientRepository clientRepository,
+            IMaterialRepository materialRepository,
+            IAssignmentRepository assignmentRepository,
+            IEmployeeRepository employeeRepository)
         {
             _repository = repository;
             _clientRepository = clientRepository;
             _materialRepository = materialRepository;
+            _assignmentRepository = assignmentRepository;
+            _employeeRepository = employeeRepository;
         }
 
         public async Task<List<ProjectDto>> GetAllProjectsAsync()
@@ -60,11 +69,14 @@ namespace Backend.Services
             var client = await _clientRepository.GetByIdAsync(project.ClientID);
             var phases = await _repository.GetPhasesAsync(id);
 
-            // Material cost is the total value of stock issued to this project;
-            // labour cost comes from the Attendance module later.
+            // Material cost is the total value of stock issued to this project.
             var issues = await _materialRepository.GetIssuesByProjectAsync(id);
             decimal materialCost = issues.Sum(t => t.Quantity * t.Rate);
-            decimal labourCost = 0m;
+
+            // Labour cost, for now, is only the contract wages — a fixed agreed amount.
+            // Daily and monthly wages depend on attendance and are added once that module exists.
+            decimal labourCost = await _assignmentRepository.GetContractLabourForProjectAsync(id);
+
             decimal actualCost = materialCost + labourCost;
             decimal profit = project.Budget - actualCost;
             decimal margin = project.Budget > 0 ? Math.Round(profit / project.Budget * 100m, 0) : 0m;
@@ -97,6 +109,27 @@ namespace Backend.Services
                 .OrderByDescending(pm => pm.Subtotal)
                 .ToList();
 
+            // Site team — everyone assigned to this project, with their employee names resolved.
+            var assignments = await _assignmentRepository.GetByProjectAsync(id);
+            var employees = await _employeeRepository.GetAllAsync();
+            var employeeNames = employees.ToDictionary(e => e.EmployeeID, e => e.FullName);
+            var team = assignments.Select(a => new AssignmentDto
+            {
+                AssignmentID = a.AssignmentID,
+                EmployeeID = a.EmployeeID,
+                EmployeeName = employeeNames.GetValueOrDefault(a.EmployeeID, "—"),
+                ProjectID = a.ProjectID,
+                ProjectTitle = project.Title,
+                Role = a.Role,
+                WageType = a.WageType,
+                WageAmount = a.WageAmount,
+                StartDate = a.StartDate,
+                EndDate = a.EndDate,
+                Status = a.Status,
+                Notes = a.Notes,
+                CreatedAt = a.CreatedAt
+            }).ToList();
+
             return new ProjectDetailDto
             {
                 ProjectID = project.ProjectID,
@@ -123,6 +156,7 @@ namespace Backend.Services
                     MarginPercent = margin
                 },
                 Phases = phases.Select(PhaseDto).ToList(),
+                Team = team,
                 MaterialsByPhase = materialsByPhase,
                 CreatedAt = project.CreatedAt
             };

@@ -25,5 +25,6 @@ namespace Backend.Data
         public DbSet<MaterialTransaction> MaterialTransactions { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
+        public DbSet<Assignment> Assignments { get; set; }
     }
 }
