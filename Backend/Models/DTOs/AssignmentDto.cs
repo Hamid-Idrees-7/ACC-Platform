@@ -14,6 +14,8 @@ namespace Backend.Models.DTOs
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        // Present days marked in Attendance (daily workers) — used for actual labour cost.
+        public int PresentDays { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

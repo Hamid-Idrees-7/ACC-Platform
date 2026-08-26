@@ -4,6 +4,8 @@ namespace Backend.Models.DTOs
     {
         public decimal Budget { get; set; }
         public decimal MaterialCost { get; set; }
+        public decimal ContractLabour { get; set; }
+        public decimal DailyLabour { get; set; }
         public decimal LabourCost { get; set; }
         public decimal ActualCost { get; set; }
         public decimal Profit { get; set; }

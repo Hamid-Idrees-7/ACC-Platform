@@ -19,8 +19,8 @@
 .dp-input:hover { border-color: var(--color-text-muted); }
 .dp-input.open { border-color: var(--color-primary); }
 .dp-input svg { color: var(--color-primary); flex-shrink: 0; }
-.dp-value { flex: 1; color: var(--color-text); }
-.dp-placeholder { flex: 1; color: #9aa2ae; }
+.dp-value { flex: 1; color: var(--color-text); white-space: nowrap; }
+.dp-placeholder { flex: 1; color: #9aa2ae; white-space: nowrap; }
 .dp-clear {
     display: flex;
     align-items: center;
@@ -49,7 +49,7 @@
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
 }
-/* Opens above the field when there is not enough room below (e.g bottom of a modal) */
+/* Opens above the field when there is not enough room below (e.g. bottom of a modal) */
 .dp-popup.up {
     top: auto;
     bottom: calc(100% + 6px);

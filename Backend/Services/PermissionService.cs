@@ -63,11 +63,21 @@ namespace Backend.Services
                 .ToDictionary(g => g.Key, g => g.Select(p => p.Module).Distinct().Count());
         }
 
-        // Check if a user is allowed a specific action (used by backend enforcement)
+        // Check if a user is allowed a specific action (used by backend enforcement).
+        // View is the baseline: any non-View action ALSO requires View on the module,
+        // so an action can never be exploited (e.g. via direct API) without module access.
         public async Task<bool> HasPermissionAsync(int userId, string module, string action)
         {
             var perm = await _repository.GetOneAsync(userId, module, action);
-            return perm != null && perm.IsAllowed;
+            if (perm == null || !perm.IsAllowed) return false;
+
+            if (!string.Equals(action, "View", StringComparison.OrdinalIgnoreCase))
+            {
+                var view = await _repository.GetOneAsync(userId, module, "View");
+                if (view == null || !view.IsAllowed) return false;
+            }
+
+            return true;
         }
 
         // Check if an allowed action needs approval first

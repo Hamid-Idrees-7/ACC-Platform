@@ -78,21 +78,24 @@ function ManageAccess() {
     savePerm(module, action, current.allowed, newApproval);
   };
 
-  // Master toggle: turn whole module on (all actions) or off
+  // The module master toggle IS "View" (access to the module). Turning it on grants
+  // View; the specific actions below are then enabled one by one. Turning it off clears
+  // View AND every action — so an action can never stay on without View (no back-door).
   const toggleModule = (mod) => {
-    const allOn = mod.actions.every((a) => getPerm(mod.key, a).allowed);
-    const newAllowed = !allOn;
+    const turnOn = !isModuleOn(mod);
     const updates = {};
     mod.actions.forEach((a) => {
-      const current = getPerm(mod.key, a);
-      const newApproval = newAllowed ? current.approval : false;
-      updates[key(mod.key, a)] = { allowed: newAllowed, approval: newApproval };
-      savePerm(mod.key, a, newAllowed, newApproval);
+      // On = grant View only (a clean slate); other actions are enabled individually.
+      // Off = clear everything.
+      const allowed = turnOn && a === "View";
+      updates[key(mod.key, a)] = { allowed, approval: false };
+      savePerm(mod.key, a, allowed, false);
     });
     setPerms((prev) => ({ ...prev, ...updates }));
   };
 
-  const isModuleOn = (mod) => mod.actions.some((a) => getPerm(mod.key, a).allowed);
+  // A module is "on" when the user can View it.
+  const isModuleOn = (mod) => getPerm(mod.key, "View").allowed;
   const initials = (name) => (name || "U").charAt(0).toUpperCase();
 
   if (loading) {
@@ -140,7 +143,7 @@ function ManageAccess() {
                   <div className="ma-module-head">
                     <div>
                       <h4>{mod.label}</h4>
-                      <span>{mod.actions.length} actions</span>
+                      <span>{mod.actions.filter((a) => a !== "View").length} actions</span>
                     </div>
                     <button
                       className={`ma-toggle ${on ? "on" : ""}`}
@@ -153,7 +156,7 @@ function ManageAccess() {
 
                   {on && (
                     <div className="ma-actions">
-                      {mod.actions.map((action) => {
+                      {mod.actions.filter((action) => action !== "View").map((action) => {
                         const p = getPerm(mod.key, action);
                         const canApprove = (mod.approvalActions || []).includes(action);
                         return (

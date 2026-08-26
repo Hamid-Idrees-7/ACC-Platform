@@ -13,7 +13,7 @@ export function formatDate(date) {
 }
 
 // A pretty custom date picker. value/onChange use ISO date strings (YYYY-MM-DD).
-function DatePicker({ value, onChange, placeholder = "Select a date" }) {
+function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const selected = value ? new Date(value) : null;
@@ -77,7 +77,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date" }) {
         <span className={selected ? "dp-value" : "dp-placeholder"}>
           {selected ? formatDate(selected) : placeholder}
         </span>
-        {value && (
+        {value && allowClear && (
           <span
             className="dp-clear"
             onClick={(e) => { e.stopPropagation(); onChange(""); }}
