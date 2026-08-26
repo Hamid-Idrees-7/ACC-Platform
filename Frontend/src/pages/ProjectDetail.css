@@ -170,7 +170,6 @@
 /* Amber tag for figures estimated from elapsed days (until Attendance is live) */
 .pd-tag.est { background: #fde68a; color: #92400e; }   /* amber = provisional estimate, intentional */
 .pd-fin-note { margin-top: 16px; font-size: 12.5px; color: var(--color-text-muted); background: var(--color-bg); padding: 10px 14px; border-radius: var(--radius-md); }
-.pd-fin-note .pd-tag.est { display: inline-block; }
 
 /* Phases + Team columns */
 .pd-columns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
@@ -311,7 +310,7 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     color: var(--color-info);
-    background: #e8f1fe;   /* soft blue, matches completed status, intentional */
+    background: #e8f1fe;   /* soft blue, matches completed status */
     padding: 1px 7px;
     border-radius: var(--radius-full);
     vertical-align: middle;
@@ -320,6 +319,7 @@
 .pd-team-wage strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--color-text); }
 .pd-team-wage span { font-size: 11px; color: var(--color-text-muted); }
 .pd-team-wage small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: #92400e; }   /* amber-800, accrued-so-far, intentional */
+.pd-team-wage small.payroll { color: var(--color-text-muted); font-weight: 600; }
 .pd-manage-team { border: none; background: transparent; color: var(--color-primary); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; padding: 0; font-family: var(--font-body); }
 .pd-team-note { font-size: 12px; color: var(--color-text-muted); margin: 14px 0 0; }
 

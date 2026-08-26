@@ -165,8 +165,8 @@ function ProjectDetail() {
   const workers = team.filter((m) => !LEAD_ROLE.test(m.role || ""));
 
   // Estimated labour so far for daily & monthly wages (contract is already confirmed).
-  // Without attendance we assume work ran from each start date up to the end date, or today.
-  // Daily accrues per elapsed day (1500/day -> 3000 after two days); monthly accrues pro-rata by days.
+  // Only daily wages accrue as this project's labour cost. Without attendance we assume
+  // work ran from each start date to the end date (or today); daily accrues per elapsed day.
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const elapsedDays = (start, end) => {
@@ -174,34 +174,29 @@ function ProjectDetail() {
     const e = new Date(end); e.setHours(0, 0, 0, 0);
     return Math.max(1, Math.floor((e - s) / 86400000) + 1);
   };
-  let estDailyAmt = 0, estDailyCount = 0, estMonthlyAmt = 0, estMonthlyCount = 0;
+  let estDailyAmt = 0;
   team.forEach((m) => {
-    if (!m.startDate) return;
+    if (!m.startDate || m.wageType !== "Daily") return;
     const days = elapsedDays(m.startDate, m.endDate || today);
-    if (m.wageType === "Daily") { estDailyCount++; estDailyAmt += days * (m.wageAmount || 0); }
-    else if (m.wageType === "Monthly") { estMonthlyCount++; estMonthlyAmt += (days / 30) * (m.wageAmount || 0); }
+    estDailyAmt += days * (m.wageAmount || 0);
   });
-  // One financials box: contract is confirmed, daily & monthly are estimated from
-  // elapsed days until the Attendance module makes them exact. All labour is deducted
-  // together so the single profit figure reflects the full picture.
+  // Project labour cost = contract (fixed) + daily (per-day). Monthly salaried staff are a
+  // standing company obligation paid regardless of any project, so they are NOT charged here —
+  // they belong to company payroll (future Salaries module).
   const contractLabour = f.labourCost || 0;
   const dailyEst = Math.round(estDailyAmt);
-  const monthlyEst = Math.round(estMonthlyAmt);
-  const totalLabour = contractLabour + dailyEst + monthlyEst;
+  const totalLabour = contractLabour + dailyEst;
   const actualCostAll = (f.materialCost || 0) + totalLabour;
   const netProfit = (f.budget || 0) - actualCostAll;
   const netMargin = (f.budget || 0) > 0 ? Math.round((netProfit / f.budget) * 100) : 0;
-  const hasEstLabour = dailyEst > 0 || monthlyEst > 0;
+  const hasEstLabour = dailyEst > 0;
 
-  // Per-person accrued wage so far — shown on each team card for transparency.
-  // Contract is a fixed lump sum, so it has no day-by-day accrual line.
+  // Per-person accrued wage — only for daily workers (their pay is this project's cost).
+  // Contract is a fixed sum; monthly is company payroll — neither shows a daily.
   const accrualText = (m) => {
-    if (!m.startDate || m.wageType === "Contract") return null;
+    if (!m.startDate || m.wageType !== "Daily") return null;
     const days = elapsedDays(m.startDate, m.endDate || today);
-    const amount = m.wageType === "Monthly"
-      ? Math.round((days / 30) * (m.wageAmount || 0))
-      : days * (m.wageAmount || 0);
-    return `${days} ${days === 1 ? "day" : "days"} = ${rupees(amount)}`;
+    return `${days} ${days === 1 ? "day" : "days"} = ${rupees(days * (m.wageAmount || 0))}`;
   };
 
   return (
@@ -269,14 +264,8 @@ function ProjectDetail() {
               </div>
               {dailyEst > 0 && (
                 <div className="pd-fin-row">
-                  <span>Daily Wages <b className="pd-tag est">EST · {estDailyCount}</b></span>
+                  <span>Daily Wages <b className="pd-tag est">EST</b></span>
                   <div className="pd-fin-amt neg"><strong>− {rupees(dailyEst)}</strong><em>{amountInWords(dailyEst)}</em></div>
-                </div>
-              )}
-              {monthlyEst > 0 && (
-                <div className="pd-fin-row">
-                  <span>Monthly Wages <b className="pd-tag est">EST · {estMonthlyCount}</b></span>
-                  <div className="pd-fin-amt neg"><strong>− {rupees(monthlyEst)}</strong><em>{amountInWords(monthlyEst)}</em></div>
                 </div>
               )}
               <div className="pd-fin-row pd-fin-total">
@@ -290,7 +279,7 @@ function ProjectDetail() {
               <em>{amountInWords(netProfit)}</em>
             </div>
           </div>
-          <div className="pd-fin-note">Budget, material and contract labour are confirmed. Daily &amp; monthly wages are estimated from elapsed days (marked <b className="pd-tag est">EST</b>) — once the Attendance module is live they turn into exact, attendance-based amounts.</div>
+          <div className="pd-fin-note">Budget, material and contract labour are confirmed. Daily wages are an estimate from elapsed days until the Attendance module makes them exact. Monthly salaried staff are company payroll — paid regardless of any project — so they are not charged to this project.</div>
         </div>
 
         {/* Phases + Team */}
@@ -377,7 +366,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}</div>
+                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
                       </div>
                     ))}
                   </div>
@@ -396,7 +385,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}</div>
+                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
                       </div>
                     ))}
                   </div>
@@ -406,7 +395,7 @@ function ProjectDetail() {
                 <button className="pd-manage-team" onClick={() => navigate("/dashboard/assignments")}>Manage Team →</button>
               )}
             </div>
-            <p className="pd-team-note">Only contract wages count toward labour cost. Daily &amp; monthly wages will roll up from the Attendance module.</p>
+            <p className="pd-team-note">Daily &amp; contract wages are this project's labour cost. Monthly salaried staff are company payroll and are not charged to this project.</p>
           </div>
         </div>
 
