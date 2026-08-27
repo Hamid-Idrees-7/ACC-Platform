@@ -33,6 +33,8 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Assignments from "./pages/Assignments";
 import Attendance from "./pages/Attendance";
 import MarkAttendance from "./pages/MarkAttendance";
+import Salaries from "./pages/Salaries";
+import Payslip from "./pages/Payslip";
 
 import UnderConstruction from "./pages/UnderConstruction";
 
@@ -70,10 +72,11 @@ function App() {
           <Route path="/dashboard/assignments" element={<Assignments />} />
           <Route path="/dashboard/attendance" element={<Attendance />} />
           <Route path="/dashboard/attendance/:id" element={<MarkAttendance />} />
+          <Route path="/dashboard/salaries" element={<Salaries />} />
+          <Route path="/dashboard/salaries/payslip/:employeeId" element={<Payslip />} />
 
 
 
-          <Route path="/dashboard/salaries" element={<UnderConstruction title="Salaries" />} />
           <Route path="/dashboard/billing" element={<UnderConstruction title="Billing & Invoices" />} />
           <Route path="/dashboard/approvals" element={<UnderConstruction title="Approvals" />} />
           <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />

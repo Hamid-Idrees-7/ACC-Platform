@@ -12,6 +12,7 @@ export const MODULE_GROUPS = [
       { key: "Projects", label: "Projects", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
       { key: "Assignments", label: "Assignments", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
       { key: "Attendance", label: "Attendance", actions: ["View", "Mark"], approvalActions: [] },
+      { key: "Salaries", label: "Salaries", actions: ["View", "Manage"], approvalActions: [] },
     ],
   },
   {
