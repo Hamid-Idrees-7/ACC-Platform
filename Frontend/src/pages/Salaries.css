@@ -130,8 +130,8 @@
     flex-shrink: 0;
 }
 .sal-stat-ic.blue { background: #e8eefc; color: #2f5fd0; }       
-.sal-stat-ic.green { background: #e7f8ef; color: #12b76a; }      
-.sal-stat-ic.purple { background: #f0e9fc; color: #7c4ddb; }    
+.sal-stat-ic.green { background: #e7f8ef; color: #12b76a; }   
+.sal-stat-ic.purple { background: #f0e9fc; color: #7c4ddb; }  
 .sal-stat-ic.orange { background: var(--color-primary-soft); color: var(--color-primary); }
 .sal-stat-val { font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--color-text); line-height: 1.1; }
 .sal-stat-lbl { font-size: 13.5px; color: var(--color-text-muted); margin-top: 2px; }
@@ -151,7 +151,7 @@
     padding: 18px 20px;
 }
 .sal-card.pending { border-left-color: var(--color-primary); }
-.sal-card.partial { border-left-color: #6366f1; }   /* indigo */
+.sal-card.partial { border-left-color: #6366f1; }   
 .sal-card.paid { border-left-color: var(--color-success); }
 
 .sal-card-head { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
@@ -173,9 +173,9 @@
     letter-spacing: 0.4px;
     flex-shrink: 0;
 }
-.sal-badge.pending { background: #fef3e2; color: #b7791f; }   /* amber */
-.sal-badge.partial { background: #eaeafe; color: #4f46e5; }   /* indigo */
-.sal-badge.paid { background: #e7f8ef; color: #0a7d43; }      /* green */
+.sal-badge.pending { background: #fef3e2; color: #b7791f; }   
+.sal-badge.partial { background: #eaeafe; color: #4f46e5; }   
+.sal-badge.paid { background: #e7f8ef; color: #0a7d43; }      
 
 /* Lines */
 .sal-lines { display: flex; flex-direction: column; }
@@ -191,13 +191,13 @@
     border-radius: var(--radius-sm);
     text-transform: capitalize;
 }
-.sal-type.daily { background: #fff4e5; color: #b7791f; }      
-.sal-type.monthly { background: #fdece6; color: var(--color-primary-dark); }   
-.sal-type.contract { background: #fdf3e2; color: #a16207; }  
+.sal-type.daily { background: #fff4e5; color: #b7791f; }     
+.sal-type.monthly { background: #fdece6; color: var(--color-primary-dark); }    
+.sal-type.contract { background: #fdf3e2; color: #a16207; }   
 .sal-rate { font-size: 12.5px; color: var(--color-text-muted); }
-.sal-att { font-size: 11.5px; font-weight: 700; color: #2f5fd0; background: #e8eefc; padding: 2px 8px; border-radius: var(--radius-sm); }   /* intentional */
-.sal-paid-tag { font-size: 10.5px; font-weight: 700; color: #0a7d43; background: #e7f8ef; padding: 2px 9px; border-radius: var(--radius-full); }   /* intentional */
-.sal-override { margin-top: 8px; font-size: 12px; color: #4f46e5; background: #f3f3fe; padding: 7px 12px; border-radius: var(--radius-md); }   /* indigo, intentional */
+.sal-att { font-size: 11.5px; font-weight: 700; color: #2f5fd0; background: #e8eefc; padding: 2px 8px; border-radius: var(--radius-sm); }  
+.sal-paid-tag { font-size: 10.5px; font-weight: 700; color: #0a7d43; background: #e7f8ef; padding: 2px 9px; border-radius: var(--radius-full); }   
+.sal-override { margin-top: 8px; font-size: 12px; color: #4f46e5; background: #f3f3fe; padding: 7px 12px; border-radius: var(--radius-md); }   
 .sal-line-note { margin-top: 6px; font-size: 12.5px; color: var(--color-text-muted); font-style: italic; }
 .sal-line-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
 .sal-pay {
@@ -290,6 +290,7 @@
     margin-bottom: 18px;
 }
 .sal-modal input:focus { border-color: var(--color-primary); }
+.sal-words { margin: -12px 0 16px; font-size: 12.5px; font-weight: 600; color: var(--color-success); text-transform: capitalize; }
 .sal-modal-actions { display: flex; gap: 12px; }
 .sal-modal-cancel {
     flex: 1; padding: 12px;

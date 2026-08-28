@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { salaryService } from "../services/salaryService";
-import { rupees } from "../utils/format";
+import { rupees, amountInWords } from "../utils/format";
 import "./Salaries.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -217,6 +217,7 @@ function Salaries() {
             </div>
             <label className="sal-modal-label">Final Amount to Pay (Rs.) <span>*</span></label>
             <input type="number" min="0" step="any" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} autoFocus />
+            {finalAmount !== "" && Number(finalAmount) > 0 && <div className="sal-words">= {amountInWords(finalAmount)}</div>}
             <label className="sal-modal-label">Payment Note</label>
             <input type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note." />
             <div className="sal-modal-actions">
