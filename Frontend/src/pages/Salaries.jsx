@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { salaryService } from "../services/salaryService";
-import { rupees, amountInWords } from "../utils/format";
+import { rupees, rupeesPK, amountInWords } from "../utils/format";
 import "./Salaries.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -31,10 +31,10 @@ function Salaries() {
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [payModal, setPayModal] = useState(null); // line
+  const [payModal, setPayModal] = useState(null); 
   const [finalAmount, setFinalAmount] = useState("");
   const [note, setNote] = useState("");
-  const [confirmUndo, setConfirmUndo] = useState(null); // line
+  const [confirmUndo, setConfirmUndo] = useState(null); 
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -56,7 +56,7 @@ function Salaries() {
   const goThisMonth = () => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); };
   const isThisMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
-  // Flatten every employee's lines, tagging each with its employee.
+  // Flatten every employees lines, tagging each with its employee.
   const lines = useMemo(() => {
     return (data?.employees || []).flatMap((e) =>
       e.lines.map((l) => ({ ...l, employeeID: e.employeeID, employeeName: e.employeeName, designation: e.designation }))
@@ -152,15 +152,27 @@ function Salaries() {
           <div className="sal-stats">
             <button className={`sal-stat ${statusFilter === "all" ? "active" : ""}`} onClick={() => setStatusFilter("all")}>
               <span className="sal-stat-ic blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg></span>
-              <div><div className="sal-stat-val">{rupees(data.totalPayroll)}</div><div className="sal-stat-lbl">Total Payroll</div></div>
+              <div>
+                <div className="sal-stat-val">{rupees(data.totalPayroll)}</div>
+                <div className="sal-stat-lbl">Total Payroll</div>
+                <div className="sal-stat-exact">{rupeesPK(data.totalPayroll)} <span className="sal-stat-words">({amountInWords(data.totalPayroll)})</span></div>
+              </div>
             </button>
             <button className={`sal-stat ${statusFilter === "paid" ? "active" : ""}`} onClick={() => setStatusFilter("paid")}>
               <span className="sal-stat-ic green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg></span>
-              <div><div className="sal-stat-val">{rupees(data.paid)}</div><div className="sal-stat-lbl">Paid</div></div>
+              <div>
+                <div className="sal-stat-val">{rupees(data.paid)}</div>
+                <div className="sal-stat-lbl">Paid</div>
+                <div className="sal-stat-exact">{rupeesPK(data.paid)} <span className="sal-stat-words">({amountInWords(data.paid)})</span></div>
+              </div>
             </button>
             <button className={`sal-stat ${statusFilter === "pending" ? "active" : ""}`} onClick={() => setStatusFilter("pending")}>
               <span className="sal-stat-ic purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
-              <div><div className="sal-stat-val">{rupees(data.pending)}</div><div className="sal-stat-lbl">Pending</div></div>
+              <div>
+                <div className="sal-stat-val">{rupees(data.pending)}</div>
+                <div className="sal-stat-lbl">Pending</div>
+                <div className="sal-stat-exact">{rupeesPK(data.pending)} <span className="sal-stat-words">({amountInWords(data.pending)})</span></div>
+              </div>
             </button>
           </div>
 

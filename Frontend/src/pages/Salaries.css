@@ -135,6 +135,8 @@
 .sal-stat-ic.orange { background: var(--color-primary-soft); color: var(--color-primary); }
 .sal-stat-val { font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--color-text); line-height: 1.1; }
 .sal-stat-lbl { font-size: 13.5px; color: var(--color-text-muted); margin-top: 2px; }
+.sal-stat-exact { font-size: 12px; font-weight: 600; color: var(--color-text); margin-top: 4px; line-height: 1.4; }
+.sal-stat-words { font-size: 11px; font-weight: 400; color: var(--color-text-muted); text-transform: capitalize; }
 
 /* Cards grid */
 .sal-grid {
