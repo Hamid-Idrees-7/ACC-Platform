@@ -5,6 +5,11 @@ import { usePermissions } from "../context/PermissionContext";
 import DashboardLayout from "../components/DashboardLayout";
 import { inquiryService } from "../services/inquiryService";
 import { approvalService } from "../services/approvalService";
+import { userService } from "../services/userService";
+import { employeeService } from "../services/employeeService";
+import { projectService } from "../services/projectService";
+import { billingService } from "../services/billingService";
+import { rupeesShort, amountInWords } from "../utils/format";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -16,6 +21,7 @@ function Dashboard() {
   const [queries, setQueries] = useState([]);
   const [loadingQueries, setLoadingQueries] = useState(true);
   const [approvalCount, setApprovalCount] = useState(0);
+  const [metrics, setMetrics] = useState({ users: 0, employees: 0, projects: 0, revenue: 0, loaded: false });
 
   // Which cards can this user see?
   const showMessages = isAdmin || canView("Messages");
@@ -55,11 +61,35 @@ function Dashboard() {
     loadCount();
   }, [showApprovals]);
 
+  // Load the top stat cards (Admin only). Active users/employees/projects + total revenue
+  // (money actually received from clients). Each source is loaded independently so one
+  // failing endpoint doesn't blank the others.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const load = async () => {
+      const [users, employees, projects, billing] = await Promise.all([
+        userService.getAll().catch(() => []),
+        employeeService.getAll().catch(() => []),
+        projectService.getAll().catch(() => []),
+        billingService.getOverview().catch(() => null),
+      ]);
+      const revenue = (billing?.projects || []).reduce((sum, p) => sum + (p.received || 0), 0);
+      setMetrics({
+        users: users.filter((u) => u.isActive).length,
+        employees: employees.filter((e) => e.status === "Active").length,
+        projects: projects.filter((p) => p.status === "In Progress").length,
+        revenue,
+        loaded: true,
+      });
+    };
+    load();
+  }, [isAdmin]);
+
   const stats = [
-    { label: "Total Users", value: "0", icon: "users" },
-    { label: "Active Employees", value: "0", icon: "user" },
-    { label: "Active Projects", value: "0", icon: "building" },
-    { label: "Total Revenue", value: "Rs. 0", icon: "dollar" },
+    { label: "Active Users", value: metrics.loaded ? String(metrics.users) : "—", icon: "users" },
+    { label: "Active Employees", value: metrics.loaded ? String(metrics.employees) : "—", icon: "user" },
+    { label: "Active Projects", value: metrics.loaded ? String(metrics.projects) : "—", icon: "building" },
+    { label: "Total Revenue", value: metrics.loaded ? rupeesShort(metrics.revenue) : "—", words: metrics.loaded ? amountInWords(metrics.revenue) : "", icon: "dollar" },
   ];
 
   const statIcon = (name) => {
@@ -89,6 +119,7 @@ function Dashboard() {
             <div className="dash-stat-card" key={s.label}>
               <div className="dash-stat-icon">{statIcon(s.icon)}</div>
               <div className="dash-stat-value">{s.value}</div>
+              {s.words && <div className="dash-stat-words">{s.words}</div>}
               <div className="dash-stat-label">{s.label}</div>
             </div>
           ))}
