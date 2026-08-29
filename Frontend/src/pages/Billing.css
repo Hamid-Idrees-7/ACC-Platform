@@ -1,0 +1,125 @@
+/* BILLING & INVOICES */
+
+/* Stats */
+.bil-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+.bil-stat {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+}
+.bil-stat-ic {
+    width: 50px; height: 50px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.bil-stat-ic.blue { background: #e8eefc; color: #2f5fd0; }    
+.bil-stat-ic.green { background: #e7f8ef; color: #12b76a; }   
+.bil-stat-ic.amber { background: #fef3f2; color: var(--color-error); }
+.bil-stat-ic.red { background: #fef3f2; color: var(--color-error); }
+.bil-stat-val { font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--color-text); line-height: 1.1; }
+.bil-stat-lbl { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+.bil-stat-exact { font-size: 12px; font-weight: 600; color: var(--color-text); margin-top: 4px; line-height: 1.4; }
+.bil-stat-words { font-size: 11px; font-weight: 400; color: var(--color-text-muted); text-transform: capitalize; }
+
+/* Toolbar */
+.bil-toolbar {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 22px;
+}
+.bil-search {
+    flex: 1; min-width: 220px;
+    display: flex; align-items: center; gap: 10px;
+    height: 44px; padding: 0 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+}
+.bil-search svg { color: var(--color-text-muted); flex-shrink: 0; }
+.bil-search input { flex: 1; border: none; outline: none; background: none; font-family: var(--font-body); font-size: 14.5px; color: var(--color-text); }
+.bil-count { font-size: 13px; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; }
+
+/* Cards */
+.bil-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+.bil-card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.18s ease;
+}
+.bil-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-left-color: var(--color-primary); }
+.bil-card.paid { border-left-color: var(--color-success); }
+.bil-card.partial { border-left-color: var(--color-primary); }
+.bil-card.overdue { border-left-color: var(--color-error); }
+.bil-card.none { border-left-color: var(--color-border); }
+
+.bil-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.bil-card-title h3 { font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-text); line-height: 1.25; }
+.bil-client { font-size: 13px; color: var(--color-text-muted); }
+.bil-badge {
+    font-size: 10px; font-weight: 700;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.bil-badge.paid { background: #e7f8ef; color: #0a7d43; }      
+.bil-badge.partial { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.bil-badge.overdue { background: #fef3f2; color: var(--color-error); }
+.bil-badge.unpaid { background: var(--color-bg); color: var(--color-text-muted); }
+
+.bil-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 12px 0 16px; }
+.bil-meta-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--color-text-muted); }
+.bil-meta-item svg { color: var(--color-text-muted); }
+
+/* Progress */
+.bil-progress { margin-bottom: 16px; }
+.bil-progress-top { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; }
+.bil-progress-pct { color: var(--color-primary); font-weight: 700; }
+.bil-bar { height: 8px; background: var(--color-bg); border-radius: var(--radius-full); overflow: hidden; }
+.bil-bar span { display: block; height: 100%; background: var(--color-primary); border-radius: var(--radius-full); transition: width 0.3s ease; }
+.bil-bar span.full { background: var(--color-success); }
+.bil-progress-sub { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-top: 6px; }
+.bil-progress-sub span:first-child { font-weight: 700; color: var(--color-text); }
+.bil-progress-sub span:last-child { color: var(--color-text-muted); }
+
+/* Figures */
+.bil-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+.bil-fig { display: flex; flex-direction: column; gap: 3px; }
+.bil-fig-lbl { font-size: 11px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.4px; }
+.bil-fig-val { font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--color-text); }
+.bil-fig-val.green { color: #0a7d43; }    
+.bil-fig-val.amber { color: var(--color-error); }
+
+/* Empty / loading */
+.bil-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 20px; text-align: center; }
+.bil-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
+.bil-empty p { color: var(--color-text-muted); font-size: 14px; max-width: 420px; }
+.bil-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: bilspin 0.8s linear infinite; margin-bottom: 14px; }
+@keyframes bilspin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1100px) { .bil-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px) {
+    .bil-grid { grid-template-columns: 1fr; }
+    .bil-stats { grid-template-columns: 1fr; }
+}

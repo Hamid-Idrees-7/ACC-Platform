@@ -28,5 +28,8 @@ namespace Backend.Data
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<SalaryPayment> SalaryPayments { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+        public DbSet<InvoicePayment> InvoicePayments { get; set; }
     }
 }
