@@ -14,6 +14,7 @@ export const MODULE_GROUPS = [
       { key: "Attendance", label: "Attendance", actions: ["View", "Mark"], approvalActions: [] },
       { key: "Salaries", label: "Salaries", actions: ["View", "Manage"], approvalActions: [] },
       { key: "Billing", label: "Billing & Invoices", actions: ["View", "Manage"], approvalActions: [] },
+      { key: "Reports", label: "Reports", actions: ["View"], approvalActions: [] },
     ],
   },
   {
