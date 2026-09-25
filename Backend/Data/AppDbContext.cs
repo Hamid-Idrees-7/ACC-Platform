@@ -32,5 +32,8 @@ namespace Backend.Data
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<MaterialRequest> MaterialRequests { get; set; }
+
+        // Registry of isolated visitor demo databases (only ever filled in the main database).
+        public DbSet<DemoSession> DemoSessions { get; set; }
     }
 }

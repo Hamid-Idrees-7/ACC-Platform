@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { Fragment } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import { PermissionProvider } from "./context/PermissionContext";
+import DemoTransition from "./components/DemoTransition";
 
 // Public pages
 import Home from "./pages/Home";
@@ -44,10 +46,29 @@ import MaterialRequests from "./pages/MaterialRequests";
 
 import UnderConstruction from "./pages/UnderConstruction";
 
+// Remounts the dashboard pages whenever the signed-in person changes (eg a live demo role
+// switch), so every page and the notification bell reload their data for the new user
+// instead of keeping what the previous user saw.
+function SignedInBoundary() {
+  const { user, loading } = useAuth();
+
+  // Wait for the saved sign-in to be read, so pages mount once (not first as a guest).
+  if (loading) return null;
+
+  const identity = user ? `${user.userID}:${user.username}` : "guest";
+  return (
+    <Fragment key={identity}>
+      <Outlet />
+    </Fragment>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <PermissionProvider>
+      {/* Live demo role-change card: lives above the routes so it survives page changes */}
+      <DemoTransition />
       <BrowserRouter>
         <Routes>
           {/* ===== Public website ===== */}
@@ -57,41 +78,38 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
 
-          {/* ===== Dashboard ===== */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/queries" element={<Queries />} />
-          <Route path="/dashboard/profile" element={<Profile />} />
-          <Route path="/dashboard/settings" element={<Settings />} />
-          <Route path="/dashboard/control-unit" element={<ControlUnit />} />
-          <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
-          <Route path="/dashboard/approvals" element={<Approvals />} />
-          <Route path="/dashboard/notifications" element={<Notifications />} />
+          <Route element={<SignedInBoundary />}>
+            {/* ===== Dashboard ===== */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/queries" element={<Queries />} />
+            <Route path="/dashboard/profile" element={<Profile />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
+            <Route path="/dashboard/control-unit" element={<ControlUnit />} />
+            <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
+            <Route path="/dashboard/approvals" element={<Approvals />} />
+            <Route path="/dashboard/notifications" element={<Notifications />} />
 
-          {/* ===== Modules ===== */}
-          <Route path="/dashboard/clients" element={<Clients />} />
-          <Route path="/dashboard/employees" element={<Employees />} />
-          <Route path="/dashboard/users" element={<Users />} />
-          <Route path="/dashboard/materials" element={<Materials />} />
-          <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
-          <Route path="/dashboard/projects" element={<ProjectManagement />} />  
-          <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />        
-          <Route path="/dashboard/assignments" element={<Assignments />} />
-          <Route path="/dashboard/attendance" element={<Attendance />} />
-          <Route path="/dashboard/attendance/:id" element={<MarkAttendance />} />
-
-
-
-          <Route path="/dashboard/salaries" element={<Salaries />} />
-          <Route path="/dashboard/salaries/payslip/:employeeId" element={<Payslip />} />
-          <Route path="/dashboard/billing" element={<Billing />} />
-          <Route path="/dashboard/billing/project/:projectId" element={<ProjectBilling />} />
-          <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
-          <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
-          <Route path="/dashboard/reports" element={<Reports />} />
-          <Route path="/dashboard/field" element={<FieldView />} />
-          <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
-
-
+            {/* ===== Modules ===== */}
+            <Route path="/dashboard/clients" element={<Clients />} />
+            <Route path="/dashboard/employees" element={<Employees />} />
+            <Route path="/dashboard/users" element={<Users />} />
+            <Route path="/dashboard/materials" element={<Materials />} />
+            <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
+            <Route path="/dashboard/projects" element={<ProjectManagement />} />
+            <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
+            <Route path="/dashboard/assignments" element={<Assignments />} />
+            <Route path="/dashboard/attendance" element={<Attendance />} />
+            <Route path="/dashboard/attendance/:id" element={<MarkAttendance />} />
+            <Route path="/dashboard/salaries" element={<Salaries />} />
+            <Route path="/dashboard/salaries/payslip/:employeeId" element={<Payslip />} />
+            <Route path="/dashboard/billing" element={<Billing />} />
+            <Route path="/dashboard/billing/project/:projectId" element={<ProjectBilling />} />
+            <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
+            <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
+            <Route path="/dashboard/reports" element={<Reports />} />
+            <Route path="/dashboard/field" element={<FieldView />} />
+            <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
+          </Route>
 
           {/* ===== Fallback ===== */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+﻿using Backend.Demo;
+using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -43,10 +44,16 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
+        // Demo logins are shared by the role switcher, so their sign-in details stay fixed.
+        private bool IsDemoAccount() => User.HasClaim(c => c.Type == DemoClaims.SessionId);
+
         // CHANGE username
         [HttpPut("username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto dto)
         {
+            if (IsDemoAccount())
+                return BadRequest(new { message = "The username can't be changed on a demo account." });
+
             var (success, error) = await _service.ChangeUsernameAsync(GetUserId(), dto);
             if (!success)
                 return BadRequest(new { message = error });
@@ -69,6 +76,9 @@ namespace Backend.Controllers
         [HttpPut("password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
+            if (IsDemoAccount())
+                return BadRequest(new { message = "The password can't be changed on a demo account." });
+
             var (success, message) = await _service.ChangePasswordAsync(GetUserId(), dto);
             if (!success) return BadRequest(new { message });
             return Ok(new { message });

@@ -123,7 +123,7 @@ function Dashboard() {
     <DashboardLayout title="Dashboard">
       {/* Welcome banner */}
       <div className="dash-welcome">
-        <h2>Welcome back, <span>{firstName}</span></h2>
+        <h2>Welcome, <span>{firstName}</span></h2>
         <p>Here's what's happening with Anonymous Construction Co. today.</p>
       </div>
 

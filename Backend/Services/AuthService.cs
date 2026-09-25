@@ -80,8 +80,8 @@ namespace Backend.Services
 
             // Record a login notification for the user
             await _notificationService.NotifyPersonalAsync(
-                user.UserID, "Login", "Welcome back",
-                $"You logged in on {DateTime.Now:dd MMMM yyyy 'at' h:mm tt}.");
+                user.UserID, LoginNotification.Category, LoginNotification.Title,
+                LoginNotification.Message(DateTime.Now));
 
             return (true, null, BuildAuthResponse(user));
         }

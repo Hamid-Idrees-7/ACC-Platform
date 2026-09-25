@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import { demoService } from "../services/demoService";
+import { DEMO_NOTE_KEY, getDemoRole } from "../config/demoConfig";
 import "./Home.css";
 import "./Login.css";
 
@@ -15,8 +17,45 @@ function Login() {
   const [shake, setShake] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
-  const { login } = useAuth();
+  // Live demo (Login as Visitor)
+  const [demoStatus, setDemoStatus] = useState(null);   
+  const [demoBusy, setDemoBusy] = useState(null);       
+  const [demoNote, setDemoNote] = useState(() => sessionStorage.getItem(DEMO_NOTE_KEY) || "");
+
+  const { login, logout, runDemoTransition } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    demoService.getStatus()
+      .then(setDemoStatus)
+      .catch(() => setDemoStatus(null));
+  }, []);
+
+  // A your demo has ended note is shown once.
+  useEffect(() => {
+    sessionStorage.removeItem(DEMO_NOTE_KEY);
+  }, []);
+
+  const startDemo = async (roleKey) => {
+    if (demoBusy || loading) return;
+    setDemoBusy(roleKey);
+    setError("");
+    setSuccess("");
+    setDemoNote("");
+    // A new demo never carries an older session (or a signed-in account) with it.
+    logout();
+    try {
+      await runDemoTransition(roleKey, "Preparing your private demo", async () => {
+        const data = await demoService.start(roleKey);
+        login(data);
+        navigate("/dashboard");
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "We couldn't start the demo. Please try again.");
+      triggerShake();
+      setDemoBusy(null);
+    }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -122,6 +161,16 @@ function Login() {
               </div>
             )}
 
+            {demoNote && !error && !success && (
+              <div className="login-msg-box lgv-msg" style={{ display: "flex" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span>{demoNote}</span>
+              </div>
+            )}
+
             <div className="form-group">
               <label htmlFor="username" className="form-label">Username</label>
               <div className="form-input-wrapper">
@@ -175,7 +224,7 @@ function Login() {
               </span>
             </div>
 
-            <button type="submit" className={`btn-submit ${loading ? "is-loading" : ""}`} disabled={loading}>
+            <button type="submit" className={`btn-submit ${loading ? "is-loading" : ""}`} disabled={loading || !!demoBusy}>
               <span>{loading ? "Signing in..." : "Sign in to dashboard"}</span>
               {!loading && (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -184,6 +233,56 @@ function Login() {
                 </svg>
               )}
             </button>
+
+            {/* LIVE DEMO: explore without an account */}
+            {demoStatus?.enabled && (
+              <div className="lgv">
+                <div className="lgv-divider"><span>or explore the live demo</span></div>
+
+                <button
+                  type="button"
+                  className={`lgv-main ${demoBusy ? "is-busy" : ""}`}
+                  onClick={() => startDemo("admin")}
+                  disabled={!!demoBusy || loading}
+                >
+                  <span className="lgv-main-icon">
+                    {demoBusy ? (
+                      <span className="lgv-spinner" />
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="10 8 16 12 10 16 10 8" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="lgv-main-text">
+                    <strong>{demoBusy ? `Preparing ${getDemoRole(demoBusy).label} demo...` : "Login as Visitor"}</strong>
+                    <small>Full admin view · sample company data · no sign-up</small>
+                  </span>
+                  <svg className="lgv-main-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+
+                <div className="lgv-alt">
+                  <span>or try as</span>
+                  <button type="button" onClick={() => startDemo("manager")} disabled={!!demoBusy || loading}>Manager</button>
+                  <span className="lgv-sep" aria-hidden="true">·</span>
+                  <button type="button" onClick={() => startDemo("engineer")} disabled={!!demoBusy || loading}>Site Engineer</button>
+                </div>
+
+                <p className={`lgv-note ${demoStatus.available ? "" : "is-full"}`}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  {demoStatus.available
+                    ? `Private to you · resets after ${demoStatus.sessionMinutes} minutes`
+                    : "All demo seats are busy right now. Please try again in a few minutes."}
+                </p>
+              </div>
+            )}
 
             <div className="login-footer">
               <Link to="/">← Back to website</Link>

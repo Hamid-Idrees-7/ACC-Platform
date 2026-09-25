@@ -1,0 +1,194 @@
+/* LIVE DEMO BAR */
+
+.dmb {
+  flex-shrink: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0 32px;
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+  font-family: var(--font-body);
+  font-size: 13px;
+  z-index: 25;
+}
+
+.dmb-left,
+.dmb-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.dmb-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dmb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: 0 0 0 0 var(--color-success);
+  animation: dmbPulse 1.8s ease-out infinite;
+}
+
+.dmb-text {
+  color: color-mix(in srgb, var(--color-text-inverse) 60%, transparent);
+  white-space: nowrap;
+}
+
+/*  Role switcher  */
+.dmb-roles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dmb-roles-label {
+  color: color-mix(in srgb, var(--color-text-inverse) 60%, transparent);
+  white-space: nowrap;
+}
+
+.dmb-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-inverse) 10%, transparent);
+}
+
+.dmb-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: color-mix(in srgb, var(--color-text-inverse) 70%, transparent);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.dmb-seg-btn svg { width: 14px; height: 14px; }
+.dmb-seg-btn:hover:not(.active):not(:disabled) {
+  background: color-mix(in srgb, var(--color-text-inverse) 10%, transparent);
+  color: var(--color-text-inverse);
+}
+.dmb-seg-btn.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  cursor: default;
+}
+.dmb-seg-btn:disabled:not(.active) { opacity: 0.55; cursor: wait; }
+
+/* "View as" a visitor-created user: shown as the active pill before the role buttons */
+.dmb-seg-custom { cursor: default; }
+.dmb-seg-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dmb-seg-short { display: none; }
+
+/*  Timer + exit  */
+.dmb-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text-inverse) 85%, transparent);
+}
+.dmb-timer svg { width: 15px; height: 15px; }
+.dmb-timer.warn { color: var(--color-warning); }
+.dmb-timer.critical { color: var(--color-error); animation: dmbBlink 1s ease-in-out infinite; }
+
+.dmb-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-text-inverse) 25%, transparent);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-inverse);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.dmb-exit svg { width: 14px; height: 14px; }
+.dmb-exit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 25%, transparent);
+  border-color: var(--color-error);
+}
+.dmb-exit:disabled { opacity: 0.55; cursor: wait; }
+
+.dmb-error {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-error) 22%, transparent);
+  color: var(--color-text-inverse);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+@keyframes dmbPulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent); }
+  100% { box-shadow: 0 0 0 8px transparent; }
+}
+@keyframes dmbBlink {
+  50% { opacity: 0.55; }
+}
+
+/*  Responsive  */
+@media (max-width: 1100px) {
+  .dmb-text { display: none; }
+}
+
+/* The extra "View as" pill needs the room */
+@media (max-width: 1400px) {
+  .dmb-has-custom .dmb-text { display: none; }
+}
+
+@media (max-width: 860px) {
+  .dmb { padding: 0 16px; gap: var(--space-sm); }
+  .dmb-roles-label { display: none; }
+  .dmb-seg-full { display: none; }
+  .dmb-seg-short { display: inline; }
+  .dmb-exit span { display: none; }
+  .dmb-exit { padding: 6px 8px; }
+  .dmb-error { display: none; }
+}
+
+@media (max-width: 560px) {
+  .dmb-live-text { display: none; }
+  .dmb-seg-name { max-width: 70px; }
+  .dmb-seg-btn { padding: 5px 8px; }
+  .dmb-seg-btn svg { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dmb-dot, .dmb-timer.critical { animation: none; }
+}

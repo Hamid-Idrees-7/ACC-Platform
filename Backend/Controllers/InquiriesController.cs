@@ -1,4 +1,5 @@
 using Backend.Auth;
+using Backend.Demo;
 using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -17,9 +18,11 @@ namespace Backend.Controllers
             _service = service;
         }
 
-        // PUBLIC - the website contact form posts here (no login needed)
+        // PUBLIC - the website contact form posts here (no login needed).
+        // Always saved to the real database, even if the visitor is also exploring the demo.
         [HttpPost]
         [AllowAnonymous]
+        [UseMainDatabase]
         public async Task<IActionResult> Submit([FromBody] CreateInquiryDto dto)
         {
             var (success, message) = await _service.SubmitInquiryAsync(dto);

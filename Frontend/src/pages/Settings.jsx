@@ -17,6 +17,9 @@ function Settings() {
   const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Live demo logins keep a fixed username and password (the role switcher signs in with them)
+  const isDemoAccount = !!user?.demo;
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [photo, setPhoto] = useState(null);
@@ -258,7 +261,7 @@ function Settings() {
             </div>
           )}
 
-          {/* ============ ACCOUNT MANAGEMENT ============ */}
+          {/* ACCOUNT MANAGEMENT */}
           {tab === "account" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -266,8 +269,27 @@ function Settings() {
                 <p>Manage your login username and password</p>
               </div>
 
+              {/* Live demo: sign-in details are fixed, everything is shown but locked */}
+              {isDemoAccount && (
+                <div className="st-demo-note">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                  <div>
+                    <strong>Locked in the live demo</strong>
+                    <span>
+                      Demo logins keep a fixed username and password so the role switcher always works.
+                      In a real account, this is where you change them (your current password is required).
+                      Your profile details and photo can still be changed.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Username - golden locked card */}
-              <div className="st-gold-card" onClick={() => setUnlockOpen(true)}>
+              <div
+                className={`st-gold-card ${isDemoAccount ? "st-gold-card-disabled" : ""}`}
+                onClick={() => !isDemoAccount && setUnlockOpen(true)}
+                aria-disabled={isDemoAccount}
+              >
                 <div className="st-gold-glow" />
                 <div className="st-gold-content">
                   <div className="st-gold-icon">
@@ -275,7 +297,10 @@ function Settings() {
                   </div>
                   <div className="st-gold-text">
                     <h4>Login Username</h4>
-                    <p>Current: <strong>@{profile?.username}</strong> — tap to change (password required)</p>
+                    <p>
+                      Current: <strong>@{profile?.username}</strong>
+                      {isDemoAccount ? " — fixed for demo accounts" : " — tap to change (password required)"}
+                    </p>
                   </div>
                   <div className="st-gold-lock">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -284,7 +309,7 @@ function Settings() {
               </div>
 
               {/* Change password */}
-              <div className="st-subsection">
+              <fieldset className="st-subsection st-fieldset" disabled={isDemoAccount}>
                 <h4 className="st-subsection-title">Change Password</h4>
                 {pwMsg.text && <div className={`st-msg st-msg-${pwMsg.type}`}>{pwMsg.text}</div>}
                 <div className="st-form-grid">
@@ -312,15 +337,15 @@ function Settings() {
                   </div>
                 </div>
                 <div className="st-actions">
-                  <button className="st-btn-save" onClick={handleChangePassword} disabled={savingPw}>
+                  <button className="st-btn-save" onClick={handleChangePassword} disabled={savingPw || isDemoAccount}>
                     {savingPw ? "Changing..." : "Change Password"}
                   </button>
                 </div>
-              </div>
+              </fieldset>
             </div>
           )}
 
-          {/* ============ OTHER SETTINGS ============ */}
+          {/* OTHER SETTINGS */}
           {tab === "other" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -352,7 +377,7 @@ function Settings() {
   );
 }
 
-// ---- Username change modal (re-auth -> reveal -> change -> logout) ----
+// Username change modal (re-auth -> reveal to change to logout)
 function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
   const [step, setStep] = useState("auth"); // auth | reveal
   const [password, setPassword] = useState("");

@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
 import { notificationService } from "../services/notificationService";
+import { demoService } from "../services/demoService";
+import { DEMO_ENDED_EVENT, DEMO_NOTE_KEY, getDemoRole } from "../config/demoConfig";
+import DemoBar from "./DemoBar";
 import "./DashboardLayout.css";
+
+const DEMO_EXIT_NOTE = "You've left the demo. Thanks for exploring ACC!";
+const DEMO_ENDED_NOTE = "Your demo session has ended. Thanks for exploring ACC!";
 
 // Sidebar structure. Each item can declare how its visibility is decided:
 //  - always: everyone sees it
@@ -73,10 +79,56 @@ function Icon({ name }) {
 function DashboardLayout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { user, logout } = useAuth();
+  const { user, logout, login, demoTransition, runDemoTransition } = useAuth();
   const { canView, isAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Live demo visitor (null for normal users)
+  const demo = user?.demo || null;
+  const endingDemo = useRef(false);
+
+  // Ends the visitor's demo: frees their seat (the server deletes their data), signs them
+  // out, and returns to the login page with a short note.
+  const endDemo = useCallback(async (note) => {
+    if (endingDemo.current) return;
+    endingDemo.current = true;
+    try {
+      await demoService.end();
+    } catch {
+      // The session may already be gone on the server; signing out locally is enough.
+    }
+    sessionStorage.setItem(DEMO_NOTE_KEY, note);
+    logout();
+    navigate("/login");
+  }, [logout, navigate]);
+
+  // The server says the session is over (time ran out, or it was ended elsewhere).
+  useEffect(() => {
+    if (!demo) return;
+    const onEnded = () => endDemo(DEMO_ENDED_NOTE);
+    window.addEventListener(DEMO_ENDED_EVENT, onEnded);
+    return () => window.removeEventListener(DEMO_ENDED_EVENT, onEnded);
+  }, [demo, endDemo]);
+
+  // Switch between Admin / Manager / Site Engineer inside the same demo.
+  const switchDemoRole = async (roleKey) => {
+    try {
+      await runDemoTransition(roleKey, "Switching to", async () => {
+        const data = await demoService.switchRole(roleKey);
+        // Change the user and the page in ONE render. Otherwise the current page (e.g.
+        // Notifications) would briefly open as the new user and could mark their
+        // brand-new notifications as read.
+        startTransition(() => {
+          login(data);
+          navigate("/dashboard");
+        });
+      });
+    } catch (err) {
+      if (err.response?.status === 401) return;   // session over: handled by the ended event
+      throw new Error(err.response?.data?.message || `Couldn't switch to ${getDemoRole(roleKey).label}.`);
+    }
+  };
 
   // Load the unread notification count for the bell / sidebar badge
   useEffect(() => {
@@ -101,6 +153,11 @@ function DashboardLayout({ title, children }) {
   }, [location.pathname]);
 
   const handleLogout = () => {
+    // A demo visitor logging out also frees their demo seat.
+    if (demo) {
+      endDemo(DEMO_EXIT_NOTE);
+      return;
+    }
     logout();
     navigate("/");
   };
@@ -176,6 +233,18 @@ function DashboardLayout({ title, children }) {
 
       {/* MAIN */}
       <div className="dash-main">
+        {demo && (
+          <DemoBar
+            role={demo.role}
+            roleLabel={demo.label}
+            endsAt={demo.endsAt}
+            busy={!!demoTransition}
+            onSwitch={switchDemoRole}
+            onExit={() => endDemo(DEMO_EXIT_NOTE)}
+            onExpire={() => endDemo(DEMO_ENDED_NOTE)}
+          />
+        )}
+
         <header className="dash-header">
           <div className="dash-header-left">
             <button className="dash-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Menu">
@@ -206,7 +275,10 @@ function DashboardLayout({ title, children }) {
           </div>
         </header>
 
-        <main className="dash-content">{children}</main>
+        {/* After a demo role switch the new dashboard fades in as the role card fades out */}
+        <main className={`dash-content ${demoTransition?.phase === "out" ? "dash-content-enter" : ""}`}>
+          {children}
+        </main>
       </div>
     </div>
   );

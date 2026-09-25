@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { permissionService } from "../services/permissionService";
 
@@ -8,6 +8,7 @@ export function PermissionProvider({ children }) {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const loadedFor = useRef(null);
 
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
@@ -23,10 +24,15 @@ export function PermissionProvider({ children }) {
       return;
     }
     setLoading(true);
+    const myId = user.userID ?? user.userId ?? user.id;
+    // When a different person signs in (e.g. a demo role switch), never show the previous
+    // person's access while the new permissions load. A simple reload keeps them visible.
+    const identity = `${myId}:${user.username}`;
+    if (loadedFor.current !== identity) setPermissions([]);
     try {
-      const myId = user.userID ?? user.userId ?? user.id;
       const data = await permissionService.getForUser(myId);
       setPermissions(Array.isArray(data) ? data : []);
+      loadedFor.current = identity;
     } catch {
       setPermissions([]);
     } finally {

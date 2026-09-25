@@ -10,3 +10,157 @@
 .login-page-full .login-wrapper {
   width: 100%;
 }
+
+/* LIVE DEMO - Login as Visitor */
+
+.lgv {
+  margin-top: var(--space-lg);
+}
+
+.lgv-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.lgv-divider::before,
+.lgv-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.lgv-main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.lgv-main:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.lgv-main:disabled { cursor: wait; }
+.lgv-main.is-busy { border-color: var(--color-primary); }
+
+.lgv-main-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.lgv-main:hover:not(:disabled) .lgv-main-icon {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.lgv-main-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.lgv-main-text strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.lgv-main-text small {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.lgv-main-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.lgv-main:hover:not(:disabled) .lgv-main-arrow {
+  color: var(--color-primary);
+  transform: translateX(3px);
+}
+
+.lgv-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+  animation: lgvSpin 0.7s linear infinite;
+}
+
+.lgv-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+.lgv-alt button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lgv-alt button:hover:not(:disabled) { text-decoration: underline; }
+.lgv-alt button:disabled { opacity: 0.6; cursor: wait; }
+.lgv-sep { color: var(--color-text-muted); opacity: 0.6; }
+
+.lgv-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.lgv-note.is-full { color: var(--color-warning); }
+.lgv-note svg { flex-shrink: 0; }
+
+/* Thanks for exploring note at the top of the form after a demo ends */
+.lgv-msg {
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
+  color: color-mix(in srgb, var(--color-success) 75%, var(--color-text));
+  border: 1px solid color-mix(in srgb, var(--color-success) 35%, var(--color-surface));
+}
+
+@keyframes lgvSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lgv-main, .lgv-main-arrow { transition: none; }
+  .lgv-main:hover:not(:disabled) { transform: none; }
+}

@@ -1,12 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, startTransition } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
+import { demoService } from "../services/demoService";
+import { builtInDemoRoleFor, CUSTOM_DEMO_ROLE } from "../config/demoConfig";
 import UserFormModal from "../components/UserFormModal";
 import { useAuth } from "../context/AuthContext";
 import "./Users.css";
 
 function Users() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, login, runDemoTransition } = useAuth();
+  const navigate = useNavigate();
+
+  // Live demo only: the visitor can see the system exactly as any user in their demo
+  const inDemo = !!currentUser?.demo;
+
+  // Live demo: the three built-in demo logins are locked (username, password, role, status),
+  // so the role switcher always works. Their access can still be changed in Control Unit.
+  const isLockedDemoLogin = (u) => inDemo && !!builtInDemoRoleFor(u?.username);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -124,6 +135,30 @@ function Users() {
     }
   };
 
+  // Live demo: open the system as this user (same demo data, same timer).
+  const handleViewAs = async (u) => {
+    setDetailUser(null);
+    const builtIn = builtInDemoRoleFor(u.username);
+    try {
+      await runDemoTransition(
+        builtIn ? builtIn.key : CUSTOM_DEMO_ROLE.key,
+        builtIn ? "Switching to" : "Viewing as",
+        async () => {
+          const data = await demoService.viewAs(u.userID);
+          // User and page change in one render, so this page never reloads as the new user.
+          startTransition(() => {
+            login(data);
+            navigate("/dashboard");
+          });
+        },
+        builtIn ? null : u.fullName
+      );
+    } catch (err) {
+      if (err.response?.status === 401) return;   // demo over: the layout signs the visitor out
+      showToast(err.response?.data?.message || "Couldn't open this user's view.", "error");
+    }
+  };
+
   const initials = (name) => (name || "U").charAt(0).toUpperCase();
 
   const statCards = [
@@ -199,7 +234,7 @@ function Users() {
               className={`us-card ${!u.isActive ? "inactive" : ""}`}
               onClick={() => setDetailUser(u)}
             >
-              {!isSelf(u) && (
+              {!isSelf(u) && !isLockedDemoLogin(u) && (
                 <button
                   className="us-card-edit"
                   onClick={(e) => { e.stopPropagation(); setFormModal({ mode: "edit", data: u }); }}
@@ -269,8 +304,33 @@ function Users() {
             </div>
 
             {/* Your own account has no actions here - managed securely from Settings */}
+            {/* Live demo: see the system through this user's eyes */}
+            {inDemo && !isSelf(detailUser) && detailUser.isActive && (
+              <button className="us-view-as" onClick={() => handleViewAs(detailUser)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                {builtInDemoRoleFor(detailUser.username)
+                  ? `Switch to ${builtInDemoRoleFor(detailUser.username).label}`
+                  : `View as ${detailUser.fullName.split(" ")[0]}`}
+                <span className="us-view-as-hint">sees only their Control Unit access</span>
+              </button>
+            )}
+
             {isSelf(detailUser) ? (
               <p className="us-self-note">Manage your profile, username, and password from Settings.</p>
+            ) : isLockedDemoLogin(detailUser) ? (
+              <div className="us-demo-locked">
+                <p>
+                  Built-in demo login: username, password, role and status stay fixed so the role
+                  switcher always works. You can still change what it can access.
+                </p>
+                <button
+                  className="us-detail-edit"
+                  onClick={() => { setDetailUser(null); navigate(`/dashboard/control-unit/${detailUser.userID}`); }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                  Manage access in Control Unit
+                </button>
+              </div>
             ) : (
               <div className="us-detail-actions">
                 <button className="us-detail-edit" onClick={() => { setFormModal({ mode: "edit", data: detailUser }); setDetailUser(null); }}>

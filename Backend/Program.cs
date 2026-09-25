@@ -1,4 +1,6 @@
+using System.Threading.RateLimiting;
 using Backend.Data;
+using Backend.Demo;
 using Backend.Repositories;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
@@ -15,9 +17,40 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen();
 
-// Register the database context (SQL Server + our connection string)
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Visitor demo: every visitor gets a private database of their own (see Backend/Demo).
+builder.Services.Configure<DemoOptions>(builder.Configuration.GetSection("Demo"));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<DemoDbFactory>();
+builder.Services.AddSingleton<DemoConnectionResolver>();
+builder.Services.AddSingleton<DemoManager>();
+builder.Services.AddHostedService<DemoPoolService>();
+
+// Register the database context (SQL Server). The connection is chosen per request:
+// the main database normally, or the visitor's own database when the caller holds a demo token.
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+    options.UseSqlServer(serviceProvider.GetRequiredService<DemoConnectionResolver>().GetConnectionString()));
+
+// Starting a demo is limited per IP address so nobody can script it to fill the server.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(DemoOptions.StartRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 6,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { message = "Too many demo attempts from your network. Please wait a few minutes and try again." },
+            cancellationToken);
+    };
+});
 
 // Register our N-tier services (Dependency Injection)
 
@@ -120,6 +153,11 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");   // And we added this line with the local host's permission
 
 app.UseAuthentication();
+
+// Stops requests from demo tokens whose session has ended (right after the token is read).
+app.UseMiddleware<DemoSessionMiddleware>();
+
+app.UseRateLimiter();
 
 app.UseAuthorization();
 

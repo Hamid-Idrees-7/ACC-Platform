@@ -353,6 +353,59 @@
 .us-detail-delete { background: var(--color-surface); border-color: #f0d0d0; color: var(--color-error); }
 .us-detail-delete:hover { background: #fdf0f0; }
 
+/* Live demo: View as this user */
+.us-view-as {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.us-view-as:hover {
+    background: var(--color-primary-dark);
+    box-shadow: var(--shadow-md);
+}
+.us-view-as-hint {
+    width: 100%;
+    font-size: 11.5px;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+/* Live demo: built-in demo logins are locked */
+.us-demo-locked { display: flex; flex-direction: column; gap: 10px; }
+.us-demo-locked p {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+.us-demo-locked .us-detail-edit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px;
+    border: 1px solid;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .us-self-note {
     margin-top: 16px;
     font-size: 12.5px;

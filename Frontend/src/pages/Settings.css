@@ -203,6 +203,31 @@
 
 /* Subsection */
 .st-subsection { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--color-border); }
+
+.st-fieldset { border-left: none; border-right: none; border-bottom: none; min-width: 0; padding-left: 0; padding-right: 0; padding-bottom: 0; }
+.st-fieldset:disabled { opacity: 0.55; }
+.st-fieldset:disabled input { cursor: not-allowed; background: var(--color-bg); }
+.st-fieldset:disabled .st-btn-save { cursor: not-allowed; }
+
+/* Live demo: locked sign-in details */
+.st-demo-note {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-surface));
+    color: var(--color-primary-dark);
+}
+.st-demo-note svg { flex-shrink: 0; margin-top: 2px; }
+.st-demo-note div { display: flex; flex-direction: column; gap: 2px; }
+.st-demo-note strong { font-size: 14px; }
+.st-demo-note span { font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
+
+.st-gold-card-disabled { cursor: not-allowed; filter: grayscale(0.6); opacity: 0.7; }
+.st-gold-card-disabled:hover { transform: none; box-shadow: none; }
 .st-subsection-title { font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: var(--color-text); margin-bottom: 16px; }
 
 /* Coming soon */
@@ -211,10 +236,8 @@
 .st-coming h4 { font-size: 16px; color: var(--color-text); margin-bottom: 6px; }
 .st-coming p { font-size: 13.5px; }
 
-/* ============================================================ */
-/* GOLDEN CARD (username - sensitive action)                  */
-/* Decorative gold theme, intentional one-off                 */
-/* ============================================================ */
+/* GOLDEN CARD (username - sensitive action) */
+/* Decorative gold theme, intentional one-off */
 .st-gold-card {
     position: relative;
     border-radius: var(--radius-lg);
@@ -263,9 +286,7 @@
 .st-gold-text strong { color: #7a5c08; }
 .st-gold-lock { color: #b8901a; flex-shrink: 0; }
 
-/* ============================================================ */
-/* GOLDEN MODAL (re-auth)                                      */
-/* ============================================================ */
+/* GOLDEN MODAL (re-auth) */
 .st-modal-overlay {
     position: fixed;
     inset: 0;

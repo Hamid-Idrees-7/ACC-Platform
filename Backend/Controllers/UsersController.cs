@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Backend.Auth;
+using Backend.Demo;
 using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,20 @@ namespace Backend.Controllers
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return int.TryParse(idClaim, out var id) ? id : 0;
+        }
+
+        // Live demo: the three built-in demo logins keep their username, password, role and
+        // status, so the role switcher always works. Their access can still be changed in Control Unit.
+        private const string DemoLoginLocked =
+            "Built-in demo logins keep their username, password, role and status. You can still change their access in Control Unit.";
+
+        private bool InDemo() => User.HasClaim(c => c.Type == DemoClaims.SessionId);
+
+        private async Task<UserDto?> GetLockedDemoLoginAsync(int id)
+        {
+            if (!InDemo()) return null;
+            var target = await _service.GetUserByIdAsync(id);
+            return target != null && DemoSeeder.IsBuiltInLogin(target.Username) ? target : null;
         }
 
         // GET: /api/users
@@ -63,6 +78,14 @@ namespace Backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateUserDto dto)
         {
+            var locked = await GetLockedDemoLoginAsync(id);
+            if (locked != null &&
+                (dto.Username?.Trim() != locked.Username ||
+                 dto.Role?.Trim() != locked.Role ||
+                 !string.IsNullOrWhiteSpace(dto.Password) ||
+                 !dto.IsActive))
+                return BadRequest(new { message = DemoLoginLocked });
+
             var (success, error, user) = await _service.UpdateUserAsync(id, dto);
             if (!success)
                 return BadRequest(new { message = error });
@@ -74,6 +97,9 @@ namespace Backend.Controllers
         [HttpPut("{id}/toggle-status")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
+            if (await GetLockedDemoLoginAsync(id) != null)
+                return BadRequest(new { message = DemoLoginLocked });
+
             var (success, error) = await _service.ToggleStatusAsync(id, GetCurrentUserId());
             if (!success)
                 return BadRequest(new { message = error });
@@ -85,6 +111,9 @@ namespace Backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            if (await GetLockedDemoLoginAsync(id) != null)
+                return BadRequest(new { message = DemoLoginLocked });
+
             var (success, error) = await _service.DeleteUserAsync(id, GetCurrentUserId());
             if (!success)
                 return BadRequest(new { message = error });
