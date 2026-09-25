@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { employeeService } from "../services/employeeService";
 import "./UserFormModal.css";
 
 // Validation helpers
@@ -11,7 +12,7 @@ const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 const emptyForm = {
   fullName: "", username: "", password: "", email: "",
-  role: "", phone: "", secondaryPhone: "",
+  role: "", phone: "", secondaryPhone: "", employeeID: "",
 };
 
 function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave }) {
@@ -20,6 +21,19 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [employees, setEmployees] = useState([]);
+
+  // Load employees so the admin can link this login to a staff record (site engineers)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await employeeService.getAll();
+        setEmployees(data);
+      } catch {
+        // silent — the dropdown just stays empty
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (mode === "edit" && initialData) {
@@ -31,6 +45,7 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
         role: initialData.role || "",
         phone: initialData.phone || "",
         secondaryPhone: initialData.secondaryPhone || "",
+        employeeID: initialData.employeeID ? String(initialData.employeeID) : "",
       });
     }
   }, [mode, initialData]);
@@ -85,6 +100,7 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
         role: form.role.trim(),
         phone: form.phone.trim() || null,
         secondaryPhone: form.secondaryPhone.trim() || null,
+        employeeID: form.employeeID ? Number(form.employeeID) : null,
         isActive: initialData?.isActive ?? true,
       });
     } catch (err) {
@@ -160,6 +176,18 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
               <label>Secondary Phone</label>
               <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", e.target.value)} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-user-field" />
               {errors.secondaryPhone && <span className="ufm-err">{errors.secondaryPhone}</span>}
+            </div>
+            <div className="ufm-field ufm-field-full">
+              <label>Linked Employee</label>
+              <select value={form.employeeID} onChange={(e) => setField("employeeID", e.target.value)}>
+                <option value="">— None (office / admin user) —</option>
+                {employees.map((emp) => (
+                  <option key={emp.employeeID} value={emp.employeeID}>
+                    {emp.fullName}{emp.designation ? ` — ${emp.designation}` : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="ufm-hint">Link this login to a staff record for Field View (site engineers see only their assigned site).</span>
             </div>
           </div>
         </div>

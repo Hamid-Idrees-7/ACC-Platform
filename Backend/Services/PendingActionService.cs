@@ -76,20 +76,28 @@ namespace Backend.Services
                 requestedByUserId, "Approval", "Request sent",
                 $"You sent a request to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.");
 
-            // Notify admins of the new request
+            // Notify admins of the new request (audit) and ping any non-admin manager who can
+            // resolve approvals (personal, so it reaches their notification bell).
+            var newMsg = $"{requestedByName} requested to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.";
             await _notificationService.NotifyAdminsActivityAsync(
-                "Approval", "New approval request",
-                $"{requestedByName} requested to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.");
+                "Approval", "New approval request", newMsg);
+            await _notificationService.NotifyPermissionHoldersAsync(
+                "Approvals", "Manage", "Approval", "New approval request", newMsg,
+                excludeUserId: requestedByUserId);
 
             return true;
         }
 
         // Approve or reject. On approval, the actual action is performed.
-        public async Task<(bool, string?)> ResolveAsync(int id, ResolvePendingActionDto dto)
+        // resolverUserId / resolverName identify who resolved it, for the admin audit feed.
+        public async Task<(bool, string?)> ResolveAsync(int id, ResolvePendingActionDto dto, int resolverUserId, string resolverName)
         {
             var action = await _repository.GetByIdAsync(id);
             if (action == null) return (false, "Request not found.");
             if (action.Status != "Pending") return (false, "This request has already been resolved.");
+            // Conflict-of-interest guard: nobody can resolve a request they raised themselves.
+            if (action.RequestedByUserID == resolverUserId)
+                return (false, "You can't resolve your own request.");
 
             var status = dto.Status?.Trim();
             if (status != "Approved" && status != "Rejected")
@@ -114,6 +122,13 @@ namespace Backend.Services
                 action.RequestedByUserID, "Approval", $"Request {verb}",
                 $"Your request to {action.Action.ToLower()} {action.Module.TrimEnd('s').ToLower()}: {action.TargetName} was {verb}.",
                 action.Reason);
+
+            // Record who resolved it in the admin audit feed (skip the actor's own copy).
+            var who = string.IsNullOrWhiteSpace(resolverName) ? "A reviewer" : resolverName;
+            await _notificationService.NotifyAdminsActivityAsync(
+                "Approval", $"Approval request {verb}",
+                $"{who} {verb} {action.RequestedByName}'s request to {action.Action.ToLower()} {action.Module.TrimEnd('s').ToLower()}: {action.TargetName}.",
+                excludeUserId: resolverUserId);
 
             return (true, null);
         }

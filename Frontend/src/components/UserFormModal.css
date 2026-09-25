@@ -95,6 +95,20 @@
     outline: none;
     width: 100%;
 }
+.ufm-field select {
+    padding: 11px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--color-text);
+    background: var(--color-surface);
+    transition: border-color 0.18s ease;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+}
+.ufm-field select:focus { border-color: var(--color-primary); }
 .ufm-field input:focus { border-color: var(--color-primary); }
 .ufm-field input.err { border-color: var(--color-error); }
 .ufm-hint { font-size: 12px; color: var(--color-text-muted); margin-top: 5px; }

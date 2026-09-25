@@ -9,7 +9,8 @@ namespace Backend.Services
 
         // Central helpers used across the app to create notifications
         Task NotifyPersonalAsync(int userId, string category, string title, string message, string? reason = null);
-        Task NotifyAdminsActivityAsync(string category, string title, string message);
+        Task NotifyAdminsActivityAsync(string category, string title, string message, int? excludeUserId = null);
+        Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null);
 
         Task<bool> MarkAsReadAsync(int id, int userId);
         Task MarkAllReadAsync(int userId, string type);

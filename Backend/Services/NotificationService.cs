@@ -8,13 +8,16 @@ namespace Backend.Services
     {
         private readonly INotificationRepository _repository;
         private readonly IUserRepository _userRepository;
+        private readonly IPermissionRepository _permissionRepository;
 
         public NotificationService(
             INotificationRepository repository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IPermissionRepository permissionRepository)
         {
             _repository = repository;
             _userRepository = userRepository;
+            _permissionRepository = permissionRepository;
         }
 
         public async Task<List<NotificationDto>> GetForUserAsync(int userId, string type)
@@ -44,13 +47,16 @@ namespace Backend.Services
             });
         }
 
-        // Create an activity notification for every admin (records what a user did)
-        public async Task NotifyAdminsActivityAsync(string category, string title, string message)
+        // Create an activity notification for every admin (records what a user did).
+        // excludeUserId skips one user — used so an admin who performs an action isn't
+        // notified about their own action in the audit feed.
+        public async Task NotifyAdminsActivityAsync(string category, string title, string message, int? excludeUserId = null)
         {
             var users = await _userRepository.GetAllAsync();
             var admins = users.Where(u => u.Role != null &&
                                           u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
-                                          u.IsActive);
+                                          u.IsActive &&
+                                          u.UserID != excludeUserId);
 
             foreach (var admin in admins)
             {
@@ -58,6 +64,42 @@ namespace Backend.Services
                 {
                     UserID = admin.UserID,
                     Type = "Activity",
+                    Category = category,
+                    Title = title,
+                    Message = message,
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
+        // Send a personal (action needed) notification to every non-admin user who holds a
+        // given permission (module+action, and the module's View baseline) and is active.
+        // Admins are intentionally skipped here — they get the audit via NotifyAdminsActivityAsync.
+        // excludeUserId skips one user (e.g. the person who raised the request).
+        public async Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null)
+        {
+            var perms = await _permissionRepository.GetAllAsync();
+
+            var canAct = perms.Where(p => p.Module == module && p.Action == action && p.IsAllowed)
+                              .Select(p => p.UserID).ToHashSet();
+            var canView = perms.Where(p => p.Module == module && p.Action == "View" && p.IsAllowed)
+                               .Select(p => p.UserID).ToHashSet();
+            var eligibleIds = canAct.Where(id => canView.Contains(id)).ToHashSet();
+            if (eligibleIds.Count == 0) return;
+
+            var users = await _userRepository.GetAllAsync();
+            var recipients = users.Where(u => eligibleIds.Contains(u.UserID) &&
+                                              u.IsActive &&
+                                              u.UserID != excludeUserId &&
+                                              !(u.Role != null && u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)));
+
+            foreach (var u in recipients)
+            {
+                await _repository.AddAsync(new Notification
+                {
+                    UserID = u.UserID,
+                    Type = "Personal",
                     Category = category,
                     Title = title,
                     Message = message,

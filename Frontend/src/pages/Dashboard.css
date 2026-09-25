@@ -1,4 +1,4 @@
-/* Override: make sure no inherited margin from global 'main' styles */
+/* Override: make sure no inherited margin from global main styles */
 .dash-content {
     margin: 0 !important;
 }
@@ -94,8 +94,7 @@
 /* ACTION GRID: 2 module columns + tall AI card */
 .dash-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.15fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: repeat(3, 1fr);
     gap: 18px;
 }
 
@@ -175,8 +174,6 @@
 
 /* AI card - special, spans both rows in the 3rd column */
 .dash-ai-card {
-    grid-column: 3;
-    grid-row: 1 / span 2;
     border: none;
     border-radius: 20px;
     padding: 0;
@@ -186,7 +183,7 @@
     background: linear-gradient(155deg, #2d1b4e 0%, #1a1030 45%, #0f0a1f 100%);
     transition: all 0.25s ease;
     text-align: left;
-    min-height: 362px;
+    min-height: 172px;
 }
 .dash-ai-card:hover {
     transform: translateY(-3px);
@@ -208,50 +205,52 @@
 .dash-ai-content {
     position: relative;
     z-index: 1;
-    padding: 28px 26px;
+    padding: 26px;
     height: 100%;
     display: flex;
     flex-direction: column;
 }
+.dash-ai-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: auto;
+}
 .dash-ai-badge {
-    align-self: flex-start;
     background: rgba(255,255,255,0.14);
     color: #fff;
     font-size: 11px;
     font-weight: 700;
-    padding: 5px 14px;
+    padding: 5px 12px;
     border-radius: 20px;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     backdrop-filter: blur(4px);
-    margin-bottom: 20px;
 }
 .dash-ai-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
     background: linear-gradient(135deg, rgba(168,85,247,0.9), rgba(99,102,241,0.9));
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    margin-bottom: 18px;
     box-shadow: 0 8px 24px rgba(168,85,247,0.4);
 }
-.dash-ai-icon svg { width: 32px; height: 32px; }
+.dash-ai-icon svg { width: 22px; height: 22px; }
 .dash-ai-content h3 {
     font-family: 'Poppins', sans-serif;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 800;
     color: #fff;
-    margin-bottom: 10px;
-    letter-spacing: -0.5px;
+    margin: 14px 0 5px;
+    letter-spacing: -0.3px;
 }
 .dash-ai-content p {
     color: rgba(255,255,255,0.7);
-    font-size: 14px;
-    line-height: 1.65;
-    margin-bottom: auto;
+    font-size: 13.5px;
+    line-height: 1.5;
 }
 .dash-ai-link {
     display: inline-flex;
@@ -269,7 +268,7 @@
 @media (max-width: 1100px) {
     .dash-stats { grid-template-columns: repeat(2, 1fr); }
     .dash-grid { grid-template-columns: 1fr 1fr; }
-    .dash-ai-card { grid-column: 1 / span 2; grid-row: auto; min-height: 220px; }
+    .dash-ai-card { grid-column: 1 / span 2; grid-row: auto; min-height: 172px; }
 }
 @media (max-width: 600px) {
     .dash-stats { grid-template-columns: 1fr; }

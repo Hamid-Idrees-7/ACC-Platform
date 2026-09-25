@@ -9,18 +9,20 @@ import { userService } from "../services/userService";
 import { employeeService } from "../services/employeeService";
 import { projectService } from "../services/projectService";
 import { billingService } from "../services/billingService";
+import { materialRequestService } from "../services/materialRequestService";
 import { rupeesShort, amountInWords } from "../utils/format";
 import "./Dashboard.css";
 
 function Dashboard() {
   const { user } = useAuth();
-  const { isAdmin, canView } = usePermissions();
+  const { isAdmin, canView, can } = usePermissions();
   const navigate = useNavigate();
   const firstName = (user?.fullName || user?.username || "there").split(" ")[0];
 
   const [queries, setQueries] = useState([]);
   const [loadingQueries, setLoadingQueries] = useState(true);
   const [approvalCount, setApprovalCount] = useState(0);
+  const [matReqCount, setMatReqCount] = useState(0);
   const [metrics, setMetrics] = useState({ users: 0, employees: 0, projects: 0, revenue: 0, loaded: false });
 
   // Which cards can this user see?
@@ -29,8 +31,9 @@ function Dashboard() {
   const showAI = isAdmin || canView("AI");
   const showControlUnit = isAdmin; // Admin-only
   const showApprovals = isAdmin || canView("Approvals");
+  const showMatRequests = isAdmin || can("MaterialRequests", "View");
 
-  const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals;
+  const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals || showMatRequests;
 
   useEffect(() => {
     if (!showMessages) { setLoadingQueries(false); return; }
@@ -60,6 +63,18 @@ function Dashboard() {
     };
     loadCount();
   }, [showApprovals]);
+
+  // Load pending material-request count
+  useEffect(() => {
+    if (!showMatRequests) return;
+    (async () => {
+      try {
+        setMatReqCount(await materialRequestService.getPendingCount());
+      } catch {
+        // silent
+      }
+    })();
+  }, [showMatRequests]);
 
   // Load the top stat cards (Admin only). Active users/employees/projects + total revenue
   // (money actually received from clients). Each source is loaded independently so one
@@ -136,7 +151,7 @@ function Dashboard() {
                 <div className="dash-mod-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                 </div>
-                <span className="dash-mod-count">{loadingQueries ? 0 : unreadCount}</span>
+                {!loadingQueries && unreadCount > 0 && <span className="dash-mod-count">{unreadCount}</span>}
               </div>
               <h3>Messages</h3>
               <p>New inquiries from your website</p>
@@ -161,13 +176,14 @@ function Dashboard() {
             <button className="dash-ai-card" onClick={() => navigate("/dashboard/ai")}>
               <div className="dash-ai-glow" />
               <div className="dash-ai-content">
-                <div className="dash-ai-badge">Coming Soon</div>
-                <div className="dash-ai-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" /><circle cx="8.5" cy="13.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="13.5" r="1.5" fill="currentColor" /></svg>
+                <div className="dash-ai-top">
+                  <div className="dash-ai-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" /><circle cx="8.5" cy="13.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="13.5" r="1.5" fill="currentColor" /></svg>
+                  </div>
+                  <span className="dash-ai-badge">Coming Soon</span>
                 </div>
                 <h3>AI Assistant</h3>
-                <p>Chat with your intelligent construction assistant. Ask questions, get insights, and manage work — like having an expert on call.</p>
-                <span className="dash-ai-link">Explore <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></span>
+                <p>Chat with your intelligent construction assistant.</p>
               </div>
             </button>
           )}
@@ -179,10 +195,24 @@ function Dashboard() {
                 <div className="dash-mod-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                 </div>
-                <span className="dash-mod-count">{approvalCount}</span>
+                {approvalCount > 0 && <span className="dash-mod-count">{approvalCount}</span>}
               </div>
               <h3>Pending Approvals</h3>
               <p>Requests waiting for your review</p>
+            </button>
+          )}
+
+          {/* Material Requests (from the field) */}
+          {showMatRequests && (
+            <button className="dash-mod-card" onClick={() => navigate("/dashboard/material-requests")}>
+              <div className="dash-mod-top">
+                <div className="dash-mod-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
+                </div>
+                {matReqCount > 0 && <span className="dash-mod-count">{matReqCount}</span>}
+              </div>
+              <h3>Material Requests</h3>
+              <p>Approve or reject site material requests</p>
             </button>
           )}
 

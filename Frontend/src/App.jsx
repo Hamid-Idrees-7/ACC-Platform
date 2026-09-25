@@ -39,6 +39,8 @@ import Billing from "./pages/Billing";
 import ProjectBilling from "./pages/ProjectBilling";
 import InvoicePrint from "./pages/InvoicePrint";
 import Reports from "./pages/Reports";
+import FieldView from "./pages/FieldView";
+import MaterialRequests from "./pages/MaterialRequests";
 
 import UnderConstruction from "./pages/UnderConstruction";
 
@@ -86,6 +88,8 @@ function App() {
           <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
           <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
           <Route path="/dashboard/reports" element={<Reports />} />
+          <Route path="/dashboard/field" element={<FieldView />} />
+          <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
 
 
 

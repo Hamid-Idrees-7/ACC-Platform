@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Manages approval requests (pending actions). Base route: /api/approvals
+    // Manages approval requests, base route: /api/approvals
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -67,7 +67,7 @@ namespace Backend.Controllers
         [RequirePermission("Approvals", "Manage")]
         public async Task<IActionResult> Resolve(int id, [FromBody] ResolvePendingActionDto dto)
         {
-            var (success, error) = await _service.ResolveAsync(id, dto);
+            var (success, error) = await _service.ResolveAsync(id, dto, GetUserId(), GetUserName());
             if (!success)
                 return BadRequest(new { message = error });
 

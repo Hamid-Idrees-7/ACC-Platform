@@ -31,5 +31,6 @@ namespace Backend.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
+        public DbSet<MaterialRequest> MaterialRequests { get; set; }
     }
 }

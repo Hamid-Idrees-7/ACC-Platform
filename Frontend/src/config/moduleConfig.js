@@ -18,11 +18,23 @@ export const MODULE_GROUPS = [
     ],
   },
   {
+    group: "Field Access",
+    modules: [
+      // Site-engineer scoped view. Scoping (own site only) is automatic from the user's
+      // linked employee. Manage covers everything they do on their own site
+      // (mark attendance, update progress, request material).
+      { key: "Field", label: "Field View", actions: ["View", "Manage"], approvalActions: [] },
+    ],
+  },
+  {
     group: "Workspace",
     modules: [
       // Messages and Approvals delete directly - no approval workflow (it would be circular)
       { key: "Messages", label: "Messages", actions: ["View", "Delete"], approvalActions: [] },
       { key: "Approvals", label: "Approvals", actions: ["View", "Manage", "Delete"], approvalActions: [] },
+      // Reviewing site-engineer material requests. Kept separate from Materials so an
+      // engineer who raises requests can never approve/reject their own. Manage = approve+issue / reject.
+      { key: "MaterialRequests", label: "Material Requests", actions: ["View", "Manage"], approvalActions: [] },
     ],
   },
 ];

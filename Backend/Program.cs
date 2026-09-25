@@ -20,7 +20,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register our N-tier services (Dependency Injection)
-// Projects
+
 // Project
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
@@ -38,6 +38,11 @@ builder.Services.AddScoped<IBillingRepository, BillingRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 // Reports (aggregates the other modules — no repository of its own)
 builder.Services.AddScoped<IReportsService, ReportsService>();
+// Field View (site-engineer scoped — reuses project/attendance services, no repository)
+builder.Services.AddScoped<IFieldService, FieldService>();
+// Material Requests (field to approval to issue)
+builder.Services.AddScoped<IMaterialRequestRepository, MaterialRequestRepository>();
+builder.Services.AddScoped<IMaterialRequestService, MaterialRequestService>();
 // Material
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
