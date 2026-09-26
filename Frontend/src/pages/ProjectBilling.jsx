@@ -20,7 +20,22 @@ const todayISO = () => {
 };
 
 const METHODS = ["Cash", "Cheque", "Bank Transfer"];
-const emptyItem = () => ({ description: "", quantity: "1", rate: "", phaseID: null });
+const emptyItem = () => ({ description: "", quantity: "1", rate: "", phaseID: null, expenseID: null });
+
+// An invoice line that bills a recoverable project expense back to the client
+// Quantity and rate are fixed to the expense amount (the server enforces this too)
+const expenseItem = (e) => ({
+  description: `Reimbursement: ${e.description}`.slice(0, 200),
+  quantity: "1",
+  rate: String(e.amount),
+  phaseID: e.phaseID ?? null,
+  expenseID: e.expenseID,
+});
+
+const errorText = (err, fallback) => {
+  if (err?.response?.status === 403) return "You don't have permission for this action.";
+  return err?.response?.data?.message || fallback;
+};
 
 function ProjectBilling() {
   const { projectId } = useParams();
@@ -31,22 +46,24 @@ function ProjectBilling() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [expanded, setExpanded] = useState(null);       // invoiceID whose detail is open
+  const [expanded, setExpanded] = useState(null);       
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Invoice form modal (create or edit)
-  const [invModal, setInvModal] = useState(null);       // { mode: "create"|"edit", invoiceId? }
-  const [form, setForm] = useState(null);               // { issueDate, dueDate, items[], taxAmount, notes }
+  const [invModal, setInvModal] = useState(null);       
+  const [form, setForm] = useState(null);               
   const [phasePick, setPhasePick] = useState("");
+  const [expensePick, setExpensePick] = useState("");
+  const [formError, setFormError] = useState("");
 
   // Payment modal
-  const [payModal, setPayModal] = useState(null);       // invoice
-  const [payForm, setPayForm] = useState(null);         // { amount, paymentDate, method, reference }
+  const [payModal, setPayModal] = useState(null);       
+  const [payForm, setPayForm] = useState(null);         
 
   // Delete confirms
-  const [delInvoice, setDelInvoice] = useState(null);   // invoice
-  const [delPayment, setDelPayment] = useState(null);   // { payment, invoice }
+  const [delInvoice, setDelInvoice] = useState(null);   
+  const [delPayment, setDelPayment] = useState(null);   
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
@@ -63,15 +80,29 @@ function ProjectBilling() {
   };
   useEffect(() => { load(); }, [projectId]);
 
-  // ---------- Invoice form ----------
-  const openCreate = () => {
-    setInvModal({ mode: "create" });
-    setForm({ issueDate: todayISO(), dueDate: "", items: [emptyItem()], taxAmount: "", notes: "" });
+  // Invoice form 
+  // prefill: optional list of recoverable expenses to start the invoice with.
+  const openCreate = (prefill = []) => {
+    setInvModal({ mode: "create", ownExpenses: [] });
+    setForm({
+      issueDate: todayISO(),
+      dueDate: "",
+      items: prefill.length > 0 ? prefill.map(expenseItem) : [emptyItem()],
+      taxAmount: "",
+      notes: "",
+    });
     setPhasePick("");
+    setExpensePick("");
+    setFormError("");
   };
 
   const openEdit = (inv) => {
-    setInvModal({ mode: "edit", invoiceId: inv.invoiceID, invoiceNumber: inv.invoiceNumber });
+    // Expense lines already on this invoice. If one is removed while editing it can be added
+    // back, since until the invoice is saved it is still billed here, not pending.
+    const ownExpenses = (inv.items || [])
+      .filter((i) => i.expenseID)
+      .map((i) => ({ expenseID: i.expenseID, description: i.description.replace(/^Reimbursement:\s*/, ""), amount: i.amount, phaseID: i.phaseID ?? null }));
+    setInvModal({ mode: "edit", invoiceId: inv.invoiceID, invoiceNumber: inv.invoiceNumber, ownExpenses });
     setForm({
       issueDate: inv.issueDate ? inv.issueDate.substring(0, 10) : todayISO(),
       dueDate: inv.dueDate ? inv.dueDate.substring(0, 10) : "",
@@ -80,14 +111,17 @@ function ProjectBilling() {
         quantity: String(i.quantity),
         rate: String(i.rate),
         phaseID: i.phaseID ?? null,
+        expenseID: i.expenseID ?? null,
       })),
       taxAmount: inv.taxAmount ? String(inv.taxAmount) : "",
       notes: inv.notes || "",
     });
     setPhasePick("");
+    setExpensePick("");
+    setFormError("");
   };
 
-  const closeInvModal = () => { setInvModal(null); setForm(null); };
+  const closeInvModal = () => { setInvModal(null); setForm(null); setFormError(""); };
 
   const setItem = (idx, key, val) => {
     setForm((f) => {
@@ -108,6 +142,29 @@ function ProjectBilling() {
     setPhasePick("");
   };
 
+  // Recoverable expenses that can still be added to this invoice.
+  const expenseOptions = useMemo(() => {
+    if (!form || !invModal || !data) return [];
+    const used = new Set(form.items.filter((it) => it.expenseID).map((it) => it.expenseID));
+    const pool = [...(invModal.ownExpenses || []), ...(data.pendingReimbursements || [])];
+    const seen = new Set();
+    return pool.filter((e) => {
+      if (used.has(e.expenseID) || seen.has(e.expenseID)) return false;
+      seen.add(e.expenseID);
+      return true;
+    });
+  }, [form, invModal, data]);
+
+  const addExpenseLine = (expenseId) => {
+    const exp = expenseOptions.find((e) => String(e.expenseID) === String(expenseId));
+    if (!exp) return;
+    setForm((f) => ({
+      ...f,
+      items: [...f.items.filter((it) => it.expenseID || it.description || it.rate), expenseItem(exp)],
+    }));
+    setExpensePick("");
+  };
+
   const formTotals = useMemo(() => {
     if (!form) return { subtotal: 0, tax: 0, total: 0 };
     const subtotal = form.items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.rate) || 0), 0);
@@ -119,6 +176,7 @@ function ProjectBilling() {
 
   const submitInvoice = async () => {
     setBusy(true);
+    setFormError("");
     try {
       const payload = {
         projectID: Number(projectId),
@@ -127,12 +185,13 @@ function ProjectBilling() {
         taxAmount: Number(form.taxAmount) || 0,
         notes: form.notes.trim() || null,
         items: form.items
-          .filter((it) => it.description.trim() || Number(it.rate) !== 0)
+          .filter((it) => it.expenseID || it.description.trim() || Number(it.rate) !== 0)
           .map((it) => ({
             description: it.description.trim(),
             quantity: Number(it.quantity) || 1,
             rate: Number(it.rate) || 0,
             phaseID: it.phaseID ?? null,
+            expenseID: it.expenseID ?? null,
           })),
       };
       if (invModal.mode === "edit") {
@@ -144,14 +203,14 @@ function ProjectBilling() {
       }
       closeInvModal();
       await load();
-    } catch {
-      showToast("Could not save the invoice.", "error");
+    } catch (err) {
+      setFormError(errorText(err, "Could not save the invoice."));
     } finally {
       setBusy(false);
     }
   };
 
-  // ---------- Payment ----------
+  // Payment 
   const openPay = (inv) => {
     setPayModal(inv);
     setPayForm({ amount: String(inv.due > 0 ? inv.due : ""), paymentDate: todayISO(), method: "Cash", reference: "" });
@@ -178,7 +237,7 @@ function ProjectBilling() {
     }
   };
 
-  // ---------- Deletes ----------
+  // Deletes
   const doDeleteInvoice = async () => {
     setBusy(true);
     try {
@@ -219,7 +278,11 @@ function ProjectBilling() {
     );
   }
 
-  const pct = data.budget > 0 ? Math.min(100, Math.round((data.totalInvoiced / data.budget) * 100)) : 0;
+  // Only work billed against the budget fills the bar; reimbursed expenses are outside the price.
+  const contractInvoiced = data.contractInvoiced ?? data.totalInvoiced;
+  const pct = data.budget > 0 ? Math.min(100, Math.round((contractInvoiced / data.budget) * 100)) : 0;
+  const pending = data.pendingReimbursements || [];
+  const pendingTotal = pending.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
   return (
     <DashboardLayout title="Project Billing">
@@ -229,7 +292,7 @@ function ProjectBilling() {
           Back to Billing
         </button>
         {canManage && (
-          <button className="pbl-new" onClick={openCreate}>
+          <button className="pbl-new" onClick={() => openCreate()}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             New Invoice
           </button>
@@ -254,6 +317,7 @@ function ProjectBilling() {
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Invoiced</span>
             <span className="pbl-metric-val">{rupees(data.totalInvoiced)}</span>
+            {data.reimbursementInvoiced > 0 && <span className="pbl-metric-sub">incl. {rupees(data.reimbursementInvoiced)} expenses</span>}
           </div>
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Received</span>
@@ -273,14 +337,30 @@ function ProjectBilling() {
           <span className="pbl-budgetbar-pct">{data.percentInvoiced}%</span>
         </div>
         <div className="pbl-bar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? "full" : ""} /></div>
+        {data.reimbursementInvoiced > 0 && (
+          <p className="pbl-budgetbar-note">Reimbursed project expenses ({rupees(data.reimbursementInvoiced)}) are billed on top of the budget and are not counted here.</p>
+        )}
       </div>
+
+      {/* Recoverable expenses waiting to be billed */}
+      {pending.length > 0 && (
+        <div className="pbl-reimb">
+          <div className="pbl-reimb-text">
+            <strong>{pending.length} recoverable expense{pending.length === 1 ? "" : "s"} not billed yet · {rupees(pendingTotal)}</strong>
+            <span>{pending.slice(0, 3).map((e) => e.description).join(", ")}{pending.length > 3 ? ` and ${pending.length - 3} more` : ""}</span>
+          </div>
+          {canManage && (
+            <button className="pbl-reimb-btn" onClick={() => openCreate(pending)}>Bill to client</button>
+          )}
+        </div>
+      )}
 
       {/* Invoice list */}
       {(!data.invoices || data.invoices.length === 0) ? (
         <div className="pbl-empty">
           <h3>No invoices yet</h3>
           <p>Create the first invoice to bill {data.clientName} toward the project budget.</p>
-          {canManage && <button className="pbl-new pbl-new-lg" onClick={openCreate}>+ New Invoice</button>}
+          {canManage && <button className="pbl-new pbl-new-lg" onClick={() => openCreate()}>+ New Invoice</button>}
         </div>
       ) : (
         <div className="pbl-list">
@@ -321,7 +401,7 @@ function ProjectBilling() {
                       <tbody>
                         {inv.items.map((it) => (
                           <tr key={it.itemID}>
-                            <td>{it.description}</td>
+                            <td>{it.description}{it.expenseID && <span className="pbl-reimb-tag">Reimbursement</span>}</td>
                             <td className="r">{formatQty(it.quantity)}</td>
                             <td className="r">{rupees(it.rate)}</td>
                             <td className="r">{rupees(it.amount)}</td>
@@ -389,7 +469,7 @@ function ProjectBilling() {
         </div>
       )}
 
-      {/* ---------- Invoice form modal ---------- */}
+      {/*  Invoice form modal  */}
       {invModal && form && (
         <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && closeInvModal()}>
           <div className="pbl-modal pbl-modal-lg">
@@ -425,6 +505,20 @@ function ProjectBilling() {
                 </div>
               )}
 
+              {/* Recoverable expense quick-fill */}
+              {expenseOptions.length > 0 && (
+                <div className="pbl-phasefill pbl-expfill">
+                  <label>Add a recoverable expense</label>
+                  <select value={expensePick} onChange={(e) => { setExpensePick(e.target.value); if (e.target.value) addExpenseLine(e.target.value); }}>
+                    <option value="">+ Bill an expense paid on the client's behalf…</option>
+                    {expenseOptions.map((e) => (
+                      <option key={e.expenseID} value={e.expenseID}>{e.description} — {rupees(e.amount)}</option>
+                    ))}
+                  </select>
+                  <p className="pbl-phasefill-hint">Adds the expense at its exact amount. It is billed on top of the budget.</p>
+                </div>
+              )}
+
               {/* Line items */}
               <div className="pbl-items-edit">
                 <div className="pbl-items-head">
@@ -436,11 +530,12 @@ function ProjectBilling() {
                 </div>
                 {form.items.map((it, idx) => {
                   const amt = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
+                  const isExpense = !!it.expenseID;
                   return (
-                    <div className="pbl-item-row" key={idx}>
-                      <input className="col-desc" type="text" placeholder="e.g. Foundation milestone" value={it.description} onChange={(e) => setItem(idx, "description", e.target.value)} />
-                      <input className="col-qty" type="number" min="0" step="any" value={it.quantity} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
-                      <input className="col-rate" type="number" min="0" step="any" placeholder="0" value={it.rate} onChange={(e) => setItem(idx, "rate", e.target.value)} />
+                    <div className={`pbl-item-row ${isExpense ? "expense" : ""}`} key={idx}>
+                      <input className="col-desc" type="text" maxLength={200} placeholder="e.g. Foundation milestone" value={it.description} onChange={(e) => setItem(idx, "description", e.target.value)} title={isExpense ? "Reimbursement of a recoverable project expense" : undefined} />
+                      <input className="col-qty" type="number" min="0" step="any" value={it.quantity} readOnly={isExpense} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
+                      <input className="col-rate" type="number" min="0" step="any" placeholder="0" value={it.rate} readOnly={isExpense} onChange={(e) => setItem(idx, "rate", e.target.value)} />
                       <span className="col-amt pbl-item-amt">{rupees(amt)}</span>
                       <button className="col-x pbl-item-x" onClick={() => removeItem(idx)} disabled={form.items.length === 1} title="Remove line">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -472,6 +567,8 @@ function ProjectBilling() {
                 <div className="pbl-ft-row big"><span>Total</span><strong>{rupees(formTotals.total)}</strong></div>
                 {formTotals.total > 0 && <div className="pbl-ft-words">{amountInWords(formTotals.total)}</div>}
               </div>
+
+              {formError && <div className="pbl-form-error">{formError}</div>}
             </div>
 
             <div className="pbl-modal-actions">
@@ -484,7 +581,7 @@ function ProjectBilling() {
         </div>
       )}
 
-      {/* ---------- Payment modal ---------- */}
+      {/* Payment modal */}
       {payModal && payForm && (
         <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && closePay()}>
           <div className="pbl-modal">
@@ -528,7 +625,7 @@ function ProjectBilling() {
         </div>
       )}
 
-      {/* ---------- Delete invoice confirm ---------- */}
+      {/* Delete invoice confirm */}
       {delInvoice && (
         <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && setDelInvoice(null)}>
           <div className="pbl-confirm">
@@ -545,7 +642,7 @@ function ProjectBilling() {
         </div>
       )}
 
-      {/* ---------- Delete payment confirm ---------- */}
+      {/* Delete payment confirm */}
       {delPayment && (
         <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && setDelPayment(null)}>
           <div className="pbl-confirm">

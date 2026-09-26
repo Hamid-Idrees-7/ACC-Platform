@@ -5,6 +5,7 @@ import { usePermissions } from "../context/PermissionContext";
 import { projectService } from "../services/projectService";
 import { formatDate } from "../components/DatePicker";
 import { rupees, formatQty, amountInWords } from "../utils/format";
+import ProjectExpenses from "../components/ProjectExpenses";
 import "./ProjectDetail.css";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
@@ -65,6 +66,15 @@ function ProjectDetail() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  // Refresh the figures (eg after an expense changes) without the full-page loader.
+  const refreshQuietly = async () => {
+    try {
+      setProject(await projectService.getById(id));
+    } catch {
+      // keep what is on screen; the next full load will retry
+    }
+  };
 
   const cancelled = project?.status === "Cancelled";
   const locked = cancelled || !canManage;
@@ -244,10 +254,23 @@ function ProjectDetail() {
                 <span>Daily Wages <b className="pd-tag">ATTENDANCE</b></span>
                 <div className="pd-fin-amt neg"><strong>− {rupees(dailyLabour)}</strong><em>{amountInWords(dailyLabour)}</em></div>
               </div>
+              <div className="pd-fin-row">
+                <span>Other Expenses <b className="pd-tag">PLOT · FEES · TAXES</b></span>
+                <div className="pd-fin-amt neg"><strong>− {rupees(f.expenseCost)}</strong><em>{amountInWords(f.expenseCost)}</em></div>
+              </div>
               <div className="pd-fin-row pd-fin-total">
                 <span>Actual Cost</span>
                 <div className="pd-fin-amt"><strong>{rupees(f.actualCost)}</strong><em>{amountInWords(f.actualCost)}</em></div>
               </div>
+              {f.recoverableTotal > 0 && (
+                <div className="pd-fin-row pd-fin-rec">
+                  <span>Paid for client <b className="pd-tag rec">RECOVERABLE</b></span>
+                  <div className="pd-fin-amt">
+                    <strong>{rupees(f.recoverableTotal)}</strong>
+                    <em>{rupees(f.recoverableInvoiced)} billed · {rupees(f.recoverableTotal - f.recoverableInvoiced)} to bill · not a cost</em>
+                  </div>
+                </div>
+              )}
             </div>
             <div className={`pd-profit ${f.profit >= 0 ? "pos" : "neg"}`}>
               <span>{f.profit >= 0 ? "PROFIT" : "LOSS"}</span>
@@ -255,7 +278,7 @@ function ProjectDetail() {
               <em>{amountInWords(f.profit)}</em>
             </div>
           </div>
-          <div className="pd-fin-note">Material, contract labour and daily wages (from marked attendance) are this project's real costs. Monthly salaried staff are company payroll — paid regardless of any project — so they are not charged here.</div>
+          <div className="pd-fin-note">Material, contract labour, daily wages (from marked attendance) and the company's own project expenses are this project's real costs. Expenses paid on the client's behalf are billed back, so they don't change profit. Monthly salaried staff are company payroll — paid regardless of any project — so they are not charged here.</div>
         </div>
 
         {/* Phases + Team */}
@@ -374,6 +397,9 @@ function ProjectDetail() {
             <p className="pd-team-note">Daily &amp; contract wages are this project's labour cost. Monthly salaried staff are company payroll and are not charged to this project.</p>
           </div>
         </div>
+
+        {/* Project expenses: plot, transfer, taxes, possession... (hidden without Expenses View) */}
+        <ProjectExpenses projectId={project.projectID} readOnly={cancelled} onChanged={refreshQuietly} />
 
         {/* Materials Used — Phase by Phase */}
         {project.materialsByPhase && project.materialsByPhase.length > 0 && (

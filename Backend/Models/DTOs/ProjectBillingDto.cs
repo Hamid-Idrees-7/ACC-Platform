@@ -16,7 +16,15 @@ namespace Backend.Models.DTOs
         public decimal TotalInvoiced { get; set; }    // sum of invoice totals
         public decimal Received { get; set; }         // sum of payments
         public decimal Outstanding { get; set; }      // invoiced - received
-        public decimal PercentInvoiced { get; set; }  // totalInvoiced / budget * 100
+        public decimal PercentInvoiced { get; set; }  // contractInvoiced / budget * 100
+
+        // TotalInvoiced split in two: work billed against the budget, and expenses billed back
+        // (reimbursements are outside the agreed price, so they don't count toward the budget).
+        public decimal ContractInvoiced { get; set; }
+        public decimal ReimbursementInvoiced { get; set; }
+
+        // Recoverable expenses not billed yet — offered as quick-fill lines in the invoice form.
+        public List<PendingReimbursementDto> PendingReimbursements { get; set; } = new();
 
         public List<InvoiceDto> Invoices { get; set; } = new();
         public List<PhaseOptionDto> Phases { get; set; } = new();
@@ -52,6 +60,7 @@ namespace Backend.Models.DTOs
         public decimal Rate { get; set; }
         public decimal Amount { get; set; }
         public int? PhaseID { get; set; }
+        public int? ExpenseID { get; set; }
     }
 
     public class InvoicePaymentDto

@@ -9,7 +9,7 @@ namespace Backend.Services
         Task<ProjectDto> CreateProjectAsync(CreateProjectDto dto);
         Task<ProjectDto?> UpdateProjectAsync(int id, CreateProjectDto dto);
         Task<bool> DeleteProjectAsync(int id);
-        Task<bool> HasMaterialIssuesAsync(int id);
+        Task<string?> GetDeleteBlockerAsync(int id);
         Task<ProjectDetailDto?> ChangeStatusAsync(int id, string status);
 
         Task<ProjectPhaseDto?> AddPhaseAsync(int projectId, CreatePhaseDto dto);

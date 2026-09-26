@@ -9,15 +9,18 @@ namespace Backend.Services
         private readonly IProjectRepository _projectRepository;
         private readonly IClientRepository _clientRepository;
         private readonly IBillingRepository _billingRepository;
+        private readonly IProjectExpenseRepository _expenseRepository;
 
         public BillingService(
             IProjectRepository projectRepository,
             IClientRepository clientRepository,
-            IBillingRepository billingRepository)
+            IBillingRepository billingRepository,
+            IProjectExpenseRepository expenseRepository)
         {
             _projectRepository = projectRepository;
             _clientRepository = clientRepository;
             _billingRepository = billingRepository;
+            _expenseRepository = expenseRepository;
         }
 
         // Overview (list page) 
@@ -124,6 +127,29 @@ namespace Backend.Services
             decimal totalInvoiced = invoiceDtos.Sum(i => i.Total);
             decimal received = invoiceDtos.Sum(i => i.Paid);
 
+            // Expense lines are reimbursements (outside the agreed price). Everything else,
+            // tax included, is billed against the budget.
+            decimal reimbursementInvoiced = items.Where(x => x.ExpenseID.HasValue).Sum(x => x.Amount);
+            decimal contractInvoiced = totalInvoiced - reimbursementInvoiced;
+
+            // Recoverable expenses that no invoice bills yet.
+            var expenses = await _expenseRepository.GetByProjectAsync(projectId);
+            var recoverable = expenses.Where(e => e.IsRecoverable).ToList();
+            var links = await _expenseRepository.GetInvoiceLinksAsync(recoverable.Select(e => e.ExpenseID).ToList());
+            var pending = recoverable
+                .Where(e => !links.ContainsKey(e.ExpenseID))
+                .OrderBy(e => e.ExpenseDate)
+                .Select(e => new PendingReimbursementDto
+                {
+                    ExpenseID = e.ExpenseID,
+                    Category = e.Category,
+                    Description = e.Description,
+                    Amount = e.Amount,
+                    ExpenseDate = e.ExpenseDate,
+                    PhaseID = e.PhaseID
+                })
+                .ToList();
+
             return new ProjectBillingDto
             {
                 ProjectID = project.ProjectID,
@@ -137,15 +163,24 @@ namespace Backend.Services
                 TotalInvoiced = totalInvoiced,
                 Received = received,
                 Outstanding = totalInvoiced - received,
-                PercentInvoiced = project.Budget > 0 ? Math.Round(totalInvoiced / project.Budget * 100m, 1) : 0m,
+                PercentInvoiced = project.Budget > 0 ? Math.Round(contractInvoiced / project.Budget * 100m, 1) : 0m,
+                ContractInvoiced = contractInvoiced,
+                ReimbursementInvoiced = reimbursementInvoiced,
+                PendingReimbursements = pending,
                 Invoices = invoiceDtos,
                 Phases = phases.Select(ph => new PhaseOptionDto { PhaseID = ph.PhaseID, Name = ph.Name }).ToList()
             };
         }
 
         // Create 
-        public async Task<int> CreateInvoiceAsync(CreateInvoiceDto dto)
+        public async Task<(int? InvoiceId, string? Error)> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
+            var project = await _projectRepository.GetByIdAsync(dto.ProjectID);
+            if (project == null) return (null, "Project not found.");
+
+            var (items, error) = await BuildItemsAsync(dto.ProjectID, null, dto.Items);
+            if (error != null) return (null, error);
+
             int seq = await _billingRepository.MaxInvoiceSeqAsync() + 1;
 
             var invoice = new Invoice
@@ -159,15 +194,18 @@ namespace Backend.Services
                 CreatedAt = DateTime.Now
             };
 
-            var items = BuildItems(dto.Items);
-            return await _billingRepository.AddInvoiceAsync(invoice, items);
+            return (await _billingRepository.AddInvoiceAsync(invoice, items!), null);
         }
 
         // Update
-        public async Task<bool> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto)
+        public async Task<(bool Found, string? Error)> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto)
         {
             var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
-            if (invoice == null) return false;
+            if (invoice == null) return (false, null);
+
+            // Lines are checked against the invoice's own project (it never changes).
+            var (items, error) = await BuildItemsAsync(invoice.ProjectID, invoiceId, dto.Items);
+            if (error != null) return (true, error);
 
             // InvoiceNumber and ProjectID stay fixed once created.
             invoice.IssueDate = dto.IssueDate == default ? invoice.IssueDate : dto.IssueDate;
@@ -176,8 +214,8 @@ namespace Backend.Services
             invoice.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
 
             await _billingRepository.UpdateInvoiceAsync(invoice);
-            await _billingRepository.ReplaceItemsAsync(invoiceId, BuildItems(dto.Items));
-            return true;
+            await _billingRepository.ReplaceItemsAsync(invoiceId, items!);
+            return (true, null);
         }
 
         public async Task<bool> DeleteInvoiceAsync(int invoiceId)
@@ -249,23 +287,64 @@ namespace Backend.Services
         // Helpers
 
         // Build line-item entities from the raw input; Amount is computed as Quantity x Rate.
-        private static List<InvoiceItem> BuildItems(List<CreateInvoiceItemDto> input)
+        // A line that bills an expense is checked (same project, recoverable, not billed on
+        // another invoice, not repeated) and fixed to quantity 1 at the expense amount.
+        // currentInvoiceId is the invoice being edited (null when creating a new one).
+        private async Task<(List<InvoiceItem>? Items, string? Error)> BuildItemsAsync(
+            int projectId, int? currentInvoiceId, List<CreateInvoiceItemDto>? input)
         {
-            return (input ?? new List<CreateInvoiceItemDto>())
-                .Where(i => !string.IsNullOrWhiteSpace(i.Description) || i.Rate != 0)
-                .Select(i =>
-                {
-                    decimal qty = i.Quantity == 0 ? 1 : i.Quantity;
-                    return new InvoiceItem
-                    {
-                        Description = (i.Description ?? string.Empty).Trim(),
-                        Quantity = qty,
-                        Rate = i.Rate,
-                        Amount = qty * i.Rate,
-                        PhaseID = i.PhaseID
-                    };
-                })
+            var lines = (input ?? new List<CreateInvoiceItemDto>())
+                .Where(i => i.ExpenseID.HasValue || !string.IsNullOrWhiteSpace(i.Description) || i.Rate != 0)
                 .ToList();
+
+            var expenseIds = lines.Where(i => i.ExpenseID.HasValue).Select(i => i.ExpenseID!.Value).ToList();
+            if (expenseIds.Count != expenseIds.Distinct().Count())
+                return (null, "The same expense is added twice on this invoice.");
+
+            var expenses = (await _expenseRepository.GetByIdsAsync(expenseIds)).ToDictionary(e => e.ExpenseID);
+            var links = await _expenseRepository.GetInvoiceLinksAsync(expenseIds);
+
+            var items = new List<InvoiceItem>();
+            foreach (var i in lines)
+            {
+                if (i.ExpenseID.HasValue)
+                {
+                    if (!expenses.TryGetValue(i.ExpenseID.Value, out var expense) || expense.ProjectID != projectId)
+                        return (null, "An expense on this invoice no longer exists for this project. Remove that line and try again.");
+                    if (!expense.IsRecoverable)
+                        return (null, $"\"{expense.Description}\" is a company cost, not a recoverable expense, so it can't be billed to the client.");
+                    if (links.TryGetValue(expense.ExpenseID, out var link) && link.InvoiceID != currentInvoiceId)
+                        return (null, $"\"{expense.Description}\" is already billed on invoice {link.InvoiceNumber}.");
+
+                    var description = string.IsNullOrWhiteSpace(i.Description)
+                        ? $"Reimbursement: {expense.Description}"
+                        : i.Description.Trim();
+                    if (description.Length > 200) description = description[..200];
+
+                    items.Add(new InvoiceItem
+                    {
+                        Description = description,
+                        Quantity = 1,
+                        Rate = expense.Amount,
+                        Amount = expense.Amount,
+                        PhaseID = expense.PhaseID,
+                        ExpenseID = expense.ExpenseID
+                    });
+                    continue;
+                }
+
+                decimal qty = i.Quantity == 0 ? 1 : i.Quantity;
+                items.Add(new InvoiceItem
+                {
+                    Description = (i.Description ?? string.Empty).Trim(),
+                    Quantity = qty,
+                    Rate = i.Rate,
+                    Amount = qty * i.Rate,
+                    PhaseID = i.PhaseID
+                });
+            }
+
+            return (items, null);
         }
 
         private static InvoiceDto BuildInvoiceDto(Invoice invoice, List<InvoiceItem> items, List<InvoicePayment> payments)
@@ -295,7 +374,8 @@ namespace Backend.Services
                     Quantity = x.Quantity,
                     Rate = x.Rate,
                     Amount = x.Amount,
-                    PhaseID = x.PhaseID
+                    PhaseID = x.PhaseID,
+                    ExpenseID = x.ExpenseID
                 }).ToList(),
                 Payments = payments.Select(p => new InvoicePaymentDto
                 {

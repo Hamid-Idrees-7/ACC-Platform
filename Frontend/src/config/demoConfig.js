@@ -38,5 +38,8 @@ export const builtInDemoRoleFor = (username) =>
 // Message shown on the login page after a demo session ends.
 export const DEMO_NOTE_KEY = "acc-demo-note";
 
+// Last known demo status, so the login page renders the visitor option without a jump.
+export const DEMO_STATUS_KEY = "acc-demo-status";
+
 // Fired when the server reports that the visitor's demo session is over.
 export const DEMO_ENDED_EVENT = "acc-demo-ended";

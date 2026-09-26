@@ -18,7 +18,8 @@ namespace Backend.Models.DTOs
         public decimal TotalBudget { get; set; }     // sum of project budgets (the agreed prices)
         public decimal MaterialCost { get; set; }
         public decimal LabourCost { get; set; }
-        public decimal TotalCost { get; set; }        // material + labour
+        public decimal ExpenseCost { get; set; }      // company-borne project expenses (plot, fees, taxes...)
+        public decimal TotalCost { get; set; }        // material + labour + expenses
         public decimal TotalProfit { get; set; }      // budget - cost
         public decimal MarginPercent { get; set; }
 
@@ -37,6 +38,11 @@ namespace Backend.Models.DTOs
         public List<MonthPointDto> RevenueTrend { get; set; } = new();
         // Count of projects per status (for the status pie).
         public List<SliceDto> ProjectStatus { get; set; } = new();
+        // Company expense cost per category, live projects only (plot, transfer, taxes)
+        public List<SliceDto> ExpensesByCategory { get; set; } = new();
+        // Expenses paid on clients' behalf (not a cost): total, and how much is still unbilled.
+        public decimal RecoverableTotal { get; set; }
+        public decimal RecoverablePending { get; set; }
     }
 
     public class MonthPointDto

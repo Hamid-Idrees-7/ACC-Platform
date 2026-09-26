@@ -97,6 +97,7 @@
 .nt-cat-client { background: var(--color-primary-soft); color: var(--color-primary); }
 .nt-cat-employee { background: #e0f2fe; color: #0284c7; }
 .nt-cat-approval { background: #e6f7ee; color: var(--color-success); }
+.nt-cat-expense { background: #fdf0e6; color: var(--color-primary-dark); }   
 .nt-cat-general { background: var(--color-bg); color: var(--color-text-muted); }
 
 .nt-body { flex: 1; min-width: 0; }

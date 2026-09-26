@@ -24,7 +24,7 @@
     pointer-events: none;
 }
 
-/* Header banner (intentional decorative gradient) */
+/* Header banner  */
 .pd-banner {
     display: flex;
     justify-content: space-between;
@@ -169,6 +169,11 @@
 .pd-profit em { font-style: normal; font-size: 11px; color: var(--color-text-muted); text-transform: capitalize; }
 /* Amber tag for figures estimated from elapsed days (until Attendance is live) */
 .pd-tag.est { background: #fde68a; color: #92400e; }   /* amber = provisional estimate, intentional */
+.pd-tag.rec { background: #eaf3fe; color: #1c6fd6; }   /* blue = recoverable, intentional */
+.pd-fin-rec { border-top: 1px dashed var(--color-border); padding-top: 10px; }
+.pd-fin-rec > span { font-size: 13px; }
+.pd-fin-rec .pd-fin-amt strong { font-size: 14px; color: var(--color-text-muted); }
+.pd-fin-rec .pd-fin-amt em { text-transform: none; }
 .pd-fin-note { margin-top: 16px; font-size: 12.5px; color: var(--color-text-muted); background: var(--color-bg); padding: 10px 14px; border-radius: var(--radius-md); }
 
 /* Phases + Team columns */

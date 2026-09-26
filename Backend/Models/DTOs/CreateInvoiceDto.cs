@@ -25,5 +25,9 @@ namespace Backend.Models.DTOs
 
         // Optional phase this line bills for (from the phase quick-fill).
         public int? PhaseID { get; set; }
+
+        // Set when this line bills a recoverable project expense. The server then fixes the
+        // line to quantity 1 at the expense amount, whatever the client sends.
+        public int? ExpenseID { get; set; }
     }
 }

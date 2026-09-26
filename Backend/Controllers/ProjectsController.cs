@@ -161,9 +161,10 @@ namespace Backend.Controllers
             if (project == null)
                 return NotFound(new { message = "Project not found" });
 
-            // Protect cost history: a project with issued materials can't be deleted.
-            if (await _service.HasMaterialIssuesAsync(id))
-                return BadRequest(new { message = "This project has issued materials. Cancel those issues first (stock returns), or set its status to Cancelled." });
+            // Protect money history: a project with issued materials, expenses or invoices can't be deleted.
+            var blocker = await _service.GetDeleteBlockerAsync(id);
+            if (blocker != null)
+                return BadRequest(new { message = blocker });
 
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Projects", "Delete"))
             {

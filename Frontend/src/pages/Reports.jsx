@@ -110,7 +110,7 @@ function Reports() {
           <>
             <div className="rep-kpis">
               <Kpi label="Total Budget" value={rupeesShort(fin.totalBudget)} words={amountInWords(fin.totalBudget)} sub={`${fin.liveProjects} live project${fin.liveProjects === 1 ? "" : "s"}${fin.cancelledProjects > 0 ? ` · ${fin.cancelledProjects} cancelled excluded` : ""}`} tone="blue" />
-              <Kpi label="Total Cost" value={rupeesShort(fin.totalCost)} words={amountInWords(fin.totalCost)} sub={`Material ${rupeesShort(fin.materialCost)} · Labour ${rupeesShort(fin.labourCost)}`} tone="amber" />
+              <Kpi label="Total Cost" value={rupeesShort(fin.totalCost)} words={amountInWords(fin.totalCost)} sub={`Material ${rupeesShort(fin.materialCost)} · Labour ${rupeesShort(fin.labourCost)} · Expenses ${rupeesShort(fin.expenseCost || 0)}`} tone="amber" />
               <Kpi label="Total Profit" value={rupeesShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
               <Kpi label="Received" value={rupeesShort(fin.totalReceived)} words={amountInWords(fin.totalReceived)} sub={`Billed ${rupeesShort(fin.totalBilled)}`} tone="primary" />
             </div>
@@ -161,6 +161,28 @@ function Reports() {
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
+                )}
+              </ChartCard>
+
+              <ChartCard title="Project Expenses by Category — company cost" wide>
+                {(fin.expensesByCategory || []).length === 0 ? (
+                  <div className="rep-nochart">No project expenses recorded yet</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={Math.max(160, fin.expensesByCategory.length * 44 + 40)}>
+                    <BarChart data={fin.expensesByCategory} layout="vertical" margin={{ top: 4, right: 24, left: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" horizontal={false} />
+                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={190} />
+                      <Tooltip formatter={moneyTip} />
+                      <Bar dataKey="value" name="Cost" fill={C_AMBER} radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+                {fin.recoverableTotal > 0 && (
+                  <p className="rep-chart-note">
+                    Also paid on clients' behalf (billed back, not a cost): {rupees(fin.recoverableTotal)}
+                    {fin.recoverablePending > 0 ? ` · ${rupees(fin.recoverablePending)} still to bill` : " · all billed"}
+                  </p>
                 )}
               </ChartCard>
             </div>

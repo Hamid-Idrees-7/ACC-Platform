@@ -66,6 +66,9 @@ builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 // Salaries
 builder.Services.AddScoped<ISalaryRepository, SalaryRepository>();
 builder.Services.AddScoped<ISalaryService, SalaryService>();
+// Project Expenses (plot, transfer, taxes, possession — feeds project cost and billing)
+builder.Services.AddScoped<IProjectExpenseRepository, ProjectExpenseRepository>();
+builder.Services.AddScoped<IProjectExpenseService, ProjectExpenseService>();
 // Billing
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();

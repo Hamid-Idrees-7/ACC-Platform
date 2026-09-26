@@ -32,8 +32,35 @@ namespace Backend.Data
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<MaterialRequest> MaterialRequests { get; set; }
+        public DbSet<ProjectExpense> ProjectExpenses { get; set; }
 
         // Registry of isolated visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // An expense belongs to a project. Restrict (not cascade): the database itself refuses
+            // to delete a project that still has expenses, so cost history is never lost silently.
+            modelBuilder.Entity<ProjectExpense>()
+                .HasOne<Project>()
+                .WithMany()
+                .HasForeignKey(e => e.ProjectID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // An invoice line may bill one expense. Restrict keeps a billed expense from being
+            // deleted, and the unique index stops the same expense being billed twice.
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne<ProjectExpense>()
+                .WithMany()
+                .HasForeignKey(i => i.ExpenseID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<InvoiceItem>()
+                .HasIndex(i => i.ExpenseID)
+                .IsUnique()
+                .HasFilter("[ExpenseID] IS NOT NULL");
+        }
     }
 }

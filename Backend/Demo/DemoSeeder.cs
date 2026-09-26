@@ -71,6 +71,8 @@ namespace Backend.Demo
             list.Add(ApprovalNeeded(userId, now, "Materials", "Delete"));
             list.AddRange(Allow(userId, now, "Projects", "View", "Add", "Edit", "Manage"));
             list.Add(ApprovalNeeded(userId, now, "Projects", "Delete"));
+            list.AddRange(Allow(userId, now, "Expenses", "View", "Add", "Edit"));
+            list.Add(ApprovalNeeded(userId, now, "Expenses", "Delete"));
             list.AddRange(Allow(userId, now, "Assignments", "View", "Add", "Edit"));
             list.Add(ApprovalNeeded(userId, now, "Assignments", "Delete"));
             list.AddRange(Allow(userId, now, "Attendance", "View", "Mark"));

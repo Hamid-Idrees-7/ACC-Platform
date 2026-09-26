@@ -28,5 +28,10 @@ namespace Backend.Models.Entities
 
         // Optional link to the project phase this line bills for.
         public int? PhaseID { get; set; }
+
+        // Set when this line bills a recoverable project expense back to the client.
+        // Such a line always equals the expense amount (quantity 1), and one expense can
+        // only be billed once.
+        public int? ExpenseID { get; set; }
     }
 }

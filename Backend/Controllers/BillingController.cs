@@ -44,7 +44,9 @@ namespace Backend.Controllers
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceDto dto)
         {
-            var id = await _service.CreateInvoiceAsync(dto);
+            var (id, error) = await _service.CreateInvoiceAsync(dto);
+            if (error != null)
+                return BadRequest(new { message = error });
             return Ok(new { invoiceId = id });
         }
 
@@ -53,9 +55,11 @@ namespace Backend.Controllers
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> UpdateInvoice(int id, [FromBody] CreateInvoiceDto dto)
         {
-            var ok = await _service.UpdateInvoiceAsync(id, dto);
-            if (!ok)
+            var (found, error) = await _service.UpdateInvoiceAsync(id, dto);
+            if (!found)
                 return NotFound(new { message = "Invoice not found" });
+            if (error != null)
+                return BadRequest(new { message = error });
             return Ok(new { message = "Invoice updated" });
         }
 

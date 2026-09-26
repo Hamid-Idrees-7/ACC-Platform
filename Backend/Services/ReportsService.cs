@@ -17,6 +17,7 @@ namespace Backend.Services
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IAttendanceRepository _attendanceRepository;
         private readonly ISalaryService _salaryService;
+        private readonly IProjectExpenseRepository _expenseRepository;
 
         private static readonly string[] MonthShort =
         {
@@ -37,7 +38,8 @@ namespace Backend.Services
             IEmployeeRepository employeeRepository,
             IAssignmentRepository assignmentRepository,
             IAttendanceRepository attendanceRepository,
-            ISalaryService salaryService)
+            ISalaryService salaryService,
+            IProjectExpenseRepository expenseRepository)
         {
             _projectService = projectService;
             _projectRepository = projectRepository;
@@ -48,6 +50,7 @@ namespace Backend.Services
             _assignmentRepository = assignmentRepository;
             _attendanceRepository = attendanceRepository;
             _salaryService = salaryService;
+            _expenseRepository = expenseRepository;
         }
 
         public async Task<ReportsDto> GetReportsAsync()
@@ -61,7 +64,9 @@ namespace Backend.Services
             // Projects + their financials (reused project logic → consistent profit/cost).
             var projects = await _projectService.GetAllProjectsAsync();
 
-            decimal totalBudget = 0, totalMaterial = 0, totalLabour = 0, totalProfit = 0;
+            decimal totalBudget = 0, totalMaterial = 0, totalLabour = 0, totalExpense = 0, totalProfit = 0;
+            decimal recoverableTotal = 0, recoverableInvoiced = 0;
+            var liveProjectIds = new HashSet<int>();
             int active = 0, completed = 0, cancelled = 0;
             var statusCounts = new Dictionary<string, int>();
             var labourByProject = new List<SliceDto>();
@@ -74,6 +79,7 @@ namespace Backend.Services
                 decimal budget = fin?.Budget ?? p.Budget;
                 decimal material = fin?.MaterialCost ?? 0m;
                 decimal labour = fin?.LabourCost ?? 0m;
+                decimal expense = fin?.ExpenseCost ?? 0m;
                 decimal cost = fin?.ActualCost ?? 0m;
                 decimal profit = fin?.Profit ?? (budget - cost);
 
@@ -86,7 +92,11 @@ namespace Backend.Services
                     totalBudget += budget;
                     totalMaterial += material;
                     totalLabour += labour;
+                    totalExpense += expense;
                     totalProfit += profit;
+                    recoverableTotal += fin?.RecoverableTotal ?? 0m;
+                    recoverableInvoiced += fin?.RecoverableInvoiced ?? 0m;
+                    liveProjectIds.Add(p.ProjectID);
                     if (labour > 0) labourByProject.Add(new SliceDto { Label = p.Title, Value = labour });
                 }
 
@@ -115,7 +125,17 @@ namespace Backend.Services
 
             report.Projects = report.Projects.OrderByDescending(r => r.Budget).ToList();
 
-            decimal totalCost = totalMaterial + totalLabour;
+            decimal totalCost = totalMaterial + totalLabour + totalExpense;
+
+            // Company expense cost by category, for live (non-cancelled) projects only.
+            var allExpenses = await _expenseRepository.GetAllAsync();
+            var expensesByCategory = allExpenses
+                .Where(e => !e.IsRecoverable && liveProjectIds.Contains(e.ProjectID))
+                .GroupBy(e => e.Category)
+                .Select(g => new SliceDto { Label = g.Key, Value = g.Sum(e => e.Amount) })
+                .Where(s => s.Value > 0)
+                .OrderByDescending(s => s.Value)
+                .ToList();
             decimal totalBilled = billing.Projects.Sum(p => p.Billed);
             decimal totalReceived = billing.Projects.Sum(p => p.Received);
             decimal totalOutstanding = billing.Projects.Sum(p => p.Outstanding);
@@ -125,6 +145,7 @@ namespace Backend.Services
                 TotalBudget = totalBudget,
                 MaterialCost = totalMaterial,
                 LabourCost = totalLabour,
+                ExpenseCost = totalExpense,
                 TotalCost = totalCost,
                 TotalProfit = totalProfit,
                 MarginPercent = totalBudget > 0 ? Math.Round(totalProfit / totalBudget * 100m, 1) : 0m,
@@ -138,7 +159,10 @@ namespace Backend.Services
                 ActiveProjects = active,
                 CompletedProjects = completed,
                 RevenueTrend = await BuildRevenueTrendAsync(),
-                ProjectStatus = statusCounts.Select(kv => new SliceDto { Label = kv.Key, Value = kv.Value }).ToList()
+                ProjectStatus = statusCounts.Select(kv => new SliceDto { Label = kv.Key, Value = kv.Value }).ToList(),
+                ExpensesByCategory = expensesByCategory,
+                RecoverableTotal = recoverableTotal,
+                RecoverablePending = recoverableTotal - recoverableInvoiced
             };
 
             report.Materials = await BuildMaterialsAsync();

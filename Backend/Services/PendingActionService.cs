@@ -12,6 +12,8 @@ namespace Backend.Services
         private readonly IMaterialRepository _materialRepository;
         private readonly IProjectRepository _projectRepository;
         private readonly IAssignmentRepository _assignmentRepository;
+        private readonly IProjectService _projectService;
+        private readonly IProjectExpenseService _expenseService;
         private readonly INotificationService _notificationService;
 
         public PendingActionService(
@@ -21,6 +23,8 @@ namespace Backend.Services
             IMaterialRepository materialRepository,
             IProjectRepository projectRepository,
             IAssignmentRepository assignmentRepository,
+            IProjectService projectService,
+            IProjectExpenseService expenseService,
             INotificationService notificationService)
         {
             _repository = repository;
@@ -29,6 +33,8 @@ namespace Backend.Services
             _materialRepository = materialRepository;
             _projectRepository = projectRepository;
             _assignmentRepository = assignmentRepository;
+            _projectService = projectService;
+            _expenseService = expenseService;
             _notificationService = notificationService;
         }
 
@@ -106,9 +112,9 @@ namespace Backend.Services
             // If approved, run the actual action now
             if (status == "Approved")
             {
-                var done = await PerformActionAsync(action);
-                if (!done)
-                    return (false, "Could not complete the action. The item may no longer exist.");
+                var performError = await PerformActionAsync(action);
+                if (performError != null)
+                    return (false, performError);
             }
 
             action.Status = status;
@@ -133,24 +139,41 @@ namespace Backend.Services
             return (true, null);
         }
 
-        // Runs the approved action against the correct module
-        private async Task<bool> PerformActionAsync(PendingAction action)
+        // Runs the approved action against the correct module.
+        // Returns null on success, or the reason it could not be done. The same safety rules as a
+        // direct delete are checked again here, because things can change while a request waits.
+        private async Task<string?> PerformActionAsync(PendingAction action)
         {
+            const string gone = "Could not complete the action. The item may no longer exist.";
+
             // Currently only Delete is supported for approval
-            if (action.Action == "Delete")
+            if (action.Action != "Delete") return gone;
+
+            switch (action.Module)
             {
-                if (action.Module == "Clients")
-                    return await _clientRepository.DeleteAsync(action.TargetID);
-                if (action.Module == "Employees")
-                    return await _employeeRepository.DeleteAsync(action.TargetID);
-                if (action.Module == "Materials")
-                    return await _materialRepository.DeleteAsync(action.TargetID);
-                if (action.Module == "Projects")
-                    return await _projectRepository.DeleteAsync(action.TargetID);
-                if (action.Module == "Assignments")
-                    return await _assignmentRepository.DeleteAsync(action.TargetID);
+                case "Clients":
+                    return await _clientRepository.DeleteAsync(action.TargetID) ? null : gone;
+                case "Employees":
+                    return await _employeeRepository.DeleteAsync(action.TargetID) ? null : gone;
+                case "Materials":
+                    return await _materialRepository.DeleteAsync(action.TargetID) ? null : gone;
+                case "Projects":
+                {
+                    var blocker = await _projectService.GetDeleteBlockerAsync(action.TargetID);
+                    if (blocker != null) return blocker;
+                    return await _projectRepository.DeleteAsync(action.TargetID) ? null : gone;
+                }
+                case "Assignments":
+                    return await _assignmentRepository.DeleteAsync(action.TargetID) ? null : gone;
+                case "Expenses":
+                {
+                    var blocker = await _expenseService.GetDeleteBlockerAsync(action.TargetID);
+                    if (blocker != null) return blocker;
+                    return await _expenseService.DeleteAsync(action.TargetID) ? null : gone;
+                }
+                default:
+                    return gone;
             }
-            return false;
         }
 
         public async Task<bool> DeleteAsync(int id)

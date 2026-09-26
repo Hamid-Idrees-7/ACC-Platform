@@ -3,9 +3,20 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { demoService } from "../services/demoService";
-import { DEMO_NOTE_KEY, getDemoRole } from "../config/demoConfig";
+import { DEMO_NOTE_KEY, DEMO_STATUS_KEY, getDemoRole } from "../config/demoConfig";
 import "./Home.css";
 import "./Login.css";
+
+// Last demo status seen by this browser, or an optimistic default (the demo is on in production).
+const readCachedDemoStatus = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(DEMO_STATUS_KEY) || "null");
+    if (cached && typeof cached.enabled === "boolean") return cached;
+  } catch {
+    // Ignore unreadable storage.
+  }
+  return { enabled: true, available: true, sessionMinutes: 30 };
+};
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -17,21 +28,31 @@ function Login() {
   const [shake, setShake] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
-  // Live demo (Login as Visitor)
-  const [demoStatus, setDemoStatus] = useState(null);   
-  const [demoBusy, setDemoBusy] = useState(null);       
+  // Live demo ("Login as Visitor"). Rendered straight away from the last known status (or an
+  // optimistic default) so the page doesn't jump when the server's answer arrives.
+  const [demoStatus, setDemoStatus] = useState(readCachedDemoStatus);   // { enabled, available, sessionMinutes }
+  const [demoBusy, setDemoBusy] = useState(null);       // role key being started
   const [demoNote, setDemoNote] = useState(() => sessionStorage.getItem(DEMO_NOTE_KEY) || "");
 
   const { login, logout, runDemoTransition } = useAuth();
   const navigate = useNavigate();
 
+  // Refresh the status quietly. The visitor option is only hidden when the server says the
+  // demo is switched off; if the server can't be reached, the button stays and shows an error on click.
   useEffect(() => {
     demoService.getStatus()
-      .then(setDemoStatus)
-      .catch(() => setDemoStatus(null));
+      .then((status) => {
+        setDemoStatus(status);
+        try {
+          localStorage.setItem(DEMO_STATUS_KEY, JSON.stringify(status));
+        } catch {
+          // Storage unavailable (private mode) - the optimistic default is used next time.
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // A your demo has ended note is shown once.
+  // A "your demo has ended" note is shown once.
   useEffect(() => {
     sessionStorage.removeItem(DEMO_NOTE_KEY);
   }, []);

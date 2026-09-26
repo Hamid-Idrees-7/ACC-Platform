@@ -12,6 +12,8 @@ namespace Backend.Services
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IAttendanceRepository _attendanceRepository;
+        private readonly IProjectExpenseRepository _expenseRepository;
+        private readonly IBillingRepository _billingRepository;
 
         private static readonly string[] StandardPhases =
         {
@@ -36,7 +38,9 @@ namespace Backend.Services
             IMaterialRepository materialRepository,
             IAssignmentRepository assignmentRepository,
             IEmployeeRepository employeeRepository,
-            IAttendanceRepository attendanceRepository)
+            IAttendanceRepository attendanceRepository,
+            IProjectExpenseRepository expenseRepository,
+            IBillingRepository billingRepository)
         {
             _repository = repository;
             _clientRepository = clientRepository;
@@ -44,6 +48,8 @@ namespace Backend.Services
             _assignmentRepository = assignmentRepository;
             _employeeRepository = employeeRepository;
             _attendanceRepository = attendanceRepository;
+            _expenseRepository = expenseRepository;
+            _billingRepository = billingRepository;
         }
 
         public async Task<List<ProjectDto>> GetAllProjectsAsync()
@@ -88,7 +94,17 @@ namespace Backend.Services
             decimal dailyLabour = dailyAssignments.Sum(a => presentDays.GetValueOrDefault(a.AssignmentID, 0) * a.WageAmount);
             decimal labourCost = contractLabour + dailyLabour;
 
-            decimal actualCost = materialCost + labourCost;
+            // Other project expenses (plot, transfer, taxes, possession...). Only company-borne
+            // ones are a cost; recoverable ones are billed back to the client, so they are
+            // tracked separately and do not change profit.
+            var expenses = await _expenseRepository.GetByProjectAsync(id);
+            decimal expenseCost = expenses.Where(e => !e.IsRecoverable).Sum(e => e.Amount);
+            var recoverable = expenses.Where(e => e.IsRecoverable).ToList();
+            var billedLinks = await _expenseRepository.GetInvoiceLinksAsync(recoverable.Select(e => e.ExpenseID).ToList());
+            decimal recoverableTotal = recoverable.Sum(e => e.Amount);
+            decimal recoverableInvoiced = recoverable.Where(e => billedLinks.ContainsKey(e.ExpenseID)).Sum(e => e.Amount);
+
+            decimal actualCost = materialCost + labourCost + expenseCost;
             decimal profit = project.Budget - actualCost;
             decimal margin = project.Budget > 0 ? Math.Round(profit / project.Budget * 100m, 0) : 0m;
 
@@ -164,6 +180,9 @@ namespace Backend.Services
                     ContractLabour = contractLabour,
                     DailyLabour = dailyLabour,
                     LabourCost = labourCost,
+                    ExpenseCost = expenseCost,
+                    RecoverableTotal = recoverableTotal,
+                    RecoverableInvoiced = recoverableInvoiced,
                     ActualCost = actualCost,
                     Profit = profit,
                     MarginPercent = margin
@@ -237,12 +256,23 @@ namespace Backend.Services
             return await _repository.DeleteAsync(id);
         }
 
-        // True if any material has been issued to this project — such a project
-        // must be Cancelled, not deleted, to protect its cost history.
-        public async Task<bool> HasMaterialIssuesAsync(int id)
+        // Null if the project may be deleted; otherwise the reason it can't be. A project that
+        // already has money history (issued materials, expenses or invoices) must be set to
+        // Cancelled instead, so that history is never lost.
+        public async Task<string?> GetDeleteBlockerAsync(int id)
         {
             var issues = await _materialRepository.GetIssuesByProjectAsync(id);
-            return issues.Any();
+            if (issues.Any())
+                return "This project has issued materials. Cancel those issues first (stock returns), or set its status to Cancelled.";
+
+            if (await _expenseRepository.AnyForProjectAsync(id))
+                return "This project has recorded expenses. Delete those expenses first, or set its status to Cancelled.";
+
+            var invoices = await _billingRepository.GetInvoicesByProjectAsync(id);
+            if (invoices.Count > 0)
+                return "This project has invoices. Delete those invoices first, or set its status to Cancelled.";
+
+            return null;
         }
 
         public async Task<ProjectDetailDto?> ChangeStatusAsync(int id, string status)
