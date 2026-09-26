@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import { PermissionProvider } from "./context/PermissionContext";
+import { PreferencesProvider, usePreferences } from "./context/PreferencesContext";
 import DemoTransition from "./components/DemoTransition";
 
 // Public pages
@@ -49,15 +50,20 @@ import UnderConstruction from "./pages/UnderConstruction";
 // Remounts the dashboard pages whenever the signed-in person changes (eg a live demo role
 // switch), so every page and the notification bell reload their data for the new user
 // instead of keeping what the previous user saw.
+// It also redraws them once if the saved number or date format arrives from the server and
+// differs from the cached one. Changes made in Settings > Appearance do NOT remount (that
+// would reload the page and jump it back to the top): the Settings page updates itself and
+// every other page picks up the new format when it opens.
 function SignedInBoundary() {
   const { user, loading } = useAuth();
+  const { formatVersion } = usePreferences();
 
   // Wait for the saved sign-in to be read, so pages mount once (not first as a guest).
   if (loading) return null;
 
   const identity = user ? `${user.userID}:${user.username}` : "guest";
   return (
-    <Fragment key={identity}>
+    <Fragment key={`${identity}|${formatVersion}`}>
       <Outlet />
     </Fragment>
   );
@@ -66,6 +72,7 @@ function SignedInBoundary() {
 function App() {
   return (
     <AuthProvider>
+      <PreferencesProvider>
       <PermissionProvider>
       {/* Live demo role-change card: lives above the routes so it survives page changes */}
       <DemoTransition />
@@ -116,6 +123,7 @@ function App() {
         </Routes>
       </BrowserRouter>
       </PermissionProvider>
+      </PreferencesProvider>
     </AuthProvider>
   );
 }

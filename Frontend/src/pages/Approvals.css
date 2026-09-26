@@ -20,7 +20,7 @@
     gap: 7px;
     padding: 10px 16px;
     background: var(--color-surface);
-    border: 1px solid #f0d0d0;
+    border: 1px solid var(--color-error-border);
     border-radius: var(--radius-md);
     color: var(--color-error);
     font-family: var(--font-body);
@@ -30,7 +30,7 @@
     transition: all 0.18s ease;
     flex-shrink: 0;
 }
-.ap-delete-all:hover { background: #fdf0f0; }
+.ap-delete-all:hover { background: var(--color-error-soft-hover); }
 
 /* Tabs */
 .ap-tabs {
@@ -55,7 +55,7 @@
 .ap-tabs button.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
 .ap-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -150,15 +150,15 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
-.ap-badge-pending { background: #fff4e5; color: var(--color-warning); }
-.ap-badge-approved { background: #e6f7ee; color: var(--color-success); }
-.ap-badge-rejected { background: #fef3f2; color: var(--color-error); }
+.ap-badge-pending { background: var(--color-warning-soft); color: var(--color-warning); }
+.ap-badge-approved { background: var(--color-success-soft); color: var(--color-success); }
+.ap-badge-rejected { background: var(--color-error-soft); color: var(--color-error); }
 
 /* Overlay + detail */
 .ap-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -190,7 +190,7 @@
     justify-content: center;
     cursor: pointer;
 }
-.ap-detail-close:hover { background: #ebedf0; }
+.ap-detail-close:hover { background: var(--color-hover); }
 .ap-detail-head {
     display: flex;
     align-items: center;
@@ -253,8 +253,8 @@
 }
 .ap-approve { background: var(--color-success); color: #fff; }
 .ap-approve:hover:not(:disabled) { filter: brightness(0.95); }
-.ap-reject { background: var(--color-surface); border: 1px solid #f0d0d0; color: var(--color-error); }
-.ap-reject:hover:not(:disabled) { background: #fdf0f0; }
+.ap-reject { background: var(--color-surface); border: 1px solid var(--color-error-border); color: var(--color-error); }
+.ap-reject:hover:not(:disabled) { background: var(--color-error-soft-hover); }
 .ap-approve:disabled, .ap-reject:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .ap-detail-delete {
@@ -265,7 +265,7 @@
     gap: 7px;
     padding: 12px;
     background: var(--color-surface);
-    border: 1px solid #f0d0d0;
+    border: 1px solid var(--color-error-border);
     border-radius: var(--radius-md);
     color: var(--color-error);
     font-family: var(--font-body);
@@ -273,7 +273,7 @@
     font-weight: 600;
     cursor: pointer;
 }
-.ap-detail-delete:hover { background: #fdf0f0; }
+.ap-detail-delete:hover { background: var(--color-error-soft-hover); }
 
 /* Confirm modal */
 .ap-confirm {
@@ -288,7 +288,7 @@
 .ap-confirm-icon {
     width: 60px; height: 60px;
     border-radius: 50%;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     display: flex;
     align-items: center;
@@ -310,7 +310,7 @@
     border: none;
 }
 .ap-confirm-cancel { background: var(--color-bg); color: var(--color-text); }
-.ap-confirm-cancel:hover { background: #ebedf0; }
+.ap-confirm-cancel:hover { background: var(--color-hover); }
 .ap-confirm-delete { background: var(--color-error); color: #fff; }
 .ap-confirm-delete:hover { filter: brightness(0.95); }
 

@@ -3,7 +3,7 @@
 .stm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -56,11 +56,11 @@
     justify-content: center;
     flex-shrink: 0;
 }
-.stm-close:hover { background: #ebedf0; color: var(--color-text); }
+.stm-close:hover { background: var(--color-hover); color: var(--color-text); }
 
 .stm-server-error {
     margin: 16px 24px 0;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 10px 14px;
     border-radius: var(--radius-md);
@@ -126,7 +126,7 @@
     flex-direction: column;
     gap: 9px;
 }
-.stm-preview.danger { border-color: var(--color-error); background: #fef3f2; }
+.stm-preview.danger { border-color: var(--color-error); background: var(--color-error-soft); }
 .stm-preview-row {
     display: flex;
     justify-content: space-between;
@@ -172,7 +172,7 @@
     font-family: var(--font-body);
 }
 .stm-cancel { background: var(--color-bg); color: var(--color-text-muted); }
-.stm-cancel:hover { background: #ebedf0; }
+.stm-cancel:hover { background: var(--color-hover); }
 .stm-save.restock { background: var(--color-success); color: #fff; }
 .stm-save.issue { background: var(--color-error); color: #fff; }
 .stm-save:hover { filter: brightness(0.95); }

@@ -4,14 +4,8 @@ import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { materialService } from "../services/materialService";
 import { formatQty, rupees } from "../utils/format";
+import { formatDateTime } from "../utils/dates";
 import "./MaterialHistory.css";
-
-const fmtDateTime = (iso) => {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-  return `${date}, ${time}`;
-};
 
 function MaterialHistory() {
   const { id } = useParams();
@@ -31,14 +25,17 @@ function MaterialHistory() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const load = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const load = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const res = await materialService.getHistory(id);
       setData(res);
     } catch {
-      setError("Could not load this material's history.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load this material's history.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +48,7 @@ function MaterialHistory() {
       await materialService.cancelTransaction(txId);
       setConfirmCancel(null);
       showToast("Transaction cancelled — stock reversed.", "warn");
-      load();
+      load({ quiet: true });
     } catch (err) {
       setConfirmCancel(null);
       showToast(err.response?.data?.message || "Could not cancel this transaction.", "error");
@@ -167,7 +164,7 @@ function MaterialHistory() {
                     Rate: {rupees(t.rate)} / {data.unit}
                   </div>
                   {t.note && <div className="mhist-row-note">{t.note}</div>}
-                  <div className="mhist-row-date">{fmtDateTime(t.createdAt)}</div>
+                  <div className="mhist-row-date">{formatDateTime(t.createdAt)}</div>
                 </div>
                 <div className={`mhist-row-amount ${cancelled ? "struck" : ""}`}>{rupees(t.amount)}</div>
                 {canManage && (

@@ -14,7 +14,7 @@
     gap: 7px;
     padding: 10px 16px;
     background: var(--color-surface);
-    border: 1px solid #f0d0d0;
+    border: 1px solid var(--color-error-border);
     border-radius: var(--radius-md);
     color: var(--color-error);
     font-family: var(--font-body);
@@ -24,7 +24,7 @@
     transition: all 0.18s ease;
     flex-shrink: 0;
 }
-.nt-clear:hover { background: #fdf0f0; }
+.nt-clear:hover { background: var(--color-error-soft-hover); }
 
 /* Tabs */
 .nt-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -43,7 +43,7 @@
 .nt-tabs button:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .nt-tabs button.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
-.nt-error { background: #fef3f2; color: var(--color-error); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 14px; }
+.nt-error { background: var(--color-error-soft); color: var(--color-error); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 14px; }
 
 /* Empty / loading */
 .nt-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 20px; text-align: center; }
@@ -93,11 +93,11 @@
 }
 .nt-icon svg { width: 20px; height: 20px; }
 /* Category colours (decorative, intentional) */
-.nt-cat-login { background: #eef2ff; color: #4f46e5; }
+.nt-cat-login { background: var(--color-info-soft); color: var(--color-info-strong); }
 .nt-cat-client { background: var(--color-primary-soft); color: var(--color-primary); }
-.nt-cat-employee { background: #e0f2fe; color: #0284c7; }
-.nt-cat-approval { background: #e6f7ee; color: var(--color-success); }
-.nt-cat-expense { background: #fdf0e6; color: var(--color-primary-dark); }   
+.nt-cat-employee { background: var(--color-info-soft); color: var(--color-info-strong); }
+.nt-cat-approval { background: var(--color-success-soft); color: var(--color-success); }
+.nt-cat-expense { background: var(--color-primary-soft); color: var(--color-primary-dark); }   
 .nt-cat-general { background: var(--color-bg); color: var(--color-text-muted); }
 
 .nt-body { flex: 1; min-width: 0; }
@@ -124,13 +124,13 @@
     border-radius: var(--radius-sm);
     transition: all 0.15s ease;
 }
-.nt-delete:hover { color: var(--color-error); background: #fdf0f0; }
+.nt-delete:hover { color: var(--color-error); background: var(--color-error-soft-hover); }
 
 /* Overlay + confirm */
 .nt-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,7 +152,7 @@
 .nt-confirm-icon {
     width: 60px; height: 60px;
     border-radius: 50%;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     display: flex;
     align-items: center;
@@ -174,7 +174,7 @@
     border: none;
 }
 .nt-confirm-cancel { background: var(--color-bg); color: var(--color-text); }
-.nt-confirm-cancel:hover { background: #ebedf0; }
+.nt-confirm-cancel:hover { background: var(--color-hover); }
 .nt-confirm-delete { background: var(--color-error); color: #fff; }
 .nt-confirm-delete:hover { filter: brightness(0.95); }
 

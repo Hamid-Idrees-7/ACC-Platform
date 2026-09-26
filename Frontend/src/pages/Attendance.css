@@ -16,11 +16,11 @@
 .att-group-pill b { font-weight: 700; opacity: 0.75; }
 .att-group-prog { background: var(--color-primary-soft); color: var(--color-primary-dark); }
 .att-group-prog i { background: var(--color-primary); }
-.att-group-hold { background: #eef0f3; color: var(--color-text-muted); }
+.att-group-hold { background: var(--color-neutral-soft); color: var(--color-text-muted); }
 .att-group-hold i { background: var(--color-text-muted); }
-.att-group-done { background: #e7f8ef; color: #0a7d43; }               /* green tint */
+.att-group-done { background: var(--color-success-soft); color: var(--color-success-strong); }               /* green tint */
 .att-group-done i { background: var(--color-success); }
-.att-group-cancel { background: #fdecec; color: var(--color-error); }   /* red tint */
+.att-group-cancel { background: var(--color-error-soft); color: var(--color-error); }   /* red tint */
 .att-group-cancel i { background: var(--color-error); }
 
 .att-grid {
@@ -84,7 +84,7 @@
 
 /* Empty / loading / error */
 .att-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -106,7 +106,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #bbb;
+    color: var(--color-text-subtle);
     margin-bottom: 18px;
 }
 .att-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }

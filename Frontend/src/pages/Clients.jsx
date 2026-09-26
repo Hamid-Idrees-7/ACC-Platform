@@ -32,8 +32,10 @@ function Clients() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadClients = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadClients = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await clientService.getAll();
@@ -41,7 +43,8 @@ function Clients() {
       data.sort((a, b) => b.clientID - a.clientID);
       setClients(data);
     } catch {
-      setError("Could not load clients. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load clients. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +88,7 @@ function Clients() {
       showToast("Client added successfully.");
     }
     setFormModal(null);
-    loadClients();
+    loadClients({ quiet: true });
   };
 
   const handleToggleStatus = async (client) => {
@@ -94,7 +97,7 @@ function Clients() {
       await clientService.update(client.clientID, { ...client, status: newStatus });
       showToast(`Client "${client.fullName}" ${newStatus === "Active" ? "enabled" : "disabled"}.`, newStatus === "Active" ? "success" : "warn");
       setDetailClient(null);
-      loadClients();
+      loadClients({ quiet: true });
     } catch {
       showToast("Could not update status.", "error");
     }
@@ -111,7 +114,7 @@ function Clients() {
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Client deleted.", "error");
-        loadClients();
+        loadClients({ quiet: true });
       }
     } catch (err) {
       setConfirmDelete(null);

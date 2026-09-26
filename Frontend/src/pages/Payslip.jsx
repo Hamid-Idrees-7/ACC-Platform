@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { salaryService } from "../services/salaryService";
 import { rupees } from "../utils/format";
+import { formatDateTime } from "../utils/dates";
 import "./Payslip.css";
 
 const rateLabel = (l) =>
@@ -31,16 +32,6 @@ function Payslip() {
     })();
   }, [employeeId, year, month]);
 
-  const fmtGenerated = (d) => {
-    if (!d) return "";
-    const x = new Date(d);
-    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    let h = x.getHours(), ap = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    const mm = String(x.getMinutes()).padStart(2, "0");
-    return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}, ${String(h).padStart(2, "0")}:${mm} ${ap}`;
-  };
-
   if (loading) {
     return <DashboardLayout title="Salary Payslip"><div className="psl-loading"><div className="psl-spinner" /></div></DashboardLayout>;
   }
@@ -68,7 +59,7 @@ function Payslip() {
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
       <div className="psl-doc-scroll">
-        <div className="psl-doc" id="psl-print-area">
+        <div className="psl-doc theme-paper" id="psl-print-area">
           <div className="psl-head">
             <div className="psl-brand">
               <div className="psl-logo">ACC</div>
@@ -129,8 +120,8 @@ function Payslip() {
           </div>
 
           <div className="psl-foot">
-            <p>This is a system-generated payslip from the ACC-ERP.</p>
-            <p className="psl-gen">Generated on {fmtGenerated(slip.generatedAt)}</p>
+            <p>This is a system-generated payslip from the ACC.</p>
+            <p className="psl-gen">Generated on {formatDateTime(slip.generatedAt)}</p>
           </div>
 
           <div className="psl-sign">

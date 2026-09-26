@@ -4,22 +4,17 @@ import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { attendanceService } from "../services/attendanceService";
 import DatePicker from "../components/DatePicker";
+import { formatDayMonth, formatDateShort } from "../utils/dates";
+import { rupeesCompact } from "../utils/format";
 import "./MarkAttendance.css";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const dm = (d) => { const x = new Date(d); return `${x.getDate()} ${MONTHS[x.getMonth()]}`; };
-const dmy = (d) => { const x = new Date(d); return `${x.getDate()} ${MONTHS[x.getMonth()]} ${x.getFullYear()}`; };
+const dm = (d) => formatDayMonth(d);
+const dmy = (d) => formatDateShort(d);
 const toISO = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const todayISO = () => toISO(new Date());
 
-// Compact Pakistani money for wage tags: 75000 -> 75.0K, 120000 -> 1.20 Lac
-const money = (n) => {
-  const v = Number(n) || 0, abs = Math.abs(v);
-  if (abs >= 10000000) return `Rs. ${(v / 10000000).toFixed(2)} Cr`;
-  if (abs >= 100000) return `Rs. ${(v / 100000).toFixed(2)} Lac`;
-  if (abs >= 1000) return `Rs. ${(v / 1000).toFixed(1)}K`;
-  return `Rs. ${Math.round(v)}`;
-};
+// Compact money for wage tags: 75000 -> 75.0K, 120000 -> 1.20 Lac (or 120.0K)
+const money = (n) => rupeesCompact(n);
 const wageLabel = (w) => (w.wageType === "Monthly" ? `${money(w.wageAmount)}/mo` : w.wageType === "Contract" ? `${money(w.wageAmount)} contract` : `${money(w.wageAmount)}/day`);
 
 function MarkAttendance() {

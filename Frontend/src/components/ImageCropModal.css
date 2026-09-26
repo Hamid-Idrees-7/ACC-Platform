@@ -1,7 +1,7 @@
 .crop-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -12,7 +12,7 @@
 @keyframes cropfade { from { opacity: 0; } to { opacity: 1; } }
 
 .crop-modal {
-    background: #fff;
+    background: var(--color-surface);
     border-radius: 18px;
     padding: 28px;
     max-width: 360px;
@@ -28,17 +28,17 @@
     font-family: 'Poppins', sans-serif;
     font-size: 19px;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
-.crop-modal > p { color: #999; font-size: 13.5px; margin-bottom: 20px; }
+.crop-modal > p { color: var(--color-text-subtle); font-size: 13.5px; margin-bottom: 20px; }
 
 .crop-area {
     position: relative;
     margin: 0 auto 20px;
     overflow: hidden;
     border-radius: 12px;
-    background: #1a1a1a;
+    background: var(--color-dark-panel);
     cursor: grab;
     touch-action: none;
 }
@@ -57,14 +57,14 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 24px;
-    color: #999;
+    color: var(--color-text-subtle);
 }
 .crop-zoom input[type="range"] {
     flex: 1;
     -webkit-appearance: none;
     height: 5px;
     border-radius: 3px;
-    background: #e4e7ec;
+    background: var(--color-track);
     outline: none;
 }
 .crop-zoom input[type="range"]::-webkit-slider-thumb {
@@ -74,7 +74,7 @@
     border-radius: 50%;
     background: var(--color-primary);
     cursor: pointer;
-    border: 2px solid #fff;
+    border: 2px solid var(--color-surface);
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 .crop-zoom input[type="range"]::-moz-range-thumb {
@@ -83,7 +83,7 @@
     border-radius: 50%;
     background: var(--color-primary);
     cursor: pointer;
-    border: 2px solid #fff;
+    border: 2px solid var(--color-surface);
 }
 
 .crop-actions {
@@ -101,7 +101,7 @@
     border: none;
     transition: all 0.18s ease;
 }
-.crop-cancel { background: #f4f5f7; color: #555; }
-.crop-cancel:hover { background: #ebedf0; }
+.crop-cancel { background: var(--color-bg); color: var(--color-text-muted); }
+.crop-cancel:hover { background: var(--color-hover); }
 .crop-done { background: var(--color-primary); color: #fff; }
 .crop-done:hover { background: #d94f24; }

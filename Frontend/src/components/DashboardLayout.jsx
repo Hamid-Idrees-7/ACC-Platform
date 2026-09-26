@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, startTransition } from "react
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
+import { useDashboardTheme } from "../context/PreferencesContext";
 import { notificationService } from "../services/notificationService";
 import { demoService } from "../services/demoService";
 import { DEMO_ENDED_EVENT, DEMO_NOTE_KEY, getDemoRole } from "../config/demoConfig";
@@ -81,6 +82,7 @@ function DashboardLayout({ title, children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout, login, demoTransition, runDemoTransition } = useAuth();
   const { canView, isAdmin } = usePermissions();
+  useDashboardTheme();
   const navigate = useNavigate();
   const location = useLocation();
 

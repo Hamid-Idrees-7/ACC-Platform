@@ -13,10 +13,12 @@ namespace Backend.Controllers
     public class ProfileController : ControllerBase
     {
         private readonly IProfileService _service;
+        private readonly IPreferenceService _preferenceService;
 
-        public ProfileController(IProfileService service)
+        public ProfileController(IProfileService service, IPreferenceService preferenceService)
         {
             _service = service;
+            _preferenceService = preferenceService;
         }
 
         // Helper: get the logged-in user's ID from the JWT token
@@ -93,5 +95,20 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
+        // GET my display settings (theme, number, date and time format)
+        [HttpGet("preferences")]
+        public async Task<IActionResult> GetPreferences()
+        {
+            return Ok(await _preferenceService.GetAsync(GetUserId()));
+        }
+
+        // SAVE my display settings
+        [HttpPut("preferences")]
+        public async Task<IActionResult> SavePreferences([FromBody] PreferencesDto dto)
+        {
+            var (saved, error) = await _preferenceService.SaveAsync(GetUserId(), dto);
+            if (error != null) return BadRequest(new { message = error });
+            return Ok(saved);
+        }
     }
 }

@@ -1,16 +1,13 @@
 import { useState, useRef, useEffect } from "react";
+import { formatDate } from "../utils/dates";
 import "./DatePicker.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-// Format a Date to "11 August 2026"
-export function formatDate(date) {
-  if (!date) return "";
-  const d = new Date(date);
-  if (isNaN(d)) return "";
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
+// Kept so pages that import formatDate from here keep working; the format follows
+// the user's date setting (see utils/dates.js).
+export { formatDate };
 
 // A pretty custom date picker. value/onChange use ISO date strings (YYYY-MM-DD).
 function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true }) {

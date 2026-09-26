@@ -129,9 +129,9 @@
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
-.sal-stat-ic.blue { background: #e8eefc; color: #2f5fd0; }       
-.sal-stat-ic.green { background: #e7f8ef; color: #12b76a; }   
-.sal-stat-ic.purple { background: #f0e9fc; color: #7c4ddb; }  
+.sal-stat-ic.blue { background: var(--color-info-soft); color: var(--color-info-strong); }       
+.sal-stat-ic.green { background: var(--color-success-soft); color: var(--color-success); }   
+.sal-stat-ic.purple { background: var(--color-purple-soft); color: var(--color-purple-strong); }  
 .sal-stat-ic.orange { background: var(--color-primary-soft); color: var(--color-primary); }
 .sal-stat-val { font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--color-text); line-height: 1.1; }
 .sal-stat-lbl { font-size: 13.5px; color: var(--color-text-muted); margin-top: 2px; }
@@ -153,7 +153,7 @@
     padding: 18px 20px;
 }
 .sal-card.pending { border-left-color: var(--color-primary); }
-.sal-card.partial { border-left-color: #6366f1; }   
+.sal-card.partial { border-left-color: var(--color-info); }   
 .sal-card.paid { border-left-color: var(--color-success); }
 
 .sal-card-head { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
@@ -175,9 +175,9 @@
     letter-spacing: 0.4px;
     flex-shrink: 0;
 }
-.sal-badge.pending { background: #fef3e2; color: #b7791f; }   
-.sal-badge.partial { background: #eaeafe; color: #4f46e5; }   
-.sal-badge.paid { background: #e7f8ef; color: #0a7d43; }      
+.sal-badge.pending { background: var(--color-warning-soft); color: var(--color-warning-strong); }   
+.sal-badge.partial { background: var(--color-purple-soft); color: var(--color-info-strong); }   
+.sal-badge.paid { background: var(--color-success-soft); color: var(--color-success-strong); }      
 
 /* Lines */
 .sal-lines { display: flex; flex-direction: column; }
@@ -193,13 +193,13 @@
     border-radius: var(--radius-sm);
     text-transform: capitalize;
 }
-.sal-type.daily { background: #fff4e5; color: #b7791f; }     
-.sal-type.monthly { background: #fdece6; color: var(--color-primary-dark); }    
-.sal-type.contract { background: #fdf3e2; color: #a16207; }   
+.sal-type.daily { background: var(--color-warning-soft); color: var(--color-warning-strong); }     
+.sal-type.monthly { background: var(--color-primary-soft); color: var(--color-primary-dark); }    
+.sal-type.contract { background: var(--color-warning-soft); color: var(--color-warning-strong); }   
 .sal-rate { font-size: 12.5px; color: var(--color-text-muted); }
-.sal-att { font-size: 11.5px; font-weight: 700; color: #2f5fd0; background: #e8eefc; padding: 2px 8px; border-radius: var(--radius-sm); }  
-.sal-paid-tag { font-size: 10.5px; font-weight: 700; color: #0a7d43; background: #e7f8ef; padding: 2px 9px; border-radius: var(--radius-full); }   
-.sal-override { margin-top: 8px; font-size: 12px; color: #4f46e5; background: #f3f3fe; padding: 7px 12px; border-radius: var(--radius-md); }   
+.sal-att { font-size: 11.5px; font-weight: 700; color: var(--color-info-strong); background: var(--color-info-soft); padding: 2px 8px; border-radius: var(--radius-sm); }  
+.sal-paid-tag { font-size: 10.5px; font-weight: 700; color: var(--color-success-strong); background: var(--color-success-soft); padding: 2px 9px; border-radius: var(--radius-full); }   
+.sal-override { margin-top: 8px; font-size: 12px; color: var(--color-info-strong); background: var(--color-purple-soft); padding: 7px 12px; border-radius: var(--radius-md); }   
 .sal-line-note { margin-top: 6px; font-size: 12.5px; color: var(--color-text-muted); font-style: italic; }
 .sal-line-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
 .sal-pay {
@@ -252,7 +252,7 @@
 /* Modal */
 .sal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex; align-items: center; justify-content: center;
     z-index: 1500; padding: 20px;
     animation: salfade 0.15s ease;
@@ -302,7 +302,7 @@
     font-family: var(--font-body); font-size: 14.5px; font-weight: 600;
     cursor: pointer;
 }
-.sal-modal-cancel:hover:not(:disabled) { background: #ebedf0; }
+.sal-modal-cancel:hover:not(:disabled) { background: var(--color-hover); }
 .sal-modal-ok {
     flex: 1.4; padding: 12px;
     border: none; border-radius: var(--radius-md);
@@ -319,7 +319,7 @@
 .sal-confirm-ic {
     width: 64px; height: 64px;
     border-radius: 50%;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 18px;

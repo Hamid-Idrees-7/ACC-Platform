@@ -3,15 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { billingService } from "../services/billingService";
 import { rupees, formatQty, amountInWords } from "../utils/format";
+import { formatDateShort, formatDateTime } from "../utils/dates";
 import "./InvoicePrint.css";
 
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtDate = (d) => {
-  if (!d) return "—";
-  const x = new Date(d);
-  if (isNaN(x)) return "—";
-  return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`;
-};
+const fmtDate = (d) => formatDateShort(d, "—");
 
 function InvoicePrint() {
   const { invoiceId } = useParams();
@@ -30,15 +25,6 @@ function InvoicePrint() {
       }
     })();
   }, [invoiceId]);
-
-  const fmtGenerated = (d) => {
-    if (!d) return "";
-    const x = new Date(d);
-    let h = x.getHours(), ap = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    const mm = String(x.getMinutes()).padStart(2, "0");
-    return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}, ${String(h).padStart(2, "0")}:${mm} ${ap}`;
-  };
 
   if (loading) {
     return <DashboardLayout title="Invoice"><div className="ivp-loading"><div className="ivp-spinner" /></div></DashboardLayout>;
@@ -69,7 +55,7 @@ function InvoicePrint() {
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
       <div className="ivp-doc-scroll">
-        <div className="ivp-doc" id="ivp-print-area">
+        <div className="ivp-doc theme-paper" id="ivp-print-area">
           {/* Header */}
           <div className="ivp-head">
             <div className="ivp-brand">
@@ -164,8 +150,8 @@ function InvoicePrint() {
           {inv.notes && <div className="ivp-notes"><strong>Notes:</strong> {inv.notes}</div>}
 
           <div className="ivp-foot">
-            <p>This is a system-generated invoice from the ACC-ERP.</p>
-            <p className="ivp-gen">Generated on {fmtGenerated(inv.generatedAt)}</p>
+            <p>This is a system-generated invoice from the ACC.</p>
+            <p className="ivp-gen">Generated on {formatDateTime(inv.generatedAt)}</p>
           </div>
 
           <div className="ivp-sign">

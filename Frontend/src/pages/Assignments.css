@@ -33,8 +33,8 @@
     background: var(--color-primary-soft);
     color: var(--color-primary);
 }
-.asn-stat-active .asn-stat-icon { background: #e7f8ef; color: var(--color-success); }
-.asn-stat-done .asn-stat-icon { background: #e8f1fe; color: var(--color-info); }
+.asn-stat-active .asn-stat-icon { background: var(--color-success-soft); color: var(--color-success); }
+.asn-stat-done .asn-stat-icon { background: var(--color-info-soft); color: var(--color-info); }
 .asn-stat-icon svg { width: 24px; height: 24px; }
 .asn-stat-value { font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: var(--color-text); line-height: 1; }
 .asn-stat-label { font-size: 13.5px; color: var(--color-text-muted); margin-top: 4px; }
@@ -101,7 +101,7 @@
 .asn-add-btn:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
 
 .asn-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -126,7 +126,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #bbb;
+    color: var(--color-text-subtle);
     margin-bottom: 18px;
 }
 .asn-empty-icon svg { width: 34px; height: 34px; }
@@ -202,8 +202,8 @@
     letter-spacing: 0.4px;
     flex-shrink: 0;
 }
-.asn-badge-active { background: #e7f8ef; color: var(--color-success); }
-.asn-badge-completed { background: #e8f1fe; color: var(--color-info); }
+.asn-badge-active { background: var(--color-success-soft); color: var(--color-success); }
+.asn-badge-completed { background: var(--color-info-soft); color: var(--color-info); }
 
 .asn-card-project {
     display: flex;
@@ -222,13 +222,13 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-    background: #fffbeb;
-    border: 1px solid #fde68a;   /* soft amber to highlight money, intentional */
+    background: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);   /* soft amber to highlight money, intentional */
     border-radius: var(--radius-md);
     padding: 10px 14px;
     margin-bottom: 14px;
 }
-.asn-wage strong { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #92400e; }   /* amber-800, intentional */
+.asn-wage strong { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--color-warning-strong); }   /* amber-800, intentional */
 .asn-wage span { font-size: 12.5px; color: var(--color-text-muted); }
 
 /* Dates */
@@ -274,18 +274,18 @@
     background: var(--color-surface);
     transition: all 0.15s ease;
 }
-.asn-btn-end { border-color: #bbe8cf; color: var(--color-success); }
-.asn-btn-end:hover { background: #f0fdf4; }
+.asn-btn-end { border-color: var(--color-success-border); color: var(--color-success); }
+.asn-btn-end:hover { background: var(--color-success-soft); }
 .asn-btn-edit { border-color: var(--color-border); color: var(--color-text); }
 .asn-btn-edit:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.asn-btn-delete { border-color: #f0d0d0; color: var(--color-error); }
-.asn-btn-delete:hover { background: #fdf0f0; }
+.asn-btn-delete { border-color: var(--color-error-border); color: var(--color-error); }
+.asn-btn-delete:hover { background: var(--color-error-soft-hover); }
 
 /* Confirm dialogs */
 .asn-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -316,8 +316,8 @@
     justify-content: center;
     margin: 0 auto 18px;
 }
-.asn-confirm-icon.end { background: #e7f8ef; color: var(--color-success); }
-.asn-confirm-icon.del { background: #fef3f2; color: var(--color-error); }
+.asn-confirm-icon.end { background: var(--color-success-soft); color: var(--color-success); }
+.asn-confirm-icon.del { background: var(--color-error-soft); color: var(--color-error); }
 .asn-confirm-icon svg { width: 30px; height: 30px; }
 .asn-confirm h3 { font-family: var(--font-heading); font-size: 19px; font-weight: 700; color: var(--color-text); margin-bottom: 10px; }
 .asn-confirm p { color: var(--color-text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
@@ -333,7 +333,7 @@
     border: none;
 }
 .asn-confirm-cancel { background: var(--color-bg); color: var(--color-text-muted); }
-.asn-confirm-cancel:hover { background: #ebedf0; }
+.asn-confirm-cancel:hover { background: var(--color-hover); }
 .asn-confirm-end { background: var(--color-success); color: #fff; }
 .asn-confirm-end:hover { filter: brightness(0.94); }
 .asn-confirm-delete { background: var(--color-error); color: #fff; }

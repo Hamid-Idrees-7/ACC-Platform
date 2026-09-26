@@ -1,7 +1,7 @@
 .efm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,12 +55,12 @@
     transition: all 0.15s ease;
     flex-shrink: 0;
 }
-.efm-close:hover { background: #ebedf0; color: var(--color-text); }
+.efm-close:hover { background: var(--color-hover); color: var(--color-text); }
 
 .efm-server-error {
     margin: 16px 28px 0;
     padding: 11px 16px;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     border-radius: var(--radius-md);
     font-size: 14px;
@@ -118,7 +118,7 @@
     cursor: pointer;
     transition: all 0.18s ease;
 }
-.efm-cancel:hover:not(:disabled) { background: #ebedf0; }
+.efm-cancel:hover:not(:disabled) { background: var(--color-hover); }
 .efm-save {
     padding: 11px 28px;
     background: var(--color-primary);

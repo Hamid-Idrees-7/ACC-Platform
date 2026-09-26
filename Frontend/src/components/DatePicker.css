@@ -20,7 +20,7 @@
 .dp-input.open { border-color: var(--color-primary); }
 .dp-input svg { color: var(--color-primary); flex-shrink: 0; }
 .dp-value { flex: 1; color: var(--color-text); white-space: nowrap; }
-.dp-placeholder { flex: 1; color: #9aa2ae; white-space: nowrap; }
+.dp-placeholder { flex: 1; color: var(--color-text-subtle); white-space: nowrap; }
 .dp-clear {
     display: flex;
     align-items: center;
@@ -30,7 +30,7 @@
     border-radius: 4px;
     transition: all 0.15s ease;
 }
-.dp-clear:hover { background: #f0f0f0; color: var(--color-error); }
+.dp-clear:hover { background: var(--color-hover); color: var(--color-error); }
 
 .dp-popup {
     position: absolute;

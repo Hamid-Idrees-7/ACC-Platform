@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { reportsService } from "../services/reportsService";
 import { rupees, rupeesShort, formatNum, formatQty, amountInWords } from "../utils/format";
@@ -6,6 +6,9 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { formatDateShort } from "../utils/dates";
+import { chartTheme } from "../utils/chartTheme";
+import { usePreferences } from "../context/PreferencesContext";
 import "./Reports.css";
 
 const TABS = [
@@ -51,6 +54,8 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState("financial");
+  const { resolvedTheme } = usePreferences();
+  const chart = useMemo(() => chartTheme(resolvedTheme), [resolvedTheme]);
 
   useEffect(() => {
     (async () => {
@@ -77,11 +82,7 @@ function Reports() {
   const mat = data.materials;
   const wf = data.workforce;
 
-  const genOn = (() => {
-    const x = new Date(data.generatedAt);
-    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`;
-  })();
+  const genOn = formatDateShort(data.generatedAt);
 
   return (
     <DashboardLayout title="Reports">
@@ -125,11 +126,11 @@ function Reports() {
               <ChartCard title="Revenue Trend — last 6 months" wide>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={fin.revenueTrend} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={rupeesShort} tick={{ fontSize: 11 }} width={70} />
-                    <Tooltip formatter={moneyTip} />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                    <XAxis dataKey="label" tick={{ fill: chart.text, fontSize: 12 }} />
+                    <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                    <Tooltip formatter={moneyTip} {...chart.tooltip} />
+                    <Legend wrapperStyle={{ color: chart.text }} />
                     <Line type="monotone" dataKey="billed" name="Billed" stroke={C_BLUE} strokeWidth={2.5} dot={{ r: 3 }} />
                     <Line type="monotone" dataKey="received" name="Received" stroke={C_GREEN} strokeWidth={2.5} dot={{ r: 3 }} />
                   </LineChart>
@@ -139,11 +140,11 @@ function Reports() {
               <ChartCard title="Budget vs Cost vs Profit">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={[{ name: "Company", Budget: fin.totalBudget, Cost: fin.totalCost, Profit: fin.totalProfit }]} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={rupeesShort} tick={{ fontSize: 11 }} width={70} />
-                    <Tooltip formatter={moneyTip} />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                    <XAxis dataKey="name" tick={{ fill: chart.text, fontSize: 12 }} />
+                    <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                    <Tooltip formatter={moneyTip} {...chart.tooltip} />
+                    <Legend wrapperStyle={{ color: chart.text }} />
                     <Bar dataKey="Budget" fill={C_BLUE} radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Cost" fill={C_AMBER} radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Profit" fill={C_GREEN} radius={[4, 4, 0, 0]} />
@@ -158,7 +159,7 @@ function Reports() {
                       <Pie data={fin.projectStatus} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={95} label={(e) => `${e.label} (${e.value})`}>
                         {fin.projectStatus.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -170,10 +171,10 @@ function Reports() {
                 ) : (
                   <ResponsiveContainer width="100%" height={Math.max(160, fin.expensesByCategory.length * 44 + 40)}>
                     <BarChart data={fin.expensesByCategory} layout="vertical" margin={{ top: 4, right: 24, left: 10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" horizontal={false} />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={190} />
-                      <Tooltip formatter={moneyTip} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} horizontal={false} />
+                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <YAxis type="category" dataKey="label" tick={{ fill: chart.text, fontSize: 12 }} width={190} />
+                      <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="value" name="Cost" fill={C_AMBER} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -204,11 +205,11 @@ function Reports() {
                 {data.projects.filter((p) => p.status !== "Cancelled").length === 0 ? <div className="rep-nochart">No live projects yet</div> : (
                   <ResponsiveContainer width="100%" height={320}>
                     <BarChart data={data.projects.filter((p) => p.status !== "Cancelled").slice(0, 8)} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                      <XAxis dataKey="title" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                      <YAxis tickFormatter={rupeesShort} tick={{ fontSize: 11 }} width={70} />
-                      <Tooltip formatter={moneyTip} />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis dataKey="title" tick={{ fill: chart.text, fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
+                      <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                      <Tooltip formatter={moneyTip} {...chart.tooltip} />
+                      <Legend wrapperStyle={{ color: chart.text }} />
                       <Bar dataKey="budget" name="Budget" fill={C_BLUE} radius={[4, 4, 0, 0]} />
                       <Bar dataKey="cost" name="Cost" fill={C_AMBER} radius={[4, 4, 0, 0]} />
                       <Bar dataKey="profit" name="Profit" fill={C_GREEN} radius={[4, 4, 0, 0]} />
@@ -276,7 +277,7 @@ function Reports() {
                       <Pie data={mat.byCategory} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={100} label={(e) => e.label}>
                         {mat.byCategory.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}
                       </Pie>
-                      <Tooltip formatter={moneyTip} />
+                      <Tooltip formatter={moneyTip} {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -286,10 +287,10 @@ function Reports() {
                 {mat.topMaterials.length === 0 ? <div className="rep-nochart">No inventory yet</div> : (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={mat.topMaterials} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
-                      <Tooltip formatter={moneyTip} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: chart.text, fontSize: 11 }} width={110} />
+                      <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="inventoryValue" name="Inventory Value" fill={C_PRIMARY} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -335,10 +336,10 @@ function Reports() {
                 {wf.byDesignation.length === 0 ? <div className="rep-nochart">No employees yet</div> : (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={wf.byDesignation} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                      <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                      <Tooltip />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis dataKey="label" tick={{ fill: chart.text, fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
+                      <YAxis allowDecimals={false} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <Tooltip {...chart.tooltip} />
                       <Bar dataKey="value" name="Employees" fill={C_BLUE} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -349,10 +350,10 @@ function Reports() {
                 {wf.labourByProject.length === 0 ? <div className="rep-nochart">No labour cost yet</div> : (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={wf.labourByProject} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={110} />
-                      <Tooltip formatter={moneyTip} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <YAxis type="category" dataKey="label" tick={{ fill: chart.text, fontSize: 11 }} width={110} />
+                      <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="value" name="Labour Cost" fill={C_AMBER} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -367,7 +368,7 @@ function Reports() {
                         <Cell fill={C_GREEN} />
                         <Cell fill="#DC2626" />
                       </Pie>
-                      <Tooltip />
+                      <Tooltip {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}

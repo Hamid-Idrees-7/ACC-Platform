@@ -2,16 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { approvalService } from "../services/approvalService";
+import { formatDate, formatTime } from "../utils/dates";
 import "./Approvals.css";
 
-// Format a datetime like "11 August 2026, 3:45 PM"
-const formatDateTime = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  return `${date}, ${time}`;
-};
+// Full date with time, e.g. "23 September 2026, 2:20 PM" (follows Settings > Appearance).
+const formatDateTime = (value) => (value ? `${formatDate(value)}, ${formatTime(value)}` : "");
 
 function Approvals() {
   const { can } = usePermissions();
@@ -36,14 +31,17 @@ function Approvals() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const load = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const load = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await approvalService.getAll();
       setRequests(data);
     } catch {
-      setError("Could not load approval requests.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load approval requests.");
     } finally {
       setLoading(false);
     }
@@ -74,7 +72,7 @@ function Approvals() {
       await approvalService.resolve(detail.pendingActionID, status, reason.trim() || null);
       showToast(`Request ${status.toLowerCase()}.`, status === "Approved" ? "success" : "error");
       setDetail(null);
-      load();
+      load({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not resolve request.", "error");
     } finally {
@@ -88,7 +86,7 @@ function Approvals() {
       showToast("Request deleted.", "error");
       setConfirmDelete(null);
       setDetail(null);
-      load();
+      load({ quiet: true });
     } catch {
       showToast("Could not delete request.", "error");
     }
@@ -99,7 +97,7 @@ function Approvals() {
       await approvalService.deleteAll();
       showToast("All requests deleted.", "error");
       setConfirmDeleteAll(false);
-      load();
+      load({ quiet: true });
     } catch {
       showToast("Could not delete requests.", "error");
     }

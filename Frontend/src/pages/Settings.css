@@ -11,7 +11,7 @@
 .st-spinner-sm {
     width: 24px; height: 24px;
     border: 3px solid rgba(255,255,255,0.4);
-    border-top-color: #fff;
+    border-top-color: var(--color-surface);
     border-radius: 50%;
     animation: stspin 0.8s linear infinite;
 }
@@ -102,7 +102,7 @@
 .st-photo-loading {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -124,7 +124,7 @@
 .st-photo-remove {
     padding: 10px 16px;
     background: none;
-    border: 1px solid #f0d0d0;
+    border: 1px solid var(--color-error-border);
     border-radius: var(--radius-md);
     color: var(--color-error);
     font-family: var(--font-body);
@@ -133,7 +133,7 @@
     cursor: pointer;
     transition: all 0.18s ease;
 }
-.st-photo-remove:hover:not(:disabled) { background: #fdf0f0; }
+.st-photo-remove:hover:not(:disabled) { background: var(--color-error-soft-hover); }
 .st-photo-btn:disabled, .st-photo-remove:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Forms */
@@ -182,8 +182,8 @@
 .st-pw-wrap button:hover { color: var(--color-primary); }
 
 .st-msg { padding: 11px 16px; border-radius: var(--radius-md); font-size: 14px; margin-bottom: 18px; }
-.st-msg-success { background: #ecfdf3; color: #027a48; }
-.st-msg-error { background: #fef3f2; color: var(--color-error); }
+.st-msg-success { background: var(--color-success-soft); color: var(--color-success-strong); }
+.st-msg-error { background: var(--color-error-soft); color: var(--color-error); }
 
 .st-actions { display: flex; justify-content: flex-end; margin-top: 22px; }
 .st-btn-save {
@@ -231,10 +231,6 @@
 .st-subsection-title { font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: var(--color-text); margin-bottom: 16px; }
 
 /* Coming soon */
-.st-coming { text-align: center; padding: 50px 20px; color: var(--color-text-muted); }
-.st-coming svg { color: #cbd0d8; margin-bottom: 14px; }
-.st-coming h4 { font-size: 16px; color: var(--color-text); margin-bottom: 6px; }
-.st-coming p { font-size: 13.5px; }
 
 /* GOLDEN CARD (username - sensitive action) */
 /* Decorative gold theme, intentional one-off */
@@ -286,11 +282,20 @@
 .st-gold-text strong { color: #7a5c08; }
 .st-gold-lock { color: #b8901a; flex-shrink: 0; }
 
+/* The gold card keeps its gold look in dark mode, on a deep gold base */
+@media screen {
+    :root[data-theme="dark"] .st-gold-content { background: linear-gradient(135deg, #221d10, #1c1709); }
+    :root[data-theme="dark"] .st-gold-text h4,
+    :root[data-theme="dark"] .st-gold-text strong { color: #f5d576; }
+    :root[data-theme="dark"] .st-gold-text p { color: #c9a94a; }
+    :root[data-theme="dark"] .st-gold-lock { color: #d4a017; }
+}
+
 /* GOLDEN MODAL (re-auth) */
 .st-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -344,7 +349,7 @@
     cursor: pointer;
     z-index: 2;
 }
-.st-modal-close:hover { background: #ebedf0; }
+.st-modal-close:hover { background: var(--color-hover); }
 .st-modal-body {
     position: relative;
     z-index: 1;

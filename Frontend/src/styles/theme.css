@@ -1,4 +1,11 @@
-:root {
+/* ACC design tokens.
+   Every colour in the app comes from here, so the whole dashboard can switch between
+   the light and the dark theme by changing these values only.
+   .theme-paper keeps the light values inside dark mode: invoices and payslips are
+   shown as white paper, exactly as they print. */
+
+:root,
+.theme-paper {
   /* ===== Brand Colors (ACC) ===== */
   --color-primary: #F66435;        /* ACC orange - main brand color */
   --color-primary-dark: #D94E22;   /* hover / darker shade */
@@ -7,19 +14,44 @@
 
   /* ===== Neutrals ===== */
   --color-bg: #F7F8FA;             /* page background */
-  --color-surface: #FFFFFF;        /* cards, panels */
+  --color-surface: #FFFFFF;        /* cards, panels, modals, inputs */
+  --color-surface-2: #F9FAFB;      /* slightly raised area inside a card */
+  --color-hover: #EBEDF0;          /* hover background for neutral buttons */
+  --color-neutral-soft: #EEF0F3;   /* grey chips and badges */
+  --color-track: #E3E6EA;          /* progress bar tracks, scrollbar thumbs */
   --color-border: #E4E7EC;         /* lines, borders */
+  --color-border-strong: #D0D5DD;  /* input borders that need more contrast */
+  --color-overlay: rgba(0, 0, 0, 0.5);   /* backdrop behind modals */
+  --color-dark-panel: #1A1A1A;     /* sidebar and other always-dark panels */
 
   /* ===== Text ===== */
   --color-text: #1A1D21;           /* main text (dark) */
   --color-text-muted: #667085;     /* secondary / muted text */
+  --color-text-subtle: #98A2B3;    /* placeholders, empty-state icons */
   --color-text-inverse: #FFFFFF;   /* text on colored background */
 
   /* ===== Status Colors ===== */
   --color-success: #12B76A;        /* green - success */
   --color-warning: #F79009;        /* yellow - warning */
-  --color-error: #DC2626;        /* red - error */
+  --color-error: #DC2626;          /* red - error */
   --color-info: #2E90FA;           /* blue - info */
+  --color-purple: #7C4DFF;         /* purple accent (money cards) */
+
+  /* Soft backgrounds, strong text and borders for each status */
+  --color-success-soft: #E7F8EF;
+  --color-success-strong: #0A7D43;
+  --color-success-border: #BBE8CF;
+  --color-warning-soft: #FFFBEB;
+  --color-warning-strong: #92400E;
+  --color-warning-border: #FDE68A;
+  --color-error-soft: #FEF3F2;
+  --color-error-soft-hover: #FDECEC;
+  --color-error-border: #F0D0D0;
+  --color-info-soft: #E8F1FE;
+  --color-info-strong: #1C6FD6;
+  --color-info-border: #B9D6FB;
+  --color-purple-soft: #F1EBFF;
+  --color-purple-strong: #6D3FD9;
 
   /* ===== Fonts ===== */
   --font-heading: 'Poppins', sans-serif;
@@ -43,4 +75,69 @@
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
   --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
   --shadow-lg: 0 12px 28px rgba(16, 24, 40, 0.12);
+
+  color-scheme: light;
+}
+
+/* Text inside the paper must not inherit the page's dark-mode colour */
+.theme-paper { color: var(--color-text); }
+
+/* ===== Dark theme =====
+   Set by the app on <html data-theme="dark"> (Settings > Appearance). Screen only:
+   printed invoices, payslips and reports always use the light colours. */
+@media screen {
+  :root[data-theme="dark"] {
+    --color-primary-soft: rgba(246, 100, 53, 0.16);
+
+    --color-bg: #0F1115;
+    --color-surface: #171A21;
+    --color-surface-2: #1D212A;
+    --color-hover: #262B35;
+    --color-neutral-soft: #252A33;
+    --color-track: #2C323D;
+    --color-border: #2A2F3A;
+    --color-border-strong: #394050;
+    --color-overlay: rgba(0, 0, 0, 0.66);
+    --color-dark-panel: #0B0D10;
+
+    --color-text: #E8EAED;
+    --color-text-muted: #9AA3B2;
+    --color-text-subtle: #6B7383;
+    --color-text-inverse: #FFFFFF;
+
+    --color-success-soft: rgba(18, 183, 106, 0.15);
+    --color-success-strong: #4ADE80;
+    --color-success-border: rgba(18, 183, 106, 0.38);
+    --color-warning-soft: rgba(247, 144, 9, 0.14);
+    --color-warning-strong: #FBBF24;
+    --color-warning-border: rgba(247, 144, 9, 0.38);
+    --color-error-soft: rgba(220, 38, 38, 0.14);
+    --color-error-soft-hover: rgba(220, 38, 38, 0.22);
+    --color-error-border: rgba(220, 38, 38, 0.38);
+    --color-info-soft: rgba(46, 144, 250, 0.15);
+    --color-info-strong: #60A5FA;
+    --color-info-border: rgba(46, 144, 250, 0.38);
+    --color-purple-soft: rgba(124, 77, 255, 0.18);
+    --color-purple-strong: #A78BFA;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.55);
+
+    color-scheme: dark;
+  }
+
+  /* Form fields that set no background of their own get the card colour
+     instead of the browser's grey. :where() keeps this at zero specificity,
+     so any module rule that sets a background still wins. */
+  :where(:root[data-theme="dark"]) :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select) {
+    background-color: var(--color-surface);
+  }
+}
+
+/* Theme switch: a short cross-fade of the whole page (browsers with view transitions) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.28s;
+  animation-timing-function: ease;
 }

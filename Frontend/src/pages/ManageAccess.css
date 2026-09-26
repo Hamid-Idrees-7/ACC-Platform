@@ -77,7 +77,7 @@
 .ma-save-note { color: rgba(255,255,255,0.55); font-size: 12.5px; position: relative; z-index: 1; }
 
 .ma-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -123,7 +123,7 @@
     width: 46px;
     height: 26px;
     border-radius: var(--radius-full);
-    background: #d4d8dd;
+    background: var(--color-track);
     border: none;
     position: relative;
     cursor: pointer;
@@ -139,7 +139,7 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--color-surface);
     transition: transform 0.2s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }

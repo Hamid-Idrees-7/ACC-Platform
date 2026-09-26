@@ -3,21 +3,15 @@ import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { fieldService } from "../services/fieldService";
 import { formatQty, amountInWords } from "../utils/format";
+import { formatDateShort } from "../utils/dates";
 import "./FieldView.css";
 
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const prettyToday = () => formatDateShort(new Date());
+const fmtDate = (d) => formatDateShort(d);
+
 const todayISO = () => {
   const t = new Date();
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
-};
-const prettyToday = () => {
-  const t = new Date();
-  return `${t.getDate()} ${MON[t.getMonth()]} ${t.getFullYear()}`;
-};
-const fmtDate = (d) => {
-  if (!d) return "";
-  const x = new Date(d);
-  return isNaN(x) ? "" : `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`;
 };
 
 function FieldView() {
@@ -46,13 +40,16 @@ function FieldView() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
-  const loadSite = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadSite = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       setData(await fieldService.getMySite());
       setError(false);
     } catch {
-      setError(true);
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError(true);
     } finally {
       setLoading(false);
     }
@@ -108,7 +105,7 @@ function FieldView() {
       const updated = await fieldService.markAttendance(active.projectID, { date: todayISO(), entries });
       setSheet(updated);
       showToast("Attendance saved.");
-      loadSite();   // refresh the card counts
+      loadSite({ quiet: true });   // refresh the card counts
     } catch {
       showToast("Could not save attendance.", "error");
     } finally {
@@ -122,7 +119,7 @@ function FieldView() {
       const updated = await fieldService.updateProgress(active.projectID, phaseID, value);
       setPhases(updated || []);
       showToast("Progress updated.");
-      loadSite();   // refresh the site cards overall progress
+      loadSite({ quiet: true });   // refresh the site cards overall progress
     } catch {
       showToast("Could not update progress.", "error");
     } finally {

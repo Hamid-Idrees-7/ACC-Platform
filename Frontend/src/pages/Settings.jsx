@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { profileService } from "../services/profileService";
 import ImageCropModal from "../components/ImageCropModal";
+import AppearanceSettings from "../components/AppearanceSettings";
 import "./Settings.css";
 
 const isValidPhone = (phone) => {
@@ -11,6 +12,8 @@ const isValidPhone = (phone) => {
   const normalized = raw.startsWith("+92") ? "0" + raw.slice(3) : raw;
   return /^0\d{10}$/.test(normalized);
 };
+const SETTINGS_TABS = ["profile", "account", "appearance"];
+
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 function Settings() {
@@ -24,8 +27,11 @@ function Settings() {
   const [loading, setLoading] = useState(true);
   const [photo, setPhoto] = useState(null);
 
-  // active section: profile | account | other
-  const [tab, setTab] = useState("profile");
+  // Active section lives in the address (?tab=appearance), so it survives a reload
+  // and the redraw that follows a change of number or date format.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = SETTINGS_TABS.includes(searchParams.get("tab")) ? searchParams.get("tab") : "profile";
+  const setTab = (key) => setSearchParams(key === "profile" ? {} : { tab: key }, { replace: true });
 
   // Profile form
   const [form, setForm] = useState({ fullName: "", email: "", phone: "", secondaryPhone: "", bio: "" });
@@ -173,7 +179,8 @@ function Settings() {
   const initials = (profile?.fullName || "U").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   const bioLen = form.bio.length;
 
-  if (loading) {
+  // Profile and account need the profile data; Appearance does not.
+  if (loading && tab !== "appearance") {
     return (
       <DashboardLayout title="Settings">
         <div className="st-loading"><div className="st-spinner" /></div>
@@ -184,7 +191,7 @@ function Settings() {
   const tabs = [
     { key: "profile", label: "Profile Management", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { key: "account", label: "Account Management", icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
-    { key: "other", label: "Other Settings", icon: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></> },
+    { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
   ];
 
   return (
@@ -345,18 +352,14 @@ function Settings() {
             </div>
           )}
 
-          {/* OTHER SETTINGS */}
-          {tab === "other" && (
+          {/* APPEARANCE */}
+          {tab === "appearance" && (
             <div className="st-panel">
               <div className="st-panel-head">
-                <h3>Other Settings</h3>
-                <p>Preferences and additional options</p>
+                <h3>Appearance</h3>
+                <p>Theme, number format and date format. Saved to your account.</p>
               </div>
-              <div className="st-coming">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                <h4>More settings coming soon</h4>
-                <p>Dark mode and other preferences will appear here.</p>
-              </div>
+              <AppearanceSettings />
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-lg);
-  background: color-mix(in srgb, var(--color-text) 55%, transparent);
+  background: var(--color-overlay);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   --dmt-accent: var(--color-primary);
@@ -25,7 +25,11 @@
   box-shadow: var(--shadow-lg);
   padding: var(--space-xl) var(--space-lg);
   text-align: center;
+  /* Browsers without view transitions still change theme smoothly behind a role switch */
+  transition: background-color 0.28s ease;
 }
+.dmt-role, .dmt-kicker, .dmt-tagline { transition: color 0.28s ease; }
+.dmt-progress { transition: background-color 0.28s ease; }
 .dmt-in .dmt-card { animation: dmtCardIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .dmt-out .dmt-card { animation: dmtCardOut 0.3s ease-in both; }
 

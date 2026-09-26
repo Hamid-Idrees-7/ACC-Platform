@@ -4,7 +4,29 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>ACC Platform</title>
+    <meta name="theme-color" content="#F66435" />
+    <script>
+      // Open the dashboard in the theme it was last shown in, before the app loads,
+      // so dark mode users never see a white flash. The public website stays light.
+      (function () {
+        try {
+          var t = localStorage.getItem("acc-theme");
+          if (t === "system") t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          if ((t === "dark" || t === "light") && location.pathname.indexOf("/dashboard") === 0) {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      /* Paint dark mode straight away, before the app's own styles have loaded
+         (same colour as --color-bg in the dark theme). */
+      @media screen {
+        html[data-theme="dark"] { color-scheme: dark; }
+        html[data-theme="dark"], html[data-theme="dark"] body { background: #0F1115; }
+      }
+    </style>
 
 
 

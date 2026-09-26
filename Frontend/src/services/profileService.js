@@ -36,4 +36,15 @@ export const profileService = {
     const response = await api.post("/profile/verify-password", { password });
     return response.data;
   },
+
+  // My display settings: { theme, numberFormat, dateFormat, timeFormat }
+  getPreferences: async () => {
+    const response = await api.get("/profile/preferences");
+    return response.data;
+  },
+
+  savePreferences: async (prefs) => {
+    const response = await api.put("/profile/preferences", prefs);
+    return response.data;
+  },
 };

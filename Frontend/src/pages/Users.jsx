@@ -39,15 +39,18 @@ function Users() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadUsers = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadUsers = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await userService.getAll();
       data.sort((a, b) => b.userID - a.userID);
       setUsers(data);
     } catch {
-      setError("Could not load users. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load users. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -108,7 +111,7 @@ function Users() {
       showToast("User added successfully.");
     }
     setFormModal(null);
-    loadUsers();
+    loadUsers({ quiet: true });
   };
 
   const handleToggleStatus = async (u) => {
@@ -117,7 +120,7 @@ function Users() {
       const nowActive = !u.isActive;
       showToast(`User "${u.fullName}" ${nowActive ? "enabled" : "disabled"}.`, nowActive ? "success" : "warn");
       setDetailUser(null);
-      loadUsers();
+      loadUsers({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not update status.", "error");
     }
@@ -129,7 +132,7 @@ function Users() {
       showToast("User deleted.", "error");
       setConfirmDelete(null);
       setDetailUser(null);
-      loadUsers();
+      loadUsers({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete user.", "error");
     }

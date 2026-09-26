@@ -39,15 +39,18 @@ function Materials() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadMaterials = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadMaterials = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await materialService.getAll();
       data.sort((a, b) => b.materialID - a.materialID);
       setMaterials(data);
     } catch {
-      setError("Could not load materials. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load materials. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -106,7 +109,7 @@ function Materials() {
       showToast("Material added successfully.");
     }
     setFormModal(null);
-    loadMaterials();
+    loadMaterials({ quiet: true });
   };
 
   const handleStock = async (data) => {
@@ -119,7 +122,7 @@ function Materials() {
       showToast(`Issued ${formatQty(data.quantity)} ${material.unit} to ${data.projectName}.`);
     }
     setStockModal(null);
-    loadMaterials();
+    loadMaterials({ quiet: true });
   };
 
   const handleDelete = async (id) => {
@@ -130,7 +133,7 @@ function Materials() {
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Material deleted.", "error");
-        loadMaterials();
+        loadMaterials({ quiet: true });
       }
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete material.", "error");

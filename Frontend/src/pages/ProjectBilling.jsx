@@ -5,15 +5,11 @@ import DatePicker from "../components/DatePicker";
 import { usePermissions } from "../context/PermissionContext";
 import { billingService } from "../services/billingService";
 import { rupees, amountInWords, formatQty } from "../utils/format";
+import { formatDateShort } from "../utils/dates";
 import "./ProjectBilling.css";
 
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtDate = (d) => {
-  if (!d) return "—";
-  const x = new Date(d);
-  if (isNaN(x)) return "—";
-  return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`;
-};
+const fmtDate = (d) => formatDateShort(d, "—");
+
 const todayISO = () => {
   const t = new Date();
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
@@ -67,13 +63,16 @@ function ProjectBilling() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
-  const load = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const load = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       setData(await billingService.getProject(projectId));
       setError(false);
     } catch {
-      setError(true);
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError(true);
     } finally {
       setLoading(false);
     }
@@ -202,7 +201,7 @@ function ProjectBilling() {
         showToast("Invoice created.");
       }
       closeInvModal();
-      await load();
+      await load({ quiet: true });
     } catch (err) {
       setFormError(errorText(err, "Could not save the invoice."));
     } finally {
@@ -229,7 +228,7 @@ function ProjectBilling() {
       });
       showToast("Payment recorded.");
       closePay();
-      await load();
+      await load({ quiet: true });
     } catch {
       showToast("Could not record payment.", "error");
     } finally {
@@ -244,7 +243,7 @@ function ProjectBilling() {
       await billingService.deleteInvoice(delInvoice.invoiceID);
       showToast("Invoice deleted.", "warn");
       setDelInvoice(null);
-      await load();
+      await load({ quiet: true });
     } catch {
       showToast("Could not delete invoice.", "error");
     } finally {
@@ -258,7 +257,7 @@ function ProjectBilling() {
       await billingService.deletePayment(delPayment.payment.paymentID);
       showToast("Payment removed.", "warn");
       setDelPayment(null);
-      await load();
+      await load({ quiet: true });
     } catch {
       showToast("Could not remove payment.", "error");
     } finally {

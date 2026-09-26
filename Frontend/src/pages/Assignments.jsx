@@ -39,15 +39,18 @@ function Assignments() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadAssignments = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadAssignments = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await assignmentService.getAll();
       data.sort((a, b) => b.assignmentID - a.assignmentID);
       setAssignments(data);
     } catch {
-      setError("Could not load assignments. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load assignments. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +95,7 @@ function Assignments() {
       showToast("Assignment created.");
     }
     setFormModal(null);
-    loadAssignments();
+    loadAssignments({ quiet: true });
   };
 
   const handleEnd = async (id) => {
@@ -100,7 +103,7 @@ function Assignments() {
       await assignmentService.end(id);
       setConfirmEnd(null);
       showToast("Assignment ended (marked Completed).", "warn");
-      loadAssignments();
+      loadAssignments({ quiet: true });
     } catch {
       showToast("Could not end assignment.", "error");
     }
@@ -114,7 +117,7 @@ function Assignments() {
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Assignment deleted.", "error");
-        loadAssignments();
+        loadAssignments({ quiet: true });
       }
     } catch (err) {
       setConfirmDelete(null);

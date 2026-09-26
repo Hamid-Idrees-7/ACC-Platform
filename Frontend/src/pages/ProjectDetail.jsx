@@ -67,7 +67,8 @@ function ProjectDetail() {
 
   useEffect(() => { load(); }, [id]);
 
-  // Refresh the figures (eg after an expense changes) without the full-page loader.
+  // Refresh after a change (a phase, an expense) without the full-page loader, so the
+  // page keeps its scroll position.
   const refreshQuietly = async () => {
     try {
       setProject(await projectService.getById(id));
@@ -100,7 +101,7 @@ function ProjectDetail() {
       setAddPhaseOpen(false);
       setPhaseName("");
       showToast("Phase added.");
-      load();
+      refreshQuietly();
     } catch {
       showToast("Could not add phase.", "error");
     }
@@ -111,7 +112,7 @@ function ProjectDetail() {
       await projectService.updatePhase(editPhase.phaseID, { status: editPhase.status, progress: Number(editPhase.progress) });
       setEditPhase(null);
       showToast("Phase updated.");
-      load();
+      refreshQuietly();
     } catch {
       showToast("Could not update phase.", "error");
     }
@@ -122,7 +123,7 @@ function ProjectDetail() {
       await projectService.deletePhase(phaseId);
       setConfirmPhase(null);
       showToast("Phase deleted.", "error");
-      load();
+      refreshQuietly();
     } catch {
       showToast("Could not delete phase.", "error");
     }
@@ -139,7 +140,7 @@ function ProjectDetail() {
       await projectService.reorderPhases(project.projectID, list.map((p) => p.phaseID));
     } catch {
       showToast("Could not save the new order.", "error");
-      load();
+      refreshQuietly();
     }
   };
 

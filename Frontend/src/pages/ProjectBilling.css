@@ -42,7 +42,7 @@
 .pbl-metric { display: flex; flex-direction: column; gap: 3px; }
 .pbl-metric-lbl { font-size: 11px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.4px; }
 .pbl-metric-val { font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: var(--color-text); }
-.pbl-metric-val.green { color: #0a7d43; }   /* intentional */
+.pbl-metric-val.green { color: var(--color-success-strong); }   /* intentional */
 .pbl-metric-val.amber { color: var(--color-error); }
 
 /* Budget bar */
@@ -58,7 +58,7 @@
 .pbl-metric-sub { font-size: 11.5px; color: var(--color-text-muted); }
 .pbl-reimb {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    background: #f4f9ff; border: 1px solid #b9d6fb; border-radius: var(--radius-md);   
+    background: var(--color-info-soft); border: 1px solid var(--color-info-border); border-radius: var(--radius-md);   
     padding: 14px 18px; margin-bottom: 18px;
 }
 .pbl-reimb-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -73,7 +73,7 @@
 .pbl-reimb-btn:hover { filter: brightness(0.93); }
 .pbl-reimb-tag {
     margin-left: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px;
-    background: #eaf3fe; color: #1c6fd6; padding: 2px 8px; border-radius: var(--radius-full);   
+    background: var(--color-info-soft); color: var(--color-info-strong); padding: 2px 8px; border-radius: var(--radius-full);   
 }
 .pbl-budgetbar-pct { color: var(--color-primary); font-weight: 800; font-size: 14px; }
 .pbl-bar { height: 9px; background: var(--color-bg); border-radius: var(--radius-full); overflow: hidden; }
@@ -112,9 +112,9 @@
     padding: 3px 11px; border-radius: var(--radius-full);
     letter-spacing: 0.4px;
 }
-.pbl-status.paid { background: #e7f8ef; color: #0a7d43; }   
+.pbl-status.paid { background: var(--color-success-soft); color: var(--color-success-strong); }   
 .pbl-status.partial { background: var(--color-primary-soft); color: var(--color-primary-dark); }
-.pbl-status.overdue { background: #fef3f2; color: var(--color-error); }
+.pbl-status.overdue { background: var(--color-error-soft); color: var(--color-error); }
 .pbl-status.unpaid { background: var(--color-bg); color: var(--color-text-muted); }
 .pbl-inv-dates { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--color-text-muted); }
 .pbl-due-red { color: var(--color-error); font-weight: 600; }
@@ -123,7 +123,7 @@
 .pbl-inv-amt-lbl { font-size: 10.5px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.4px; }
 .pbl-inv-amt-val { font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--color-text); }
 .pbl-inv-amt-val.amber { color: var(--color-error); }
-.pbl-inv-amt-val.green { color: #0a7d43; }    
+.pbl-inv-amt-val.green { color: var(--color-success-strong); }    
 .pbl-chev { color: var(--color-text-muted); transition: transform 0.2s ease; flex-shrink: 0; }
 .pbl-chev.up { transform: rotate(180deg); }
 
@@ -141,7 +141,7 @@
 .pbl-inv-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; margin-top: 6px; }
 .pbl-tot-row { display: flex; gap: 40px; justify-content: space-between; min-width: 260px; font-size: 13.5px; color: var(--color-text-muted); }
 .pbl-tot-row strong { color: var(--color-text); font-weight: 700; }
-.pbl-tot-row strong.green { color: #0a7d43; }   
+.pbl-tot-row strong.green { color: var(--color-success-strong); }   
 .pbl-tot-row strong.amber { color: var(--color-error); }
 .pbl-tot-row.big { border-top: 1px solid var(--color-border); padding-top: 8px; margin-top: 2px; font-size: 15px; }
 .pbl-tot-row.big span { font-weight: 600; color: var(--color-text); }
@@ -159,10 +159,10 @@
     border-radius: var(--radius-md); margin-bottom: 8px;
 }
 .pbl-pay-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.pbl-pay-amt { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #0a7d43; }   
-.pbl-pay-method { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); background: #e8eefc; color: #2f5fd0; }  
-.pbl-pay-method.cheque { background: #f0e9fc; color: #7c4ddb; }        
-.pbl-pay-method.banktransfer { background: #e7f8ef; color: #12b76a; } 
+.pbl-pay-amt { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: var(--color-success-strong); }   
+.pbl-pay-method { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); background: var(--color-info-soft); color: var(--color-info-strong); }  
+.pbl-pay-method.cheque { background: var(--color-purple-soft); color: var(--color-purple-strong); }        
+.pbl-pay-method.banktransfer { background: var(--color-success-soft); color: var(--color-success); } 
 .pbl-pay-ref { font-size: 12px; color: var(--color-text-muted); }
 .pbl-pay-side { display: flex; align-items: center; gap: 12px; }
 .pbl-pay-date { font-size: 12.5px; color: var(--color-text-muted); }
@@ -201,7 +201,7 @@
 /*  Modals  */
 .pbl-overlay {
     position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex; align-items: center; justify-content: center;
     z-index: 1500; padding: 20px;
     animation: pblfade 0.15s ease;
@@ -249,8 +249,8 @@
 .pbl-phasefill-hint { font-size: 12px; color: var(--color-text-muted); margin-top: 8px; line-height: 1.5; }
 
 /* Recoverable expense quick-fill (blue, to tell it apart from phases) */
-.pbl-expfill { background: #f4f9ff; }                     
-.pbl-expfill label { color: #1c6fd6; }                     
+.pbl-expfill { background: var(--color-info-soft); }                     
+.pbl-expfill label { color: var(--color-info-strong); }                     
 
 /* Line item editor */
 .pbl-items-edit { margin-bottom: 18px; }
@@ -271,9 +271,9 @@
 }
 .pbl-item-row input:focus { border-color: var(--color-primary); }
 .pbl-item-row .col-qty, .pbl-item-row .col-rate { text-align: right; }
-.pbl-item-row.expense input { border-color: #b9d6fb; }                              /* blue = reimbursement line, intentional */
-.pbl-item-row.expense input[readonly] { background: #f4f9ff; color: var(--color-text-muted); cursor: not-allowed; }   /* intentional */
-.pbl-form-error { margin-top: 14px; background: #fef3f2; color: var(--color-error); font-size: 13.5px; padding: 10px 12px; border-radius: var(--radius-md); }   /* intentional */
+.pbl-item-row.expense input { border-color: var(--color-info-border); }                              /* blue = reimbursement line, intentional */
+.pbl-item-row.expense input[readonly] { background: var(--color-info-soft); color: var(--color-text-muted); cursor: not-allowed; }   /* intentional */
+.pbl-form-error { margin-top: 14px; background: var(--color-error-soft); color: var(--color-error); font-size: 13.5px; padding: 10px 12px; border-radius: var(--radius-md); }   /* intentional */
 .pbl-item-amt { text-align: right; font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--color-text); white-space: nowrap; }
 .pbl-item-x {
     display: flex; align-items: center; justify-content: center;
@@ -326,7 +326,7 @@
     background: var(--color-bg); color: var(--color-text-muted);
     font-family: var(--font-body); font-size: 14.5px; font-weight: 600; cursor: pointer;
 }
-.pbl-btn-cancel:hover:not(:disabled) { background: #ebedf0; }
+.pbl-btn-cancel:hover:not(:disabled) { background: var(--color-hover); }
 .pbl-btn-ok {
     flex: 1.5; padding: 12px; border: none; border-radius: var(--radius-md);
     background: var(--color-primary); color: #fff;
@@ -345,7 +345,7 @@
 .pbl-confirm { max-width: 430px; padding: 32px 28px; text-align: center; }
 .pbl-confirm-ic {
     width: 64px; height: 64px; border-radius: 50%;
-    background: #fef3f2; color: var(--color-error);
+    background: var(--color-error-soft); color: var(--color-error);
     display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
 }
 .pbl-confirm h3 { font-family: var(--font-heading); font-size: 19px; font-weight: 700; color: var(--color-text); margin-bottom: 10px; }

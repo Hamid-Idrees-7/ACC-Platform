@@ -40,15 +40,18 @@ function ProjectManagement() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadProjects = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadProjects = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await projectService.getAll();
       data.sort((a, b) => b.projectID - a.projectID);
       setProjects(data);
     } catch {
-      setError("Could not load projects. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load projects. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +98,7 @@ function ProjectManagement() {
       showToast("Project created successfully.");
     }
     setFormModal(null);
-    loadProjects();
+    loadProjects({ quiet: true });
   };
 
   const handleDelete = async (id) => {
@@ -106,7 +109,7 @@ function ProjectManagement() {
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Project deleted.", "error");
-        loadProjects();
+        loadProjects({ quiet: true });
       }
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete project.", "error");

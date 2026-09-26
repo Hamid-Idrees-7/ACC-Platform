@@ -6,7 +6,7 @@
     height: 100vh;
     width: 100%;
     overflow: hidden;
-    background: #f4f5f7;
+    background: var(--color-bg);
     font-family: 'Inter', sans-serif;
     position: fixed;
     top: 0;
@@ -17,7 +17,7 @@
 .dash-sidebar {
     width: 260px;
     flex-shrink: 0;
-    background: #1a1a1a;
+    background: var(--color-dark-panel);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -138,8 +138,8 @@
 .dash-header {
     flex-shrink: 0;
     height: 76px;
-    background: #fff;
-    border-bottom: 1px solid #ececec;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -155,7 +155,7 @@
     font-family: 'Poppins', sans-serif;
     font-size: 24px;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--color-text);
     letter-spacing: -0.5px;
 }
 
@@ -164,11 +164,11 @@
     width: 42px;
     height: 42px;
     border-radius: 10px;
-    background: #f4f5f7;
+    background: var(--color-bg);
     border: none;
     align-items: center;
     justify-content: center;
-    color: #333;
+    color: var(--color-text);
     cursor: pointer;
 }
 .dash-hamburger svg { width: 22px; height: 22px; }
@@ -184,16 +184,16 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: #f4f5f7;
+    background: var(--color-bg);
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #555;
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: all 0.18s ease;
 }
-.dash-bell:hover { background: #ebedf0; color: var(--color-primary); }
+.dash-bell:hover { background: var(--color-hover); color: var(--color-primary); }
 .dash-bell svg { width: 20px; height: 20px; }
 .dash-bell-count {
     position: absolute;
@@ -210,7 +210,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #fff;
+    border: 2px solid var(--color-surface);
 }
 
 .dash-profile { position: relative; }
@@ -225,7 +225,7 @@
     cursor: pointer;
     transition: background 0.18s ease;
 }
-.dash-profile-btn:hover { background: #f4f5f7; }
+.dash-profile-btn:hover { background: var(--color-bg); }
 .dash-avatar {
     width: 40px;
     height: 40px;
@@ -252,19 +252,19 @@
     align-items: flex-start;
     line-height: 1.3;
 }
-.dash-profile-info strong { font-size: 14px; color: #1a1a1a; font-weight: 600; }
-.dash-profile-info span { font-size: 12px; color: #888; }
-.dash-profile-chevron { color: #888; }
+.dash-profile-info strong { font-size: 14px; color: var(--color-text); font-weight: 600; }
+.dash-profile-info span { font-size: 12px; color: var(--color-text-muted); }
+.dash-profile-chevron { color: var(--color-text-muted); }
 
 .dash-profile-menu {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
     min-width: 190px;
-    background: #fff;
+    background: var(--color-surface);
     border-radius: 14px;
     box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border);
     padding: 8px;
     z-index: 100;
     animation: dashMenuIn 0.15s ease;
@@ -282,7 +282,7 @@
     background: none;
     border: none;
     border-radius: 9px;
-    color: #333;
+    color: var(--color-text);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
@@ -290,11 +290,11 @@
     transition: background 0.15s ease;
     text-align: left;
 }
-.dash-profile-menu button:hover { background: #f4f5f7; }
-.dash-profile-menu button svg { width: 17px; height: 17px; color: #666; }
-.dash-profile-logout { color: #e5484d !important; }
-.dash-profile-logout svg { color: #e5484d !important; }
-.dash-profile-logout:hover { background: #fdf0f0 !important; }
+.dash-profile-menu button:hover { background: var(--color-bg); }
+.dash-profile-menu button svg { width: 17px; height: 17px; color: var(--color-text-muted); }
+.dash-profile-logout { color: var(--color-error) !important; }
+.dash-profile-logout svg { color: var(--color-error) !important; }
+.dash-profile-logout:hover { background: var(--color-error-soft-hover) !important; }
 
 /* CONTENT - the ONLY scrollable area */
 .dash-content {
@@ -306,7 +306,7 @@
     min-height: 0;
 }
 .dash-content::-webkit-scrollbar { width: 8px; }
-.dash-content::-webkit-scrollbar-thumb { background: #d5d5d5; border-radius: 4px; }
+.dash-content::-webkit-scrollbar-thumb { background: var(--color-track); border-radius: 4px; }
 .dash-content::-webkit-scrollbar-track { background: transparent; }
 
 /* Mobile overlay (behind sidebar) */
@@ -314,7 +314,7 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     z-index: 45;
 }
 

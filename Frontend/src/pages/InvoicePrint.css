@@ -18,7 +18,7 @@
 .ivp-loading { display: flex; justify-content: center; padding: 80px; }
 .ivp-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: ivpspin 0.8s linear infinite; }
 @keyframes ivpspin { to { transform: rotate(360deg); } }
-.ivp-error { background: #fef3f2; color: var(--color-error); padding: 12px 16px; border-radius: var(--radius-md); }
+.ivp-error { background: var(--color-error-soft); color: var(--color-error); padding: 12px 16px; border-radius: var(--radius-md); }
 
 /* Document */
 .ivp-doc {
@@ -42,9 +42,9 @@
     font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
     padding: 4px 12px; border-radius: var(--radius-full);
 }
-.ivp-status.paid { background: #e7f8ef; color: #0a7d43; }      
+.ivp-status.paid { background: var(--color-success-soft); color: var(--color-success-strong); }      
 .ivp-status.partial { background: var(--color-primary-soft); color: var(--color-primary-dark); }
-.ivp-status.overdue { background: #fef3f2; color: var(--color-error); }
+.ivp-status.overdue { background: var(--color-error-soft); color: var(--color-error); }
 .ivp-status.unpaid { background: var(--color-bg); color: var(--color-text-muted); }
 
 .ivp-rule { height: 3px; background: var(--color-primary); border-radius: 2px; margin: 24px 0; }

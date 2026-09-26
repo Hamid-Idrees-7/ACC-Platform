@@ -34,8 +34,8 @@
     color: var(--color-primary);
 }
 .cl-stat-icon svg { width: 24px; height: 24px; }
-.cl-stat-active .cl-stat-icon { background: #e7f8ef; color: var(--color-success); }
-.cl-stat-inactive .cl-stat-icon { background: #fef3f2; color: var(--color-error); }
+.cl-stat-active .cl-stat-icon { background: var(--color-success-soft); color: var(--color-success); }
+.cl-stat-inactive .cl-stat-icon { background: var(--color-error-soft); color: var(--color-error); }
 .cl-stat-value { font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: var(--color-text); line-height: 1; }
 .cl-stat-label { font-size: 13.5px; color: var(--color-text-muted); margin-top: 4px; }
 
@@ -111,7 +111,7 @@
 .cl-add-btn:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
 
 .cl-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -136,7 +136,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #bbb;
+    color: var(--color-text-subtle);
     margin-bottom: 18px;
 }
 .cl-empty-icon svg { width: 34px; height: 34px; }
@@ -168,7 +168,7 @@
     transition: all 0.2s ease;
     position: relative;
 }
-.cl-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #e0e0e0; }
+.cl-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--color-border); }
 .cl-card.inactive { opacity: 0.6; background: var(--color-bg); }
 .cl-card.inactive:hover { opacity: 0.8; }
 
@@ -223,10 +223,10 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
-.cl-badge-external { background: #e7f8ef; color: #0e9456; }
+.cl-badge-external { background: var(--color-success-soft); color: var(--color-success-strong); }
 .cl-badge-internal { background: var(--color-primary-soft); color: var(--color-primary); }
-.cl-badge-active { background: #e7f8ef; color: #0e9456; }
-.cl-badge-inactive { background: #fef3f2; color: var(--color-error); }
+.cl-badge-active { background: var(--color-success-soft); color: var(--color-success-strong); }
+.cl-badge-inactive { background: var(--color-error-soft); color: var(--color-error); }
 
 .cl-card-info {
     border-top: 1px solid var(--color-border);
@@ -249,7 +249,7 @@
 .cl-detail-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -286,7 +286,7 @@
     justify-content: center;
     cursor: pointer;
 }
-.cl-detail-close:hover { background: #ebedf0; }
+.cl-detail-close:hover { background: var(--color-hover); }
 .cl-detail-head { text-align: center; margin-bottom: 22px; }
 .cl-detail-avatar {
     width: 84px;
@@ -339,12 +339,12 @@
 }
 .cl-detail-edit { background: var(--color-surface); border-color: var(--color-border); color: var(--color-text); }
 .cl-detail-edit:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.cl-detail-disable { background: var(--color-surface); border-color: #dcdfe4; color: var(--color-text-muted); }
+.cl-detail-disable { background: var(--color-surface); border-color: var(--color-border-strong); color: var(--color-text-muted); }
 .cl-detail-disable:hover { background: var(--color-bg); }
-.cl-detail-enable { background: var(--color-surface); border-color: #bbe8cf; color: var(--color-success); }
-.cl-detail-enable:hover { background: #f0fdf4; }
-.cl-detail-delete { background: var(--color-surface); border-color: #f0d0d0; color: var(--color-error); }
-.cl-detail-delete:hover { background: #fdf0f0; }
+.cl-detail-enable { background: var(--color-surface); border-color: var(--color-success-border); color: var(--color-success); }
+.cl-detail-enable:hover { background: var(--color-success-soft); }
+.cl-detail-delete { background: var(--color-surface); border-color: var(--color-error-border); color: var(--color-error); }
+.cl-detail-delete:hover { background: var(--color-error-soft-hover); }
 
 /* Confirm dialog */
 .cl-confirm {
@@ -359,7 +359,7 @@
 .cl-confirm-icon {
     width: 64px; height: 64px;
     border-radius: 50%;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -381,7 +381,7 @@
     border: none;
 }
 .cl-confirm-cancel { background: var(--color-bg); color: var(--color-text-muted); }
-.cl-confirm-cancel:hover { background: #ebedf0; }
+.cl-confirm-cancel:hover { background: var(--color-hover); }
 .cl-confirm-delete { background: var(--color-error); color: #fff; }
 .cl-confirm-delete:hover { filter: brightness(0.92); }
 

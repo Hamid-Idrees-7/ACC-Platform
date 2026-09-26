@@ -33,15 +33,18 @@ function Employees() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadEmployees = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const loadEmployees = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await employeeService.getAll();
       data.sort((a, b) => b.employeeID - a.employeeID);
       setEmployees(data);
     } catch {
-      setError("Could not load employees. Please try again.");
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError("Could not load employees. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,7 +92,7 @@ function Employees() {
       showToast("Employee added successfully.");
     }
     setFormModal(null);
-    loadEmployees();
+    loadEmployees({ quiet: true });
   };
 
   const handleToggleStatus = async (emp) => {
@@ -98,7 +101,7 @@ function Employees() {
       await employeeService.update(emp.employeeID, { ...emp, status: newStatus, joiningDate: emp.joiningDate ? emp.joiningDate.split("T")[0] : null });
       showToast(`Employee "${emp.fullName}" ${newStatus === "Active" ? "enabled" : "disabled"}.`, newStatus === "Active" ? "success" : "warn");
       setDetailEmp(null);
-      loadEmployees();
+      loadEmployees({ quiet: true });
     } catch {
       showToast("Could not update status.", "error");
     }
@@ -115,7 +118,7 @@ function Employees() {
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Employee deleted.", "error");
-        loadEmployees();
+        loadEmployees({ quiet: true });
       }
     } catch {
       showToast("Could not delete employee.", "error");

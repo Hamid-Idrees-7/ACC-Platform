@@ -32,12 +32,12 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: #eaf0ff;                 /* intentional soft blue tint */
-    color: #3b6ef5;                      /* intentional blue accent */
+    background: var(--color-info-soft);                 /* intentional soft blue tint */
+    color: var(--color-info-strong);                      /* intentional blue accent */
 }
-.proj-stat-progress .proj-stat-icon { background: #fdf0e6; color: var(--color-primary); }
-.proj-stat-done .proj-stat-icon { background: #e7f8ef; color: var(--color-success); }
-.proj-stat-budget .proj-stat-icon { background: #f1ebff; color: #7c4dff; } /* intentional purple accent */
+.proj-stat-progress .proj-stat-icon { background: var(--color-primary-soft); color: var(--color-primary); }
+.proj-stat-done .proj-stat-icon { background: var(--color-success-soft); color: var(--color-success); }
+.proj-stat-budget .proj-stat-icon { background: var(--color-purple-soft); color: var(--color-purple); } /* intentional purple accent */
 .proj-stat-icon svg { width: 22px; height: 22px; }
 .proj-stat-value {
     font-family: var(--font-heading);
@@ -119,7 +119,7 @@
 .proj-add-btn:hover { background: var(--color-primary-dark); transform: translateY(-1px); }
 
 .proj-error {
-    background: #fef3f2;
+    background: var(--color-error-soft);
     color: var(--color-error);
     padding: 12px 16px;
     border-radius: var(--radius-md);
@@ -144,7 +144,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #bbb;
+    color: var(--color-text-subtle);
     margin-bottom: 18px;
 }
 .proj-empty-icon svg { width: 34px; height: 34px; }
@@ -176,7 +176,7 @@
     flex-direction: column;
     transition: all 0.2s ease;
 }
-.proj-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #e0e0e0; }
+.proj-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--color-border); }
 
 .proj-card-top {
     display: flex;
@@ -192,10 +192,10 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
-.proj-badge-inprogress { background: #fdf0e6; color: var(--color-primary-dark); }
-.proj-badge-completed { background: #e7f8ef; color: var(--color-success); }
-.proj-badge-onhold { background: #eef0f3; color: var(--color-text-muted); }
-.proj-badge-cancelled { background: #eef0f3; color: var(--color-text-muted); }
+.proj-badge-inprogress { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.proj-badge-completed { background: var(--color-success-soft); color: var(--color-success); }
+.proj-badge-onhold { background: var(--color-neutral-soft); color: var(--color-text-muted); }
+.proj-badge-cancelled { background: var(--color-neutral-soft); color: var(--color-text-muted); }
 .proj-type {
     font-size: 12px;
     font-weight: 600;
@@ -262,7 +262,7 @@
 .proj-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,7 +283,7 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: #fef3f2;
+    background: var(--color-error-soft);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -306,7 +306,7 @@
     border: none;
 }
 .proj-confirm-cancel { background: var(--color-bg); color: var(--color-text-muted); }
-.proj-confirm-cancel:hover { background: #ebedf0; }
+.proj-confirm-cancel:hover { background: var(--color-hover); }
 .proj-confirm-delete { background: var(--color-error); color: #fff; }
 .proj-confirm-delete:hover { filter: brightness(0.92); }
 

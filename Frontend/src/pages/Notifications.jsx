@@ -2,15 +2,8 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { notificationService } from "../services/notificationService";
+import { formatDateTime } from "../utils/dates";
 import "./Notifications.css";
-
-const formatDateTime = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  return `${date}, ${time}`;
-};
 
 // Icon + colour per category
 const categoryStyle = (cat) => {

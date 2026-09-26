@@ -8,7 +8,9 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: 0 32px;
-  background: var(--color-text);
+  /* Always a dark strip, in the light and the dark theme */
+  background: var(--color-dark-panel);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-inverse) 8%, transparent);
   color: var(--color-text-inverse);
   font-family: var(--font-body);
   font-size: 13px;

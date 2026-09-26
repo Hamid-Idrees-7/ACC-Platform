@@ -2,14 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { materialRequestService } from "../services/materialRequestService";
 import { formatQty } from "../utils/format";
+import { formatDateShort } from "../utils/dates";
 import "./MaterialRequests.css";
-
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtDate = (d) => {
-  if (!d) return "";
-  const x = new Date(d);
-  return isNaN(x) ? "" : `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`;
-};
 
 const FILTERS = ["Pending", "Approved", "Rejected", "All"];
 
@@ -25,13 +19,16 @@ function MaterialRequests() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 3200); };
 
-  const load = async () => {
-    setLoading(true);
+  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
+  // page on screen, so it never jumps back to the top.
+  const load = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       setRequests(await materialRequestService.getAll());
       setError(false);
     } catch {
-      setError(true);
+      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      else setError(true);
     } finally {
       setLoading(false);
     }
@@ -55,7 +52,7 @@ function MaterialRequests() {
     try {
       await materialRequestService.approve(r.requestID);
       showToast(`Approved — ${formatQty(r.quantity)} ${r.unit} of ${r.materialName} issued.`);
-      await load();
+      await load({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not approve.", "error");
     } finally {
@@ -70,7 +67,7 @@ function MaterialRequests() {
       showToast("Request rejected.", "warn");
       setRejectModal(null);
       setRejectNote("");
-      await load();
+      await load({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not reject.", "error");
     } finally {
@@ -113,7 +110,7 @@ function MaterialRequests() {
                       <div className="mrq-meta">
                         <span><strong>{r.projectTitle}</strong>{r.phaseName ? ` · ${r.phaseName}` : ""}</span>
                         <span>by {r.requestedByName}</span>
-                        <span>{fmtDate(r.createdAt)}</span>
+                        <span>{formatDateShort(r.createdAt)}</span>
                       </div>
                       {r.note && <div className="mrq-note">"{r.note}"</div>}
                       {r.status === "Pending" && (

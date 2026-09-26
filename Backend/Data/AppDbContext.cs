@@ -33,6 +33,7 @@ namespace Backend.Data
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<MaterialRequest> MaterialRequests { get; set; }
         public DbSet<ProjectExpense> ProjectExpenses { get; set; }
+        public DbSet<UserPreference> UserPreferences { get; set; }
 
         // Registry of isolated visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
@@ -61,6 +62,13 @@ namespace Backend.Data
                 .HasIndex(i => i.ExpenseID)
                 .IsUnique()
                 .HasFilter("[ExpenseID] IS NOT NULL");
+
+            // Display settings belong to one user and go away with that user.
+            modelBuilder.Entity<UserPreference>()
+                .HasOne<User>()
+                .WithOne()
+                .HasForeignKey<UserPreference>(p => p.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

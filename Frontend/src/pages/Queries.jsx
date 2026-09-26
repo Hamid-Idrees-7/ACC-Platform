@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { inquiryService } from "../services/inquiryService";
+import { formatDateTime } from "../utils/dates";
 import "./Queries.css";
 
 function Queries() {
@@ -76,14 +77,6 @@ function Queries() {
     setConfirmDelete(null);
   };
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleString("en-GB", {
-      day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-    });
-  };
-
   const unreadCount = inquiries.filter((i) => !i.isRead).length;
 
   return (
@@ -131,7 +124,7 @@ function Queries() {
                     {inq.name}
                     {!inq.isRead && <span className="q-unread-dot" />}
                   </span>
-                  <span className="q-card-time">{formatDate(inq.createdAt)}</span>
+                  <span className="q-card-time">{formatDateTime(inq.createdAt)}</span>
                 </div>
                 <div className="q-card-meta">
                   <span className="q-card-phone">{inq.phone}</span>
@@ -165,7 +158,7 @@ function Queries() {
               <div className="q-modal-avatar">{selected.name.charAt(0).toUpperCase()}</div>
               <div>
                 <h3>{selected.name}</h3>
-                <span className="q-modal-time">{formatDate(selected.createdAt)}</span>
+                <span className="q-modal-time">{formatDateTime(selected.createdAt)}</span>
               </div>
             </div>
 
