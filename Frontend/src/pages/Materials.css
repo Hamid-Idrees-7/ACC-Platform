@@ -257,7 +257,7 @@
 
 .mat-card-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin-bottom: 12px;
 }
@@ -380,12 +380,23 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-    .mat-stats { grid-template-columns: 1fr 1fr; }
+    .mat-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
     .mat-toolbar { flex-direction: column; align-items: stretch; }
     .mat-category-filter { width: 100%; }
 }
 @media (max-width: 560px) {
-    .mat-stats { grid-template-columns: 1fr; }
+    .mat-stats { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phones: three counters in a row, the money card full width below */
+@media (max-width: 640px) {
+    .mat-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .mat-stat { flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 8px; }
+    .mat-stat-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+    .mat-stat-icon svg { width: 18px; height: 18px; }
+    .mat-stat-value { font-size: 22px; }
+    .mat-stat-label { font-size: 12px; margin-top: 2px; }
+    .mat-stat.mat-stat-value-card { grid-column: 1 / -1; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; }
 }

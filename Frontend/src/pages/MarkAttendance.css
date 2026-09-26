@@ -252,3 +252,20 @@
     .mka-worker-head { flex-direction: column; align-items: stretch; gap: 12px; }
     .mka-worker-right { justify-content: space-between; }
 }
+
+/* Phones: full-width date picker row, wrapping stats and actions */
+@media (max-width: 640px) {
+    .mka-head { gap: 14px; margin-bottom: 16px; }
+    .mka-head-left { min-width: 0; width: 100%; }
+    .mka-head-left h2 { font-size: 21px; }
+    .mka-incharge { flex-wrap: wrap; }
+    .mka-date-wrap { width: 100%; }
+    .mka-date { width: 100%; }
+    .mka-date-box { flex: 1; width: auto; min-width: 0; }
+    .mka-today { padding: 0 12px; }
+    .mka-bar { gap: 12px; }
+    .mka-stats { flex-wrap: wrap; gap: 8px; }
+    .mka-stat { padding: 6px 12px; font-size: 12.5px; }
+    .mka-actions { width: 100%; display: flex; gap: 8px; }
+    .mka-actions > button { flex: 1; min-width: 0; justify-content: center; padding-left: 10px; padding-right: 10px; }
+}

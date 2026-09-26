@@ -223,6 +223,12 @@
 .fv-toast-warn { background: var(--color-error); }
 
 @media (max-width: 700px) {
-    .fv-sites { grid-template-columns: 1fr; }
+    .fv-sites { grid-template-columns: minmax(0, 1fr); }
     .fv-worker-avatar { width: 36px; height: 36px; font-size: 14px; }
+}
+
+/* Phones: the four site tabs share the full width */
+@media (max-width: 640px) {
+    .fv-tabs { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+    .fv-tab { padding: 9px 4px; font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }

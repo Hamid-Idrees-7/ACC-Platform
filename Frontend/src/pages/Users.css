@@ -3,7 +3,7 @@
 /* Stat cards */
 .us-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 22px;
 }
@@ -477,7 +477,7 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-    .us-stats { grid-template-columns: 1fr; }
+    .us-stats { grid-template-columns: minmax(0, 1fr); }
     .us-toolbar { flex-direction: column; align-items: stretch; }
     .us-role-filter { width: 100%; }
 }
@@ -492,4 +492,14 @@
 @keyframes usGoldGlow {
     0%, 100% { box-shadow: 0 0 6px rgba(212, 160, 23, 0.4); }
     50% { box-shadow: 0 0 14px rgba(212, 160, 23, 0.7); }
+}
+
+/* Phones: the three counters sit side by side as compact tiles */
+@media (max-width: 640px) {
+    .us-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .us-stat { flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 8px; }
+    .us-stat-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+    .us-stat-icon svg { width: 18px; height: 18px; }
+    .us-stat-value { font-size: 22px; }
+    .us-stat-label { font-size: 12px; margin-top: 2px; }
 }

@@ -66,74 +66,77 @@ function Payslip() {
         </button>
       </div>
 
-      <div className="psl-doc" id="psl-print-area">
-        <div className="psl-head">
-          <div className="psl-brand">
-            <div className="psl-logo">ACC</div>
-            <div>
-              <h2>{slip.companyName}</h2>
-              <span>Salary — Payslip Document</span>
+      {/* On phones the A4-style document scrolls sideways instead of squeezing */}
+      <div className="psl-doc-scroll">
+        <div className="psl-doc" id="psl-print-area">
+          <div className="psl-head">
+            <div className="psl-brand">
+              <div className="psl-logo">ACC</div>
+              <div>
+                <h2>{slip.companyName}</h2>
+                <span>Salary — Payslip Document</span>
+              </div>
+            </div>
+            <div className="psl-period">
+              <span>PAY PERIOD</span>
+              <strong>{slip.periodLabel}</strong>
             </div>
           </div>
-          <div className="psl-period">
-            <span>PAY PERIOD</span>
-            <strong>{slip.periodLabel}</strong>
+
+          <div className="psl-rule" />
+
+          <div className="psl-emp">
+            <div><span>EMPLOYEE</span><strong>{slip.employeeName}</strong><em>{slip.designation}</em></div>
+            <div><span>CNIC</span><strong>{slip.cnic || "—"}</strong></div>
+            <div><span>PHONE</span><strong>{slip.phone || "—"}</strong></div>
+            <div><span>STATUS</span><strong className={`psl-status ${slip.status.toLowerCase()}`}>{slip.status.toUpperCase()}</strong></div>
           </div>
-        </div>
 
-        <div className="psl-rule" />
-
-        <div className="psl-emp">
-          <div><span>EMPLOYEE</span><strong>{slip.employeeName}</strong><em>{slip.designation}</em></div>
-          <div><span>CNIC</span><strong>{slip.cnic || "—"}</strong></div>
-          <div><span>PHONE</span><strong>{slip.phone || "—"}</strong></div>
-          <div><span>STATUS</span><strong className={`psl-status ${slip.status.toLowerCase()}`}>{slip.status.toUpperCase()}</strong></div>
-        </div>
-
-        <div className="psl-table-wrap">
-          <table className="psl-table">
-            <thead>
-              <tr>
-                <th>PROJECT</th><th>TYPE</th><th>RATE</th><th>ATTENDANCE</th><th className="r">CALCULATED</th><th className="r">PAID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {slip.lines.map((l, i) => (
-                <tr key={i}>
-                  <td>{l.sourceType === "Monthly" ? "Company Payroll" : l.projectName}{l.note && <div className="psl-note">Note: {l.note}</div>}</td>
-                  <td>{l.sourceType}</td>
-                  <td>{rateLabel(l)} <span className="psl-unit">{rateUnit(l)}</span></td>
-                  <td>{l.sourceType === "Daily" ? `${l.presentDays} present / ${l.absentDays} absent` : "—"}</td>
-                  <td className="r">{rupees(l.calculatedAmount)}</td>
-                  <td className="r">
-                    {l.isPaid ? (
-                      <div className="psl-paid">
-                        <strong>{rupees(l.paidAmount)}</strong>
-                        {Number(l.paidAmount) !== Number(l.calculatedAmount) && <span className="psl-override">OVERRIDE</span>}
-                      </div>
-                    ) : (
-                      <span className="psl-pending">Pending</span>
-                    )}
-                  </td>
+          <div className="psl-table-wrap">
+            <table className="psl-table">
+              <thead>
+                <tr>
+                  <th>PROJECT</th><th>TYPE</th><th>RATE</th><th>ATTENDANCE</th><th className="r">CALCULATED</th><th className="r">PAID</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {slip.lines.map((l, i) => (
+                  <tr key={i}>
+                    <td>{l.sourceType === "Monthly" ? "Company Payroll" : l.projectName}{l.note && <div className="psl-note">Note: {l.note}</div>}</td>
+                    <td>{l.sourceType}</td>
+                    <td>{rateLabel(l)} <span className="psl-unit">{rateUnit(l)}</span></td>
+                    <td>{l.sourceType === "Daily" ? `${l.presentDays} present / ${l.absentDays} absent` : "—"}</td>
+                    <td className="r">{rupees(l.calculatedAmount)}</td>
+                    <td className="r">
+                      {l.isPaid ? (
+                        <div className="psl-paid">
+                          <strong>{rupees(l.paidAmount)}</strong>
+                          {Number(l.paidAmount) !== Number(l.calculatedAmount) && <span className="psl-override">OVERRIDE</span>}
+                        </div>
+                      ) : (
+                        <span className="psl-pending">Pending</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        <div className="psl-totals">
-          <div className="psl-total-row"><span>Total Calculated</span><strong>{rupees(slip.totalCalculated)}</strong></div>
-          <div className="psl-net"><span>Net Payable / Paid</span><strong>{rupees(slip.netPaid)}</strong></div>
-        </div>
+          <div className="psl-totals">
+            <div className="psl-total-row"><span>Total Calculated</span><strong>{rupees(slip.totalCalculated)}</strong></div>
+            <div className="psl-net"><span>Net Payable / Paid</span><strong>{rupees(slip.netPaid)}</strong></div>
+          </div>
 
-        <div className="psl-foot">
-          <p>This is a system-generated payslip from the ACC-ERP.</p>
-          <p className="psl-gen">Generated on {fmtGenerated(slip.generatedAt)}</p>
-        </div>
+          <div className="psl-foot">
+            <p>This is a system-generated payslip from the ACC-ERP.</p>
+            <p className="psl-gen">Generated on {fmtGenerated(slip.generatedAt)}</p>
+          </div>
 
-        <div className="psl-sign">
-          <div>Signature: Administration</div>
-          <div>Signature: Employee</div>
+          <div className="psl-sign">
+            <div>Signature: Administration</div>
+            <div>Signature: Employee</div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

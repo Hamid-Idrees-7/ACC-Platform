@@ -224,7 +224,7 @@
 .pbl-x:hover { background: var(--color-bg); color: var(--color-text); }
 .pbl-modal-body { padding: 22px 26px; overflow-y: auto; }
 
-.pbl-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.pbl-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .pbl-field { display: flex; flex-direction: column; gap: 7px; }
 .pbl-field > label { font-size: 13px; font-weight: 600; color: var(--color-text); }
 .pbl-field > label span { color: var(--color-primary); }
@@ -371,13 +371,31 @@
     .pbl-inv-head { grid-template-columns: 1fr auto; row-gap: 12px; }
     .pbl-inv-dates { grid-column: 1 / -1; flex-direction: row; gap: 14px; }
     .pbl-inv-amts { grid-column: 1 / -1; justify-content: flex-start; }
-    .pbl-chev { position: absolute; }
+    .pbl-inv-head { position: relative; padding-right: 48px; }
+    .pbl-chev { position: absolute; top: 20px; right: 18px; }
 }
 @media (max-width: 620px) {
-    .pbl-form-row { grid-template-columns: 1fr; }
+    .pbl-form-row { grid-template-columns: minmax(0, 1fr); }
     .pbl-items-head { display: none; }
-    .pbl-item-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pbl-item-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .pbl-item-row .col-desc { grid-column: 1 / -1; }
     .pbl-item-amt { grid-column: 1 / 2; text-align: left; }
     .pbl-item-x { grid-column: 2 / 3; justify-self: end; }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+    .pbl-topbar { gap: 10px; flex-wrap: wrap; }
+    .pbl-header { padding: 18px 16px; }
+    .pbl-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; width: 100%; }
+    .pbl-metric-val { font-size: 17px; }
+    .pbl-budgetbar { padding: 14px 16px; }
+    .pbl-reimb { flex-direction: column; align-items: stretch; }
+    .pbl-inv-head { padding: 16px 44px 16px 16px; }
+    .pbl-inv-body { padding: 4px 14px 16px; }
+    .pbl-items { display: block; overflow-x: auto; white-space: nowrap; }
+    .pbl-items td:first-child { white-space: normal; min-width: 160px; }
+    .pbl-inv-actions { flex-wrap: wrap; }
+    .pbl-modal-body { padding-left: 16px; padding-right: 16px; }
+    .pbl-phasefill { padding: 14px; }
 }

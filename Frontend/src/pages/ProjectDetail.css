@@ -110,7 +110,7 @@
 /* Info cards */
 .pd-info-cards {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 14px;
 }
 .pd-info {
@@ -177,7 +177,7 @@
 .pd-fin-note { margin-top: 16px; font-size: 12.5px; color: var(--color-text-muted); background: var(--color-bg); padding: 10px 14px; border-radius: var(--radius-md); }
 
 /* Phases + Team columns */
-.pd-columns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
+.pd-columns { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 
 .pd-phases,
 .pd-team {
@@ -490,8 +490,37 @@
 
 /* Responsive */
 @media (max-width: 1000px) {
-    .pd-info-cards { grid-template-columns: repeat(2, 1fr); }
-    .pd-columns { grid-template-columns: 1fr; }
+    .pd-info-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pd-columns { grid-template-columns: minmax(0, 1fr); }
     .pd-fin-body { flex-direction: column; }
     .pd-profit { width: 100%; }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+    .pd-wrap { gap: 14px; }
+    .pd-banner { flex-direction: column; align-items: flex-start; padding: 20px; }
+    .pd-banner h2 { font-size: 21px; }
+    .pd-banner-right { flex-direction: row; align-self: stretch; justify-content: flex-start; gap: 12px; }
+    .pd-status-card { padding: 16px; }
+    .pd-status-change { width: 100%; }
+    .pd-status-change select { flex: 1; }
+    .pd-info-cards { gap: 10px; }
+    .pd-fin-card, .pd-phases, .pd-team, .pd-materials { padding: 18px 16px; }
+    .pd-fin-head { flex-wrap: wrap; gap: 8px; }
+    .pd-fin-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .pd-fin-row > span { flex-wrap: wrap; }
+    .pd-fin-amt { text-align: left; }
+    .pd-profit strong { font-size: 22px; }
+    .pd-phases-head { flex-wrap: wrap; gap: 10px; }
+    .pd-phase { gap: 10px; padding: 12px; }
+    .pd-phase-main { min-width: 0; }
+    .pd-phase-actions { flex-direction: column; }
+    .pd-phase-top { flex-wrap: wrap; row-gap: 4px; }
+    .pd-team-person { flex-wrap: wrap; }
+    .pd-team-wage { margin-left: auto; }
+    .pd-mat-phase-head { flex-wrap: wrap; gap: 6px; }
+    .pd-mat-line { gap: 12px; }
+    .pd-mat-grand { flex-wrap: wrap; gap: 8px; }
+    .pd-modal, .pd-confirm { padding: 22px 18px; }
 }

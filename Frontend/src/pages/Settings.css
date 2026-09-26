@@ -139,7 +139,7 @@
 /* Forms */
 .st-form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
 }
 .st-field { display: flex; flex-direction: column; }
@@ -399,11 +399,19 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-    .st-layout { grid-template-columns: 1fr; }
+    .st-layout { grid-template-columns: minmax(0, 1fr); }
     .st-nav { flex-direction: row; overflow-x: auto; position: static; }
     .st-nav-item { white-space: nowrap; }
 }
 @media (max-width: 600px) {
-    .st-form-grid { grid-template-columns: 1fr; }
+    .st-form-grid { grid-template-columns: minmax(0, 1fr); }
     .st-photo-row { flex-direction: column; text-align: center; }
+}
+
+/* Phones: the section tabs scroll sideways as compact pills */
+@media (max-width: 640px) {
+    .st-nav { gap: 6px; padding: 6px; scrollbar-width: none; }
+    .st-nav::-webkit-scrollbar { display: none; }
+    .st-nav-item { padding: 9px 12px; font-size: 13.5px; flex-shrink: 0; }
+    .st-panel { padding: 20px 16px; }
 }

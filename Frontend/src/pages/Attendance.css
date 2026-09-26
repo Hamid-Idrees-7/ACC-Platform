@@ -123,5 +123,5 @@
 @keyframes attspin { to { transform: rotate(360deg); } }
 
 @media (max-width: 900px) {
-    .att-grid { grid-template-columns: 1fr; }
+    .att-grid { grid-template-columns: minmax(0, 1fr); }
 }

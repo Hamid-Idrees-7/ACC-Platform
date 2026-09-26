@@ -334,12 +334,23 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-    .proj-stats { grid-template-columns: 1fr 1fr; }
+    .proj-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
     .proj-toolbar { flex-direction: column; align-items: stretch; }
     .proj-filter { width: 100%; }
 }
 @media (max-width: 560px) {
-    .proj-stats { grid-template-columns: 1fr; }
+    .proj-stats { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phones: three counters in a row, the money card full width below */
+@media (max-width: 640px) {
+    .proj-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .proj-stat { flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 8px; }
+    .proj-stat-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+    .proj-stat-icon svg { width: 18px; height: 18px; }
+    .proj-stat-value { font-size: 22px; }
+    .proj-stat-label { font-size: 12px; margin-top: 2px; }
+    .proj-stat.proj-stat-budget { grid-column: 1 / -1; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; }
 }

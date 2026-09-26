@@ -88,10 +88,10 @@
 }
 .afm-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
 }
-.afm-field { display: flex; flex-direction: column; }
+.afm-field { display: flex; flex-direction: column; min-width: 0; }
 .afm-field-full { grid-column: 1 / -1; }
 .afm-field label {
     font-size: 13.5px;
@@ -157,5 +157,14 @@
 .afm-save:disabled, .afm-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-    .afm-grid { grid-template-columns: 1fr; }
+    .afm-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Inputs never push the modal wider than the screen */
+.afm-field input,
+.afm-field select { width: 100%; min-width: 0; }
+
+@media (max-width: 480px) {
+    .afm-overlay { padding: 12px; }
+    .afm-head, .afm-body, .afm-actions { padding-left: 16px; padding-right: 16px; }
 }

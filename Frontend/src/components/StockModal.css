@@ -18,6 +18,9 @@
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 560px;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
     animation: stmin 0.2s ease;
 }
 @keyframes stmin {
@@ -66,18 +69,21 @@
 
 .stm-body {
     padding: 24px;
+    overflow-y: auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 .stm-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
 }
 .stm-field {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     gap: 6px;
 }
 .stm-field label { font-size: 13px; font-weight: 600; color: var(--color-text); }
@@ -174,5 +180,14 @@
 .stm-cancel:disabled { opacity: 0.55; cursor: not-allowed; }
 
 @media (max-width: 520px) {
-    .stm-row { grid-template-columns: 1fr; }
+    .stm-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Inputs never push the modal wider than the screen */
+.stm-field input,
+.stm-field select { width: 100%; min-width: 0; }
+
+@media (max-width: 480px) {
+    .stm-overlay { padding: 12px; }
+    .stm-head, .stm-body, .stm-actions { padding-left: 16px; padding-right: 16px; }
 }

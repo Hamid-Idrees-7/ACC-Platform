@@ -69,12 +69,13 @@
 .pfm-body { padding: 24px; }
 .pfm-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
 }
 .pfm-field {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     gap: 6px;
 }
 .pfm-field-full { grid-column: 1 / -1; }
@@ -141,5 +142,14 @@
 .pfm-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 560px) {
-    .pfm-grid { grid-template-columns: 1fr; }
+    .pfm-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Inputs never push the modal wider than the screen */
+.pfm-field input,
+.pfm-field select { width: 100%; min-width: 0; }
+
+@media (max-width: 480px) {
+    .pfm-overlay { padding: 12px; }
+    .pfm-head, .pfm-body, .pfm-actions { padding-left: 16px; padding-right: 16px; }
 }

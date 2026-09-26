@@ -13,7 +13,7 @@
     left: 0;
 }
 
-/* ===================== SIDEBAR ===================== */
+/* SIDEBAR */
 .dash-sidebar {
     width: 260px;
     flex-shrink: 0;
@@ -43,6 +43,19 @@
     height: 26px;
     background: rgba(255,255,255,0.2);
 }
+.dash-drawer-close {
+    display: none;
+    margin-left: auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.75);
+    align-items: center;
+    justify-content: center;
+}
+.dash-drawer-close svg { width: 18px; height: 18px; }
+.dash-drawer-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
 .dash-logo-text {
     font-size: 11px;
     font-weight: 600;
@@ -111,7 +124,7 @@
 .dash-nav-logout { color: var(--color-error); }
 .dash-nav-logout:hover { background: rgba(220,38,38,0.12); color: var(--color-error); }
 
-/* ===================== MAIN ===================== */
+/* MAIN */
 .dash-main {
     flex: 1;
     display: flex;
@@ -317,7 +330,7 @@
     .dash-content-enter { animation: none; }
 }
 
-/* ===================== RESPONSIVE ===================== */
+/* RESPONSIVE */
 @media (max-width: 1024px) {
     .dash-sidebar { width: 230px; }
 }
@@ -337,6 +350,7 @@
     }
     .dash-overlay { display: block; }
     .dash-hamburger { display: flex; }
+    .dash-drawer-close { display: flex; }
     .dash-title { font-size: 20px; }
     .dash-header { padding: 0 16px; }
     .dash-content { padding: 20px 16px; }
@@ -344,5 +358,18 @@
 
 @media (max-width: 600px) {
     .dash-profile-info { display: none; }
-    .dash-profile-btn { gap: 4px; }
+    .dash-profile-btn { gap: 4px; padding: 4px; }
+    .dash-header { height: 64px; padding: 0 12px; }
+    .dash-header-left { gap: 10px; min-width: 0; }
+    .dash-header-right { gap: 8px; flex-shrink: 0; }
+    .dash-title {
+        font-size: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .dash-hamburger, .dash-bell { width: 40px; height: 40px; flex-shrink: 0; }
+    .dash-avatar, .dash-avatar-img { width: 36px; height: 36px; font-size: 14px; }
+    .dash-content { padding: 16px 14px 24px; }
+    .dash-sidebar { width: min(280px, 86vw); }
 }

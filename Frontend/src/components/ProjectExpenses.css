@@ -29,7 +29,7 @@
 .pex-add:hover { background: var(--color-primary-dark); }
 
 /* Totals */
-.pex-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.pex-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
 .pex-stat {
     display: flex;
     flex-direction: column;
@@ -182,7 +182,7 @@
 .pex-modal-sub { font-size: 13px; color: var(--color-text-muted); margin: 0 0 8px; }
 .pex-lock { background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 13px; padding: 10px 12px; border-radius: var(--radius-md); margin: 10px 0 2px; }
 
-.pex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pex-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .pex-field { display: flex; flex-direction: column; min-width: 0; }
 .pex-field label { font-size: 13px; font-weight: 600; color: var(--color-text); margin: 14px 0 6px; }
 .pex-field label span { color: var(--color-error); }
@@ -203,7 +203,7 @@
 .pex-field input:disabled { background: var(--color-bg); color: var(--color-text-muted); cursor: not-allowed; }
 .pex-words { font-size: 12px; color: var(--color-text-muted); margin-top: 5px; text-transform: capitalize; }
 
-.pex-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pex-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pex-choice button {
     display: flex;
     flex-direction: column;
@@ -271,12 +271,12 @@
 
 @media (max-width: 720px) {
     .pex-head { flex-direction: column; }
-    .pex-stats { grid-template-columns: 1fr; }
+    .pex-stats { grid-template-columns: minmax(0, 1fr); }
     .pex-row { flex-wrap: wrap; }
     .pex-main { flex-basis: calc(100% - 80px); }
     .pex-amt { flex: 1; align-items: flex-start; text-align: left; padding-left: 78px; }
     .pex-amt { flex-basis: calc(100% - 78px); }
     .pex-amt-words { max-width: none; }
     .pex-actions { margin-left: auto; }
-    .pex-grid, .pex-choice { grid-template-columns: 1fr; }
+    .pex-grid, .pex-choice { grid-template-columns: minmax(0, 1fr); }
 }

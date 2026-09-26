@@ -105,7 +105,7 @@
 /* Stats */
 .sal-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 22px;
 }
@@ -141,7 +141,7 @@
 /* Cards grid */
 .sal-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
     gap: 18px;
     align-items: start;
 }
@@ -351,9 +351,26 @@
 .sal-toast-error { background: var(--color-error); }
 .sal-toast-warn { background: var(--color-error); }
 
-@media (max-width: 1100px) { .sal-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1100px) { .sal-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
-    .sal-grid { grid-template-columns: 1fr; }
+    .sal-grid { grid-template-columns: minmax(0, 1fr); }
     .sal-toolbar { flex-direction: column; align-items: stretch; }
     .sal-filter { width: 100%; }
+}
+
+/* Phones: stats stack as slim rows, month switcher spans the width */
+@media (max-width: 640px) {
+    .sal-stats { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 16px; }
+    .sal-stat { padding: 14px 16px; gap: 14px; }
+    .sal-stat-ic { width: 42px; height: 42px; }
+    .sal-stat-val { font-size: 20px; }
+    .sal-toolbar { gap: 12px; margin-bottom: 16px; }
+    .sal-month-nav { width: 100%; gap: 8px; }
+    .sal-month { flex: 1; min-width: 0; justify-content: center; padding: 0 10px; font-size: 14px; }
+    .sal-thismonth { padding: 0 12px; flex-shrink: 0; }
+    .sal-search { min-width: 0; width: 100%; flex: none; }
+    .sal-filter { min-width: 0; }
+    .sal-grid { grid-template-columns: minmax(0, 1fr); }
+    .sal-card { padding: 16px; }
+    .sal-c-top { flex-wrap: wrap; }
 }

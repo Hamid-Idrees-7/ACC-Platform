@@ -100,9 +100,22 @@
 .ivp-sign div { flex: 1; max-width: 220px; text-align: center; font-size: 13px; color: var(--color-text); padding-top: 10px; border-top: 1px solid var(--color-text-muted); }
 
 @media (max-width: 640px) {
-    .ivp-parties { grid-template-columns: 1fr 1fr; }
+    .ivp-parties { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ivp-dates { grid-column: 1 / -1; flex-direction: row; }
     .ivp-doc { padding: 28px 20px; }
+}
+
+/* Phones: keep the document at paper proportions and let it scroll sideways */
+.ivp-doc-scroll { max-width: 100%; }
+@media (max-width: 700px) {
+    .ivp-doc-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -14px;
+        padding: 0 14px 6px;
+    }
+    .ivp-doc { min-width: 640px; }
+    .ivp-bar { gap: 10px; flex-wrap: wrap; }
 }
 
 /* Print — show only the invoice document */
@@ -111,5 +124,6 @@
     #ivp-print-area, #ivp-print-area * { visibility: visible; }
     #ivp-print-area { position: absolute; top: 0; left: 0; width: 100%; border: none; margin: 0; padding: 20px; }
     .ivp-bar { display: none; }
+    .ivp-doc-scroll { overflow: visible; margin: 0; padding: 0; }
     #ivp-print-area, #ivp-print-area * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

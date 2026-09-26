@@ -152,6 +152,14 @@ function DashboardLayout({ title, children }) {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // The mobile menu closes with the Escape key too.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setSidebarOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sidebarOpen]);
+
   const handleLogout = () => {
     // A demo visitor logging out also frees their demo seat.
     if (demo) {
@@ -200,6 +208,9 @@ function DashboardLayout({ title, children }) {
           <span className="dash-logo-mark">ACC</span>
           <span className="dash-logo-divider" />
           <span className="dash-logo-text">Admin<br />Portal</span>
+          <button className="dash-drawer-close" onClick={() => setSidebarOpen(false)} aria-label="Close menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
         </div>
 
         <nav className="dash-nav">
@@ -247,7 +258,7 @@ function DashboardLayout({ title, children }) {
 
         <header className="dash-header">
           <div className="dash-header-left">
-            <button className="dash-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Menu">
+            <button className="dash-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu" aria-expanded={sidebarOpen}>
               <Icon name="menu" />
             </button>
             <h1 className="dash-title">{title}</h1>

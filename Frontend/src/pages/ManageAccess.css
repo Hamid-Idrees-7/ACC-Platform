@@ -181,7 +181,7 @@
 }
 
 @media (max-width: 600px) {
-    .ma-modules { grid-template-columns: 1fr; }
+    .ma-modules { grid-template-columns: minmax(0, 1fr); }
     .ma-user-head { flex-direction: column; text-align: center; }
     .ma-save-note { position: static; }
 }

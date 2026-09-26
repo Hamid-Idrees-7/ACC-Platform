@@ -67,108 +67,111 @@ function InvoicePrint() {
         </button>
       </div>
 
-      <div className="ivp-doc" id="ivp-print-area">
-        {/* Header */}
-        <div className="ivp-head">
-          <div className="ivp-brand">
-            <div className="ivp-logo">ACC</div>
-            <div>
-              <h2>{inv.companyName}</h2>
-              <span>Tax Invoice</span>
+      {/* On phones the A4-style document scrolls sideways instead of squeezing */}
+      <div className="ivp-doc-scroll">
+        <div className="ivp-doc" id="ivp-print-area">
+          {/* Header */}
+          <div className="ivp-head">
+            <div className="ivp-brand">
+              <div className="ivp-logo">ACC</div>
+              <div>
+                <h2>{inv.companyName}</h2>
+                <span>Tax Invoice</span>
+              </div>
+            </div>
+            <div className="ivp-inv-meta">
+              <div className="ivp-inv-no">{inv.invoiceNumber}</div>
+              <span className={`ivp-status ${st}`}>{inv.status.toUpperCase()}</span>
             </div>
           </div>
-          <div className="ivp-inv-meta">
-            <div className="ivp-inv-no">{inv.invoiceNumber}</div>
-            <span className={`ivp-status ${st}`}>{inv.status.toUpperCase()}</span>
-          </div>
-        </div>
 
-        <div className="ivp-rule" />
+          <div className="ivp-rule" />
 
-        {/* Bill-to + dates */}
-        <div className="ivp-parties">
-          <div className="ivp-billto">
-            <span className="ivp-lbl">BILL TO</span>
-            <strong>{inv.clientName}</strong>
-            {inv.clientPhone && <div>{inv.clientPhone}</div>}
-            {inv.clientAddress && <div>{inv.clientAddress}</div>}
+          {/* Bill-to + dates */}
+          <div className="ivp-parties">
+            <div className="ivp-billto">
+              <span className="ivp-lbl">BILL TO</span>
+              <strong>{inv.clientName}</strong>
+              {inv.clientPhone && <div>{inv.clientPhone}</div>}
+              {inv.clientAddress && <div>{inv.clientAddress}</div>}
+            </div>
+            <div className="ivp-project">
+              <span className="ivp-lbl">PROJECT</span>
+              <strong>{inv.projectTitle}</strong>
+              {inv.projectLocation && <div>{inv.projectLocation}</div>}
+            </div>
+            <div className="ivp-dates">
+              <div><span className="ivp-lbl">ISSUE DATE</span><strong>{fmtDate(inv.issueDate)}</strong></div>
+              <div><span className="ivp-lbl">DUE DATE</span><strong>{fmtDate(inv.dueDate)}</strong></div>
+            </div>
           </div>
-          <div className="ivp-project">
-            <span className="ivp-lbl">PROJECT</span>
-            <strong>{inv.projectTitle}</strong>
-            {inv.projectLocation && <div>{inv.projectLocation}</div>}
-          </div>
-          <div className="ivp-dates">
-            <div><span className="ivp-lbl">ISSUE DATE</span><strong>{fmtDate(inv.issueDate)}</strong></div>
-            <div><span className="ivp-lbl">DUE DATE</span><strong>{fmtDate(inv.dueDate)}</strong></div>
-          </div>
-        </div>
 
-        {/* Line items */}
-        <div className="ivp-table-wrap">
-          <table className="ivp-table">
-            <thead>
-              <tr><th className="ivp-c-no">#</th><th>DESCRIPTION</th><th className="r">QTY</th><th className="r">RATE</th><th className="r">AMOUNT</th></tr>
-            </thead>
-            <tbody>
-              {inv.items.map((it, i) => (
-                <tr key={it.itemID ?? i}>
-                  <td className="ivp-c-no">{i + 1}</td>
-                  <td>{it.description}</td>
-                  <td className="r">{formatQty(it.quantity)}</td>
-                  <td className="r">{rupees(it.rate)}</td>
-                  <td className="r">{rupees(it.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Totals */}
-        <div className="ivp-summary">
-          <div className="ivp-words">
-            <span className="ivp-lbl">AMOUNT IN WORDS</span>
-            <p>{amountInWords(inv.total)}</p>
-          </div>
-          <div className="ivp-totals">
-            <div className="ivp-t-row"><span>Subtotal</span><strong>{rupees(inv.subtotal)}</strong></div>
-            {inv.taxAmount > 0 && <div className="ivp-t-row"><span>Tax</span><strong>{rupees(inv.taxAmount)}</strong></div>}
-            <div className="ivp-t-row ivp-t-total"><span>Total</span><strong>{rupees(inv.total)}</strong></div>
-            <div className="ivp-t-row"><span>Paid</span><strong>{rupees(inv.paid)}</strong></div>
-            <div className="ivp-t-row ivp-t-due"><span>Balance Due</span><strong>{rupees(inv.remaining)}</strong></div>
-          </div>
-        </div>
-
-        {/* Payments */}
-        {inv.payments && inv.payments.length > 0 && (
-          <div className="ivp-pay-history">
-            <span className="ivp-lbl">PAYMENT HISTORY</span>
-            <table className="ivp-pay-table">
-              <thead><tr><th>DATE</th><th>METHOD</th><th>REFERENCE</th><th className="r">AMOUNT</th></tr></thead>
+          {/* Line items */}
+          <div className="ivp-table-wrap">
+            <table className="ivp-table">
+              <thead>
+                <tr><th className="ivp-c-no">#</th><th>DESCRIPTION</th><th className="r">QTY</th><th className="r">RATE</th><th className="r">AMOUNT</th></tr>
+              </thead>
               <tbody>
-                {inv.payments.map((p) => (
-                  <tr key={p.paymentID}>
-                    <td>{fmtDate(p.paymentDate)}</td>
-                    <td>{p.method}</td>
-                    <td>{p.reference || "—"}</td>
-                    <td className="r">{rupees(p.amount)}</td>
+                {inv.items.map((it, i) => (
+                  <tr key={it.itemID ?? i}>
+                    <td className="ivp-c-no">{i + 1}</td>
+                    <td>{it.description}</td>
+                    <td className="r">{formatQty(it.quantity)}</td>
+                    <td className="r">{rupees(it.rate)}</td>
+                    <td className="r">{rupees(it.amount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
 
-        {inv.notes && <div className="ivp-notes"><strong>Notes:</strong> {inv.notes}</div>}
+          {/* Totals */}
+          <div className="ivp-summary">
+            <div className="ivp-words">
+              <span className="ivp-lbl">AMOUNT IN WORDS</span>
+              <p>{amountInWords(inv.total)}</p>
+            </div>
+            <div className="ivp-totals">
+              <div className="ivp-t-row"><span>Subtotal</span><strong>{rupees(inv.subtotal)}</strong></div>
+              {inv.taxAmount > 0 && <div className="ivp-t-row"><span>Tax</span><strong>{rupees(inv.taxAmount)}</strong></div>}
+              <div className="ivp-t-row ivp-t-total"><span>Total</span><strong>{rupees(inv.total)}</strong></div>
+              <div className="ivp-t-row"><span>Paid</span><strong>{rupees(inv.paid)}</strong></div>
+              <div className="ivp-t-row ivp-t-due"><span>Balance Due</span><strong>{rupees(inv.remaining)}</strong></div>
+            </div>
+          </div>
 
-        <div className="ivp-foot">
-          <p>This is a system-generated invoice from the ACC-ERP.</p>
-          <p className="ivp-gen">Generated on {fmtGenerated(inv.generatedAt)}</p>
-        </div>
+          {/* Payments */}
+          {inv.payments && inv.payments.length > 0 && (
+            <div className="ivp-pay-history">
+              <span className="ivp-lbl">PAYMENT HISTORY</span>
+              <table className="ivp-pay-table">
+                <thead><tr><th>DATE</th><th>METHOD</th><th>REFERENCE</th><th className="r">AMOUNT</th></tr></thead>
+                <tbody>
+                  {inv.payments.map((p) => (
+                    <tr key={p.paymentID}>
+                      <td>{fmtDate(p.paymentDate)}</td>
+                      <td>{p.method}</td>
+                      <td>{p.reference || "—"}</td>
+                      <td className="r">{rupees(p.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-        <div className="ivp-sign">
-          <div>Authorised Signature</div>
-          <div>Received By</div>
+          {inv.notes && <div className="ivp-notes"><strong>Notes:</strong> {inv.notes}</div>}
+
+          <div className="ivp-foot">
+            <p>This is a system-generated invoice from the ACC-ERP.</p>
+            <p className="ivp-gen">Generated on {fmtGenerated(inv.generatedAt)}</p>
+          </div>
+
+          <div className="ivp-sign">
+            <div>Authorised Signature</div>
+            <div>Received By</div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

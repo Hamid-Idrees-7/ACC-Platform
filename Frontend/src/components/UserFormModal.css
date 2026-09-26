@@ -72,7 +72,7 @@
 }
 .ufm-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
 }
 .ufm-field { display: flex; flex-direction: column; }
@@ -165,5 +165,5 @@
 .ufm-save:disabled, .ufm-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-    .ufm-grid { grid-template-columns: 1fr; }
+    .ufm-grid { grid-template-columns: minmax(0, 1fr); }
 }

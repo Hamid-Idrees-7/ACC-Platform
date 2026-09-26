@@ -72,7 +72,7 @@
 }
 .efm-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
 }
 .efm-field { display: flex; flex-direction: column; }
@@ -135,5 +135,5 @@
 .efm-save:disabled, .efm-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-    .efm-grid { grid-template-columns: 1fr; }
+    .efm-grid { grid-template-columns: minmax(0, 1fr); }
 }

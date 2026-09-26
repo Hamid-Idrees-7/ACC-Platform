@@ -49,7 +49,7 @@
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
 }
-/* Opens above the field when there is not enough room below (e.g. bottom of a modal) */
+/* Opens above the field when there is not enough room below (eg bottom of a modal) */
 .dp-popup.up {
     top: auto;
     bottom: calc(100% + 6px);
@@ -99,7 +99,7 @@
 
 .dp-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 2px;
 }
 .dp-daynames { margin-bottom: 6px; }

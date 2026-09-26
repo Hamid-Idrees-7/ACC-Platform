@@ -196,3 +196,10 @@
 @keyframes nttoast { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .nt-toast-success { background: var(--color-success); }
 .nt-toast-error { background: var(--color-error); }
+
+/* Phones: time goes under the title so the title keeps the full width */
+@media (max-width: 640px) {
+    .nt-head { gap: 12px; }
+    .nt-item { padding: 14px; gap: 12px; }
+    .nt-title-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+}

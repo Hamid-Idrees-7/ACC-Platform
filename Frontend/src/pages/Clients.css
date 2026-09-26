@@ -3,7 +3,7 @@
 /* Stat cards */
 .cl-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 22px;
 }
@@ -409,7 +409,17 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-    .cl-stats { grid-template-columns: 1fr; }
+    .cl-stats { grid-template-columns: minmax(0, 1fr); }
     .cl-toolbar { flex-direction: column; align-items: stretch; }
     .cl-status-filter { justify-content: center; }
+}
+
+/* Phones: the three counters sit side by side as compact tiles */
+@media (max-width: 640px) {
+    .cl-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .cl-stat { flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 8px; }
+    .cl-stat-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+    .cl-stat-icon svg { width: 18px; height: 18px; }
+    .cl-stat-value { font-size: 22px; }
+    .cl-stat-label { font-size: 12px; margin-top: 2px; }
 }

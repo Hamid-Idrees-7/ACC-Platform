@@ -3,7 +3,7 @@
 /* Stat cards */
 .asn-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 22px;
 }
@@ -146,7 +146,7 @@
 /* Cards grid */
 .asn-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
     gap: 20px;
 }
 .asn-card {
@@ -363,8 +363,18 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-    .asn-stats { grid-template-columns: 1fr; }
+    .asn-stats { grid-template-columns: minmax(0, 1fr); }
     .asn-toolbar { flex-direction: column; align-items: stretch; }
     .asn-filter { width: 100%; }
-    .asn-grid { grid-template-columns: 1fr; }
+    .asn-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phones: the three counters sit side by side as compact tiles */
+@media (max-width: 640px) {
+    .asn-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .asn-stat { flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 8px; }
+    .asn-stat-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+    .asn-stat-icon svg { width: 18px; height: 18px; }
+    .asn-stat-value { font-size: 22px; }
+    .asn-stat-label { font-size: 12px; margin-top: 2px; }
 }
