@@ -3,14 +3,16 @@ import { useAuth } from "./AuthContext";
 import { profileService } from "../services/profileService";
 import { setNumberSystem } from "../utils/format";
 import { setDatePrefs } from "../utils/dates";
+import { DEFAULT_IDLE_MINUTES } from "../config/sessionConfig";
 
 // Settings > Appearance: theme, number format, date format and time format.
+// Settings > Security: automatic sign-out after inactivity (idleMinutes, 0 = off).
 // Saved on the server (they follow the user to any device) and cached in the browser so
 // the dashboard opens in the right theme straight away, without a light flash.
 
 const PreferencesContext = createContext();
 
-export const DEFAULT_PREFS = { theme: "light", numberFormat: "pk", dateFormat: "dmy-text", timeFormat: "12h" };
+export const DEFAULT_PREFS = { theme: "light", numberFormat: "pk", dateFormat: "dmy-text", timeFormat: "12h", idleMinutes: DEFAULT_IDLE_MINUTES };
 
 // The last theme choice (light, dark or system), read by the tiny script in index.html.
 export const THEME_BOOT_KEY = "acc-theme";

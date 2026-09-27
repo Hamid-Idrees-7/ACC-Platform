@@ -37,7 +37,25 @@ export const profileService = {
     return response.data;
   },
 
-  // My display settings: { theme, numberFormat, dateFormat, timeFormat }
+  // My signed-in devices and sign-in history (Settings > Security)
+  getSecurity: async () => {
+    const response = await api.get("/profile/security");
+    return response.data;
+  },
+
+  // Sign out one of my other devices
+  signOutSession: async (id) => {
+    const response = await api.post(`/profile/sessions/${id}/sign-out`);
+    return response.data;
+  },
+
+  // Sign out of every device except this one
+  signOutOtherSessions: async () => {
+    const response = await api.post("/profile/sessions/sign-out-others");
+    return response.data;
+  },
+
+  // My display settings: { theme, numberFormat, dateFormat, timeFormat, idleMinutes }
   getPreferences: async () => {
     const response = await api.get("/profile/preferences");
     return response.data;

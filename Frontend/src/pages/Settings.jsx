@@ -7,11 +7,14 @@ import ImageCropModal from "../components/ImageCropModal";
 import AppearanceSettings from "../components/AppearanceSettings";
 import CompanySettings from "../components/CompanySettings";
 import CalendarSettings from "../components/CalendarSettings";
+import SecuritySettings from "../components/SecuritySettings";
+import PasswordStrength from "../components/PasswordStrength";
 import Toast, { useToast } from "../components/Toast";
 import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
+import { passwordError } from "../utils/password";
 import "./Settings.css";
 
-const SETTINGS_TABS = ["profile", "account", "appearance", "company", "calendar"];
+const SETTINGS_TABS = ["profile", "account", "security", "appearance", "company", "calendar"];
 const ADMIN_TABS = ["company", "calendar"];
 const BIO_MAX = 300;
 
@@ -34,7 +37,7 @@ const validatePassword = (f) => {
   const e = {};
   if (!f.current) e.current = "Enter your current password.";
   if (!f.next) e.next = "Enter a new password.";
-  else if (f.next.length < 5) e.next = "The new password must be at least 5 characters.";
+  else if (passwordError(f.next)) e.next = passwordError(f.next);
   else if (f.current && f.next === f.current) e.next = "The new password must be different from the current one.";
   if (!f.confirm) e.confirm = "Type the new password again.";
   else if (f.next && f.confirm !== f.next) e.confirm = "The passwords do not match.";
@@ -75,6 +78,16 @@ function Settings() {
   const requested = searchParams.get("tab");
   const tab = SETTINGS_TABS.includes(requested) && (!ADMIN_TABS.includes(requested) || isAdmin) ? requested : "profile";
   const goToTab = (key) => setSearchParams(key === "profile" ? {} : { tab: key }, { replace: true });
+
+  // Phones: the section tabs scroll sideways, so the open one is brought into view.
+  const navRef = useRef(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector(".st-nav-item.active");
+    if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return;
+    const left = active.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft;
+    nav.scrollTo({ left: left - (nav.clientWidth - active.offsetWidth) / 2 });
+  }, [tab, loading]);
 
   // Leaving Company with unsaved changes asks first.
   const [companyDirty, setCompanyDirty] = useState(false);
@@ -270,6 +283,7 @@ function Settings() {
   const tabs = [
     { key: "profile", label: "Profile Management", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { key: "account", label: "Account Management", icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
+    { key: "security", label: "Security", icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></> },
     { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
     ...(isAdmin ? [{ key: "company", label: "Company", icon: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><line x1="9" y1="9" x2="9" y2="9.01" /><line x1="9" y1="12" x2="9" y2="12.01" /><line x1="9" y1="15" x2="9" y2="15.01" /><line x1="9" y1="18" x2="9" y2="18.01" /></> }] : []),
     ...(isAdmin ? [{ key: "calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></> }] : []),
@@ -279,7 +293,7 @@ function Settings() {
     <DashboardLayout title="Settings">
       <div className="st-layout">
         {/* Left nav */}
-        <div className="st-nav">
+        <div className="st-nav" ref={navRef}>
           {tabs.map((t) => (
             <button key={t.key} className={`st-nav-item ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
@@ -404,6 +418,7 @@ function Settings() {
               {/* Change password */}
               <fieldset className="st-subsection st-fieldset" disabled={isDemoAccount}>
                 <h4 className="st-subsection-title">Change Password</h4>
+                <p className="st-subsection-note">Your other devices are signed out when the password changes. This one stays signed in.</p>
                 <div className="st-form-grid">
                   <div className={`st-field st-field-full ${pwErrors.current ? "has-err" : ""}`}>
                     <label htmlFor="st-pw-current">Current Password <span className="req">*</span></label>
@@ -416,10 +431,11 @@ function Settings() {
                   <div className={`st-field ${pwErrors.next ? "has-err" : ""}`}>
                     <label htmlFor="st-pw-next">New Password <span className="req">*</span></label>
                     <div className="st-pw-wrap">
-                      <input id="st-pw-next" type={showPw.next ? "text" : "password"} value={pwForm.next} onChange={(e) => handlePwChange("next", e.target.value)} autoComplete="new-password" />
+                      <input id="st-pw-next" type={showPw.next ? "text" : "password"} value={pwForm.next} onChange={(e) => handlePwChange("next", e.target.value)} autoComplete="new-password" aria-describedby="st-pw-strength" />
                       <button type="button" onClick={() => setShowPw({ ...showPw, next: !showPw.next })}>{eyeIcon(showPw.next)}</button>
                     </div>
-                    {pwErrors.next ? <span className="st-err">{pwErrors.next}</span> : <span className="st-hint">At least 5 characters</span>}
+                    {pwErrors.next && <span className="st-err">{pwErrors.next}</span>}
+                    <PasswordStrength id="st-pw-strength" password={pwForm.next} />
                   </div>
                   <div className={`st-field ${pwErrors.confirm ? "has-err" : ""}`}>
                     <label htmlFor="st-pw-confirm">Confirm New Password <span className="req">*</span></label>
@@ -436,6 +452,17 @@ function Settings() {
                   </button>
                 </div>
               </fieldset>
+            </div>
+          )}
+
+          {/* SECURITY */}
+          {tab === "security" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Security</h3>
+                <p>Automatic sign-out, the devices you are signed in on, and your sign-in history</p>
+              </div>
+              <SecuritySettings />
             </div>
           )}
 

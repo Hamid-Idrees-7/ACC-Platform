@@ -31,6 +31,18 @@ export const userService = {
     return response.data;
   },
 
+  // Signed-in devices and sign-in history of a user
+  getSecurity: async (id) => {
+    const response = await api.get(`/users/${id}/security`);
+    return response.data;
+  },
+
+  // Sign a user out of every device
+  signOutEverywhere: async (id) => {
+    const response = await api.post(`/users/${id}/sign-out`);
+    return response.data;
+  },
+
   // Delete a user
   delete: async (id) => {
     const response = await api.delete(`/users/${id}`);

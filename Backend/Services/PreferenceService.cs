@@ -1,3 +1,4 @@
+using Backend.Auth;
 using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
@@ -5,6 +6,7 @@ using Backend.Repositories;
 namespace Backend.Services
 {
     // Settings > Appearance: theme, number format, date format and time format.
+    // Settings > Security: automatic sign-out after inactivity.
     public class PreferenceService : IPreferenceService
     {
         private readonly IPreferenceRepository _repository;
@@ -34,6 +36,18 @@ namespace Backend.Services
             var timeFormat = Pick(dto.TimeFormat, PreferenceOptions.TimeFormats);
             if (timeFormat == null) return (null, "Choose 12-hour or 24-hour time.");
 
+            int? idleMinutes;
+            if (dto.IdleMinutes == null)
+            {
+                idleMinutes = (await _repository.GetAsync(userId))?.IdleMinutes;
+            }
+            else
+            {
+                if (!SecurityOptions.IdleChoices.Contains(dto.IdleMinutes.Value))
+                    return (null, "Choose Off, 15, 30 or 60 minutes.");
+                idleMinutes = dto.IdleMinutes;
+            }
+
             var preference = new UserPreference
             {
                 UserID = userId,
@@ -41,6 +55,7 @@ namespace Backend.Services
                 NumberFormat = numberFormat,
                 DateFormat = dateFormat,
                 TimeFormat = timeFormat,
+                IdleMinutes = idleMinutes,
                 UpdatedAt = DateTime.Now
             };
             await _repository.SaveAsync(preference);
@@ -60,7 +75,8 @@ namespace Backend.Services
             Theme = PreferenceOptions.DefaultTheme,
             NumberFormat = PreferenceOptions.DefaultNumberFormat,
             DateFormat = PreferenceOptions.DefaultDateFormat,
-            TimeFormat = PreferenceOptions.DefaultTimeFormat
+            TimeFormat = PreferenceOptions.DefaultTimeFormat,
+            IdleMinutes = SecurityOptions.DefaultIdleMinutes
         };
 
         private static PreferencesDto ToDto(UserPreference p) => new()
@@ -68,7 +84,8 @@ namespace Backend.Services
             Theme = p.Theme,
             NumberFormat = p.NumberFormat,
             DateFormat = p.DateFormat,
-            TimeFormat = p.TimeFormat
+            TimeFormat = p.TimeFormat,
+            IdleMinutes = p.IdleMinutes ?? SecurityOptions.DefaultIdleMinutes
         };
     }
 }

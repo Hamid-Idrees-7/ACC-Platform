@@ -44,7 +44,7 @@ namespace Backend.Controllers
         [EnableRateLimiting(DemoOptions.StartRateLimitPolicy)]
         public async Task<IActionResult> Start([FromBody] DemoRoleDto dto, CancellationToken ct)
         {
-            var result = await _manager.StartAsync(dto.Role ?? "admin", ct);
+            var result = await _manager.StartAsync(dto.Role ?? "admin", ClientInfo.From(HttpContext), ct);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Error });
 
@@ -59,7 +59,8 @@ namespace Backend.Controllers
             if (!TryGetDemoSession(out var sessionId, out var database))
                 return StatusCode(403, new { message = "Role switching is only available in the demo." });
 
-            var result = await _manager.SwitchAsync(sessionId, database, dto.Role ?? string.Empty, ct);
+            var result = await _manager.SwitchAsync(sessionId, database, dto.Role ?? string.Empty,
+                ClientInfo.From(HttpContext), CurrentLoginId(), ct);
             if (!result.Success)
             {
                 if (result.StatusCode == 401)
@@ -81,7 +82,8 @@ namespace Backend.Controllers
             if (!TryGetDemoSession(out var sessionId, out var database))
                 return StatusCode(403, new { message = "View as is only available in the demo." });
 
-            var result = await _manager.ViewAsAsync(sessionId, database, userId, ct);
+            var result = await _manager.ViewAsAsync(sessionId, database, userId,
+                ClientInfo.From(HttpContext), CurrentLoginId(), ct);
             if (!result.Success)
             {
                 if (result.StatusCode == 401)
@@ -103,6 +105,9 @@ namespace Backend.Controllers
             return Ok(new { message = "Demo ended." });
         }
 
+        private int? CurrentLoginId() =>
+            int.TryParse(User.FindFirst(SessionClaims.LoginId)?.Value, out var id) ? id : null;
+
         private bool TryGetDemoSession(out int sessionId, out string database)
         {
             database = User.FindFirst(DemoClaims.Database)?.Value ?? string.Empty;
@@ -115,7 +120,7 @@ namespace Backend.Controllers
             var user = result.User!;
             return new DemoAuthResponseDto
             {
-                Token = _tokens.CreateDemoToken(user, result.SessionId, result.DatabaseName, result.RoleKey, result.ExpiresAtUtc),
+                Token = _tokens.CreateDemoToken(user, result.LoginId, result.SessionId, result.DatabaseName, result.RoleKey, result.ExpiresAtUtc),
                 UserID = user.UserID,
                 Username = user.Username,
                 FullName = user.FullName,

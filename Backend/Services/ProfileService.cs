@@ -1,6 +1,8 @@
 ﻿using System.Text.RegularExpressions;
+using Backend.Auth;
 using Backend.Data;
 using Backend.Models.DTOs;
+using Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services
@@ -8,10 +10,12 @@ namespace Backend.Services
     public class ProfileService : IProfileService
     {
         private readonly AppDbContext _context;
+        private readonly ISessionService _sessions;
 
-        public ProfileService(AppDbContext context)
+        public ProfileService(AppDbContext context, ISessionService sessions)
         {
             _context = context;
+            _sessions = sessions;
         }
 
         // Get the logged-in user's profile
@@ -86,14 +90,19 @@ namespace Backend.Services
             return Regex.IsMatch(raw, @"^0\d{10}$") ? raw : null;
         }
 
-        // Change password after verifying the current one
-        public async Task<(bool Success, string Message, string? Field)> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        // Change password after verifying the current one. Every other device is signed out;
+        // this one (currentLoginId) stays signed in.
+        public async Task<(bool Success, string Message, string? Field)> ChangePasswordAsync(int userId, ChangePasswordDto dto, int? currentLoginId)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return (false, "User not found.", null);
 
-            if (string.IsNullOrEmpty(dto.NewPassword) || dto.NewPassword.Length < 5)
-                return (false, "The new password must be at least 5 characters.", "next");
+            if (string.IsNullOrEmpty(dto.CurrentPassword))
+                return (false, "Enter your current password.", "current");
+
+            var passwordError = PasswordPolicy.Validate(dto.NewPassword);
+            if (passwordError != null)
+                return (false, passwordError, "next");
 
             // Verify current password
             if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword ?? "", user.PasswordHash))
@@ -108,7 +117,11 @@ namespace Backend.Services
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return (true, "Password changed successfully.", null);
+
+            var others = await _sessions.EndAllAsync(userId, currentLoginId, SessionEndReasons.PasswordChanged);
+            return (true, others > 0
+                ? $"Password changed. {others} other device{(others == 1 ? " was" : "s were")} signed out."
+                : "Password changed successfully.", null);
         }
 
         // Change username after verifying the current password (re-authentication)
@@ -140,6 +153,9 @@ namespace Backend.Services
             user.Username = newUsername;
             user.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
+
+            // The username is inside every token: all devices sign in again with the new one.
+            await _sessions.EndAllAsync(userId, null, SessionEndReasons.AccountChanged);
             return (true, null);
         }
 

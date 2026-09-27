@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { demoService } from "../services/demoService";
 import { DEMO_NOTE_KEY, DEMO_STATUS_KEY, getDemoRole } from "../config/demoConfig";
+import { LOGIN_NOTE_KEY } from "../config/sessionConfig";
 import "./Home.css";
 import "./Login.css";
 
@@ -18,8 +19,19 @@ const readCachedDemoStatus = () => {
   return { enabled: true, available: true, sessionMinutes: 30 };
 };
 
+// "Remember me" keeps only the username on this device (never the password).
+const REMEMBER_KEY = "acc-remember-username";
+const readRemembered = () => {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) || "";
+  } catch {
+    return "";
+  }
+};
+
 function Login() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(readRemembered);
+  const [remember, setRemember] = useState(() => !!readRemembered());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,9 +45,16 @@ function Login() {
   const [demoStatus, setDemoStatus] = useState(readCachedDemoStatus);   // { enabled, available, sessionMinutes }
   const [demoBusy, setDemoBusy] = useState(null);       // role key being started
   const [demoNote, setDemoNote] = useState(() => sessionStorage.getItem(DEMO_NOTE_KEY) || "");
+  // Why the user was signed out (inactivity, another device, password changed...)
+  const [sessionNote, setSessionNote] = useState(() => sessionStorage.getItem(LOGIN_NOTE_KEY) || "");
 
   const { login, logout, runDemoTransition } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // After signing in, go back to the dashboard page that was asked for (if any).
+  const requested = location.state?.from;
+  const afterLogin = typeof requested === "string" && requested.startsWith("/dashboard") ? requested : "/dashboard";
 
   // Refresh the status quietly. The visitor option is only hidden when the server says the
   // demo is switched off; if the server can't be reached, the button stays and shows an error on click.
@@ -52,9 +71,10 @@ function Login() {
       .catch(() => {});
   }, []);
 
-  // A "your demo has ended" note is shown once.
+  // A "your demo has ended" or "you were signed out" note is shown once.
   useEffect(() => {
     sessionStorage.removeItem(DEMO_NOTE_KEY);
+    sessionStorage.removeItem(LOGIN_NOTE_KEY);
   }, []);
 
   const startDemo = async (roleKey) => {
@@ -63,6 +83,7 @@ function Login() {
     setError("");
     setSuccess("");
     setDemoNote("");
+    setSessionNote("");
     // A new demo never carries an older session (or a signed-in account) with it.
     logout();
     try {
@@ -91,12 +112,19 @@ function Login() {
     setLoading(true);
     setError("");
     setSuccess("");
+    setSessionNote("");
 
     try {
       const response = await api.post("/auth/login", { username, password });
+      try {
+        if (remember) localStorage.setItem(REMEMBER_KEY, username.trim());
+        else localStorage.removeItem(REMEMBER_KEY);
+      } catch {
+        // storage blocked: nothing to remember
+      }
       login(response.data);
       setSuccess("Login successful. Redirecting to your dashboard...");
-      setTimeout(() => navigate("/dashboard"), 800);
+      setTimeout(() => navigate(afterLogin, { replace: true }), 800);
     } catch (err) {
       setError(err.response?.data?.message || "Invalid username or password. Please try again.");
       triggerShake();
@@ -182,7 +210,18 @@ function Login() {
               </div>
             )}
 
-            {demoNote && !error && !success && (
+            {sessionNote && !error && !success && (
+              <div className="login-msg-box login-msg-info" role="status" style={{ display: "flex" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>{sessionNote}</span>
+              </div>
+            )}
+
+            {demoNote && !sessionNote && !error && !success && (
               <div className="login-msg-box lgv-msg" style={{ display: "flex" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -237,8 +276,8 @@ function Login() {
 
             <div className="form-options">
               <label className="remember-me">
-                <input type="checkbox" />
-                <span>Remember me</span>
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                <span>Remember my username</span>
               </label>
               <span className="forgot-link" onClick={() => setShowForgot(true)} style={{ cursor: "pointer" }}>
                 Forgot password?

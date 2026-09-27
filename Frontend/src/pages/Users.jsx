@@ -5,6 +5,7 @@ import { userService } from "../services/userService";
 import { demoService } from "../services/demoService";
 import { builtInDemoRoleFor, CUSTOM_DEMO_ROLE } from "../config/demoConfig";
 import UserFormModal from "../components/UserFormModal";
+import UserSecurityModal from "../components/UserSecurityModal";
 import { useAuth } from "../context/AuthContext";
 import "./Users.css";
 
@@ -31,6 +32,7 @@ function Users() {
   const [formModal, setFormModal] = useState(null);
   const [detailUser, setDetailUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [securityUser, setSecurityUser] = useState(null);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -318,8 +320,16 @@ function Users() {
               </button>
             )}
 
+            {/* Where this user is signed in, their sign-in history, and "sign out everywhere" */}
+            {!isSelf(detailUser) && (
+              <button className="us-detail-security" onClick={() => { setSecurityUser(detailUser); setDetailUser(null); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
+                Sign-in activity and devices
+              </button>
+            )}
+
             {isSelf(detailUser) ? (
-              <p className="us-self-note">Manage your profile, username, and password from Settings.</p>
+              <p className="us-self-note">Manage your profile, username, password and devices from Settings.</p>
             ) : isLockedDemoLogin(detailUser) ? (
               <div className="us-demo-locked">
                 <p>
@@ -352,6 +362,9 @@ function Users() {
           </div>
         </div>
       )}
+
+      {/* Sign-in activity of one user */}
+      {securityUser && <UserSecurityModal user={securityUser} onClose={() => setSecurityUser(null)} />}
 
       {/* Delete confirm */}
       {confirmDelete && (

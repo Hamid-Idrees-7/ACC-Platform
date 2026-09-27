@@ -1,5 +1,7 @@
-﻿using Backend.Demo;
+﻿using Backend.Auth;
+using Backend.Demo;
 using Backend.Models.DTOs;
+using Backend.Models.Entities;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +16,13 @@ namespace Backend.Controllers
     {
         private readonly IProfileService _service;
         private readonly IPreferenceService _preferenceService;
+        private readonly ISessionService _sessions;
 
-        public ProfileController(IProfileService service, IPreferenceService preferenceService)
+        public ProfileController(IProfileService service, IPreferenceService preferenceService, ISessionService sessions)
         {
             _service = service;
             _preferenceService = preferenceService;
+            _sessions = sessions;
         }
 
         // Helper: get the logged-in user's ID from the JWT token
@@ -27,6 +31,10 @@ namespace Backend.Controllers
             var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
             return int.Parse(id!);
         }
+
+        // The session (sign-in) this request is made from
+        private int? GetLoginId() =>
+            int.TryParse(User.FindFirstValue(SessionClaims.LoginId), out var id) ? id : null;
 
         // GET my profile
         [HttpGet]
@@ -81,7 +89,7 @@ namespace Backend.Controllers
             if (IsDemoAccount())
                 return BadRequest(new { message = "The password can't be changed on a demo account." });
 
-            var (success, message, field) = await _service.ChangePasswordAsync(GetUserId(), dto);
+            var (success, message, field) = await _service.ChangePasswordAsync(GetUserId(), dto, GetLoginId());
             if (!success) return BadRequest(new { message, field });
             return Ok(new { message });
         }
@@ -93,6 +101,41 @@ namespace Backend.Controllers
             var (success, message) = await _service.UpdatePictureAsync(GetUserId(), dto.ProfilePicture);
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
+        }
+
+        // GET my sessions and sign-in history (Settings > Security)
+        [HttpGet("security")]
+        public async Task<IActionResult> GetSecurity()
+        {
+            return Ok(await _sessions.GetOverviewAsync(GetUserId(), GetLoginId()));
+        }
+
+        // Sign out one of my other devices
+        [HttpPost("sessions/{id:int}/sign-out")]
+        public async Task<IActionResult> SignOutSession(int id)
+        {
+            if (id == GetLoginId())
+                return BadRequest(new { message = "Use Logout to sign out of this device." });
+
+            var ended = await _sessions.EndOtherAsync(GetUserId(), id, GetLoginId());
+            if (!ended)
+                return NotFound(new { message = "That session has already ended." });
+
+            return Ok(new { message = "Signed out of that device." });
+        }
+
+        // Sign out of every device except this one
+        [HttpPost("sessions/sign-out-others")]
+        public async Task<IActionResult> SignOutOthers()
+        {
+            var ended = await _sessions.EndAllAsync(GetUserId(), GetLoginId(), SessionEndReasons.SignedOutRemotely);
+            return Ok(new
+            {
+                message = ended == 0
+                    ? "No other devices were signed in."
+                    : $"Signed out of {ended} other device{(ended == 1 ? "" : "s")}.",
+                ended
+            });
         }
 
         // GET my display settings (theme, number, date and time format)

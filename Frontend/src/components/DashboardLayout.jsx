@@ -80,7 +80,7 @@ function Icon({ name }) {
 function DashboardLayout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { user, logout, login, demoTransition, runDemoTransition } = useAuth();
+  const { user, logout, signOut, login, demoTransition, runDemoTransition } = useAuth();
   const { canView, isAdmin } = usePermissions();
   useDashboardTheme();
   const navigate = useNavigate();
@@ -168,7 +168,8 @@ function DashboardLayout({ title, children }) {
       endDemo(DEMO_EXIT_NOTE);
       return;
     }
-    logout();
+    // The session also ends on the server, so this token can't be used again.
+    signOut({ to: "/" });
     navigate("/");
   };
 

@@ -94,6 +94,7 @@
 .nt-icon svg { width: 20px; height: 20px; }
 /* Category colours (decorative, intentional) */
 .nt-cat-login { background: var(--color-info-soft); color: var(--color-info-strong); }
+.nt-cat-security { background: var(--color-error-soft); color: var(--color-error); }
 .nt-cat-client { background: var(--color-primary-soft); color: var(--color-primary); }
 .nt-cat-employee { background: var(--color-info-soft); color: var(--color-info-strong); }
 .nt-cat-approval { background: var(--color-success-soft); color: var(--color-success); }

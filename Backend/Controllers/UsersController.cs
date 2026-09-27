@@ -37,6 +37,10 @@ namespace Backend.Controllers
 
         private bool InDemo() => User.HasClaim(c => c.Type == DemoClaims.SessionId);
 
+        // The session this request is made from (kept signed in when admins edit themselves)
+        private int? GetCurrentLoginId() =>
+            int.TryParse(User.FindFirst(SessionClaims.LoginId)?.Value, out var id) ? id : null;
+
         private async Task<UserDto?> GetLockedDemoLoginAsync(int id)
         {
             if (!InDemo()) return null;
@@ -86,7 +90,8 @@ namespace Backend.Controllers
                  !dto.IsActive))
                 return BadRequest(new { message = DemoLoginLocked });
 
-            var (success, error, user) = await _service.UpdateUserAsync(id, dto);
+            var keep = id == GetCurrentUserId() ? GetCurrentLoginId() : null;
+            var (success, error, user) = await _service.UpdateUserAsync(id, dto, keep);
             if (!success)
                 return BadRequest(new { message = error });
 
@@ -105,6 +110,34 @@ namespace Backend.Controllers
                 return BadRequest(new { message = error });
 
             return Ok(new { message = "Status updated" });
+        }
+
+        // GET: /api/users/5/security   sessions and sign-in history of one user
+        [HttpGet("{id}/security")]
+        public async Task<IActionResult> GetSecurity(int id)
+        {
+            var overview = await _service.GetSecurityAsync(id);
+            if (overview == null)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(overview);
+        }
+
+        // POST: /api/users/5/sign-out   sign the user out of every device (lost phone, and so on)
+        [HttpPost("{id}/sign-out")]
+        public async Task<IActionResult> SignOutEverywhere(int id)
+        {
+            var (success, error, ended) = await _service.SignOutEverywhereAsync(id, GetCurrentUserId());
+            if (!success)
+                return BadRequest(new { message = error });
+
+            return Ok(new
+            {
+                message = ended == 0
+                    ? "The user was not signed in anywhere."
+                    : $"Signed out of {ended} device{(ended == 1 ? "" : "s")}.",
+                ended
+            });
         }
 
         // DELETE: /api/users/5

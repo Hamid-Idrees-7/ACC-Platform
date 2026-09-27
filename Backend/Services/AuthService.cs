@@ -6,36 +6,48 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services
 {
-    // Handles registration and login logic
+    // Handles registration, sign-in, token renewal and sign-out
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
         private readonly TokenService _tokenService;
-        private readonly Backend.Services.INotificationService _notificationService;
+        private readonly INotificationService _notificationService;
+        private readonly ISessionService _sessions;
 
-        public AuthService(AppDbContext context, TokenService tokenService, Backend.Services.INotificationService notificationService)
+        // Checked when the username does not exist, so a wrong username takes as long as a
+        // wrong password (the timing does not reveal which usernames exist).
+        private static readonly string DummyHash = BCrypt.Net.BCrypt.HashPassword("no-such-user-" + Guid.NewGuid());
+
+        private const string InvalidCredentials = "Invalid username or password.";
+
+        public AuthService(AppDbContext context, TokenService tokenService,
+            INotificationService notificationService, ISessionService sessions)
         {
             _context = context;
             _tokenService = tokenService;
             _notificationService = notificationService;
+            _sessions = sessions;
         }
 
-        // Register a new user
-        public async Task<AuthResponseDto?> RegisterAsync(RegisterDto dto)
+        // Register a new user (admin only, see AuthController). No token is returned:
+        // the new user signs in with their own password.
+        public async Task<(bool Success, string? Error, int UserId)> RegisterAsync(RegisterDto dto)
         {
-            // Check if username already exists
-            var exists = await _context.Users
-                .AnyAsync(u => u.Username == dto.Username);
-            if (exists) return null; // username taken
+            var username = (dto.Username ?? string.Empty).Trim();
+            if (username.Length < 3)
+                return (false, "Username must be at least 3 characters.", 0);
 
-            // Hash the password using BCrypt (never store the real password)
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+                return (false, "Username already exists.", 0);
 
-            // Build the new user
+            var passwordError = PasswordPolicy.Validate(dto.Password);
+            if (passwordError != null)
+                return (false, passwordError, 0);
+
             var user = new User
             {
-                Username = dto.Username,
-                PasswordHash = passwordHash,
+                Username = username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Email = dto.Email,
                 FullName = dto.FullName,
                 Role = dto.Role,
@@ -47,52 +59,104 @@ namespace Backend.Services
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
-            // Create a token and return the response
-            return BuildAuthResponse(user);
+            return (true, null, user.UserID);
         }
 
-        // Log in an existing user.
-        // Returns a tuple so the controller can show a specific message
-        // (e.g. a disabled account is different from wrong credentials).
-        public async Task<(bool Success, string? Error, AuthResponseDto? Data)> LoginAsync(LoginDto dto)
+        // Sign in. Every attempt is recorded (Settings > Security). After 5 wrong passwords for
+        // one username from one IP address, sign-in from there is paused for 15 minutes.
+        public async Task<LoginResult> LoginAsync(LoginDto dto, ClientInfo client)
         {
-            // Find the user by username
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+            var username = (dto.Username ?? string.Empty).Trim();
+            if (username.Length == 0 || string.IsNullOrEmpty(dto.Password))
+                return LoginResult.Fail(400, "Please enter both username and password.");
 
-            // User not found -> generic message (don't reveal which part was wrong)
-            if (user == null)
-                return (false, "Invalid username or password.", null);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            var pausedUntil = await _sessions.GetLockoutEndAsync(username, client.IpAddress);
+            if (pausedUntil != null)
+            {
+                await _sessions.RecordAsync(user?.UserID, username, LoginResults.Blocked, client);
+                var minutes = Math.Max(1, (int)Math.Ceiling((pausedUntil.Value - DateTime.UtcNow).TotalMinutes));
+                return LoginResult.Fail(429,
+                    $"Too many failed attempts. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.");
+            }
 
             // Verify the password against the stored hash (BCrypt)
-            var passwordOk = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
-            if (!passwordOk)
-                return (false, "Invalid username or password.", null);
+            var passwordOk = BCrypt.Net.BCrypt.Verify(dto.Password, user?.PasswordHash ?? DummyHash);
+            if (user == null || !passwordOk)
+            {
+                var failures = await _sessions.RecordFailureAsync(user?.UserID, username, client);
+                var left = SecurityOptions.MaxFailedAttempts - failures;
+
+                if (left <= 0)
+                {
+                    if (user != null) await NotifyPausedAsync(user, client);
+                    return LoginResult.Fail(429,
+                        $"Too many failed attempts. Sign-in is paused for {SecurityOptions.LockoutWindow.TotalMinutes:0} minutes.");
+                }
+
+                // The last two tries get a warning.
+                if (left <= 2)
+                    return LoginResult.Fail(401,
+                        $"{InvalidCredentials} {left} attempt{(left == 1 ? "" : "s")} left before sign-in is paused for {SecurityOptions.LockoutWindow.TotalMinutes:0} minutes.");
+
+                return LoginResult.Fail(401, InvalidCredentials);
+            }
 
             // Credentials are correct, but the account is disabled
             if (!user.IsActive)
-                return (false, "Your account is disabled. Please contact administration.", null);
+            {
+                await _sessions.RecordAsync(user.UserID, username, LoginResults.Disabled, client);
+                return LoginResult.Fail(403, "Your account is disabled. Please contact administration.");
+            }
 
-            // Update last login time
             user.LastLogin = DateTime.Now;
             await _context.SaveChangesAsync();
+
+            var session = await _sessions.StartAsync(user, client);
 
             // Record a login notification for the user
             await _notificationService.NotifyPersonalAsync(
                 user.UserID, LoginNotification.Category, LoginNotification.Title,
                 LoginNotification.Message(DateTime.Now));
 
-            return (true, null, BuildAuthResponse(user));
+            return LoginResult.Ok(BuildAuthResponse(user, session.LoginActivityID, session.ExpiresAt!.Value));
+        }
+
+        // A fresh token for the same session while the user keeps working (the old one is
+        // about to expire). Null when the session can't be extended any more.
+        public async Task<AuthResponseDto?> RefreshAsync(int userId, int loginId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !user.IsActive) return null;
+
+            var expiresAt = await _sessions.RenewAsync(loginId, userId);
+            return expiresAt == null ? null : BuildAuthResponse(user, loginId, expiresAt.Value);
+        }
+
+        // Sign out: the session ends on the server too, so the token can't be used again.
+        public Task LogoutAsync(int userId, int loginId, bool idle) =>
+            _sessions.EndAsync(loginId, userId, idle ? SessionEndReasons.TimedOut : SessionEndReasons.SignedOut);
+
+        // Tells the account owner that sign-in was paused, with where the attempts came from.
+        private async Task NotifyPausedAsync(User user, ClientInfo client)
+        {
+            var device = DeviceInfo.From(client.UserAgent);
+            var place = client.IpAddress == null ? "" : $" (IP {client.IpAddress})";
+            await _notificationService.NotifyPersonalAsync(
+                user.UserID, SecurityNotification.Category, "Sign-in paused",
+                $"{SecurityOptions.MaxFailedAttempts} wrong passwords were entered for your account from " +
+                $"{device.Browser} on {device.Os}{place}. Sign-in from there is paused for " +
+                $"{SecurityOptions.LockoutWindow.TotalMinutes:0} minutes. If this wasn't you, change your password " +
+                "in Settings > Account Management.");
         }
 
         // Helper: build the auth response (token + basic user info)
-        private AuthResponseDto BuildAuthResponse(User user)
+        private AuthResponseDto BuildAuthResponse(User user, int loginId, DateTime expiresAtUtc)
         {
-            var token = _tokenService.CreateToken(user);
             return new AuthResponseDto
             {
-                Token = token,
+                Token = _tokenService.CreateToken(user, loginId, expiresAtUtc),
                 UserID = user.UserID,
                 Username = user.Username,
                 FullName = user.FullName,
@@ -100,5 +164,18 @@ namespace Backend.Services
                 ProfilePicture = user.ProfilePicture
             };
         }
+    }
+
+    // Result of a sign-in attempt: the auth data, or the status code and message to return.
+    public record LoginResult(bool Success, int StatusCode, string? Error, AuthResponseDto? Data)
+    {
+        public static LoginResult Ok(AuthResponseDto data) => new(true, 200, null, data);
+        public static LoginResult Fail(int statusCode, string error) => new(false, statusCode, error, null);
+    }
+
+    // Category of security notifications (sign-in paused, and so on).
+    public static class SecurityNotification
+    {
+        public const string Category = "Security";
     }
 }

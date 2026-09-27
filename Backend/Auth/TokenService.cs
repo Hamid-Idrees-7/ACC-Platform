@@ -18,18 +18,21 @@ namespace Backend.Auth
             _config = config;
         }
 
-        // Builds a signed JWT token for the given user
-        public string CreateToken(User user)
+        // Builds a signed JWT token for the given user. loginId is the session (LoginActivity row)
+        // the token belongs to; it expires together with that session.
+        public string CreateToken(User user, int loginId, DateTime expiresAtUtc)
         {
-            var expiryMinutes = double.Parse(_config["Jwt:ExpiryMinutes"]!);
-            return WriteToken(BuildClaims(user), DateTime.UtcNow.AddMinutes(expiryMinutes));
+            var claims = BuildClaims(user);
+            claims.Add(new Claim(SessionClaims.LoginId, loginId.ToString()));
+            return WriteToken(claims, DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc));
         }
 
         // Token for a demo visitor: the same identity claims, plus the visitor's session and
         // private database. It expires together with the demo session.
-        public string CreateDemoToken(User user, int sessionId, string databaseName, string demoRole, DateTime expiresAtUtc)
+        public string CreateDemoToken(User user, int loginId, int sessionId, string databaseName, string demoRole, DateTime expiresAtUtc)
         {
             var claims = BuildClaims(user);
+            claims.Add(new Claim(SessionClaims.LoginId, loginId.ToString()));
             claims.Add(new Claim(DemoClaims.SessionId, sessionId.ToString()));
             claims.Add(new Claim(DemoClaims.Database, databaseName));
             claims.Add(new Claim(DemoClaims.Role, demoRole));

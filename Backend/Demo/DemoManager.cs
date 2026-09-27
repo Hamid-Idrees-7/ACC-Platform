@@ -1,3 +1,4 @@
+using Backend.Auth;
 using Backend.Models.Entities;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,9 @@ namespace Backend.Demo
         public string RoleKey { get; init; } = string.Empty;
         public string RoleLabel { get; init; } = string.Empty;
         public User? User { get; init; }
+
+        // The sign-in row (LoginActivity) in the visitor's database that the token points to.
+        public int LoginId { get; init; }
 
         public static DemoResult Fail(int statusCode, string error) =>
             new() { Success = false, StatusCode = statusCode, Error = error };
@@ -79,7 +83,7 @@ namespace Backend.Demo
 
         // start / switch / end
 
-        public async Task<DemoResult> StartAsync(string role, CancellationToken ct)
+        public async Task<DemoResult> StartAsync(string role, ClientInfo client, CancellationToken ct)
         {
             if (!_options.Enabled)
                 return DemoResult.Fail(404, "The live demo isn't available right now.");
@@ -168,11 +172,13 @@ namespace Backend.Demo
                 }
             }
 
-            return await LoadRoleAsync(sessionId, databaseName, expiresAt, roleKey, CancellationToken.None);
+            return await LoadRoleAsync(sessionId, databaseName, expiresAt, roleKey, client, null, CancellationToken.None);
         }
 
         // Switch to another demo role inside the SAME visitor database. The clock keeps running.
-        public async Task<DemoResult> SwitchAsync(int sessionId, string databaseName, string role, CancellationToken ct)
+        // previousLoginId: the sign-in being replaced (it ends as "RoleSwitched").
+        public async Task<DemoResult> SwitchAsync(int sessionId, string databaseName, string role,
+            ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
             var roleKey = (role ?? string.Empty).Trim().ToLowerInvariant();
             if (!Roles.ContainsKey(roleKey))
@@ -182,13 +188,14 @@ namespace Backend.Demo
             if (expiresAt == null)
                 return DemoResult.Fail(401, "Your demo session has ended.");
 
-            return await LoadRoleAsync(sessionId, databaseName, expiresAt.Value, roleKey, ct);
+            return await LoadRoleAsync(sessionId, databaseName, expiresAt.Value, roleKey, client, previousLoginId, ct);
         }
 
         // View as: see the system exactly as another user in the visitor's own demo database
         // (typically a user the visitor just created and gave permissions to in Control Unit).
         // Same database, same timer. The lookup only ever reads the visitor's database.
-        public async Task<DemoResult> ViewAsAsync(int sessionId, string databaseName, int userId, CancellationToken ct)
+        public async Task<DemoResult> ViewAsAsync(int sessionId, string databaseName, int userId,
+            ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
             var expiresAt = await GetActiveExpiryAsync(sessionId, databaseName, ct);
             if (expiresAt == null)
@@ -206,10 +213,10 @@ namespace Backend.Demo
             var builtIn = Roles.FirstOrDefault(r => r.Value.Username == user.Username);
             if (builtIn.Value != null)
                 return await CompleteSignInAsync(demo, user, sessionId, databaseName, expiresAt.Value,
-                    builtIn.Key, builtIn.Value.Label, ct);
+                    builtIn.Key, builtIn.Value.Label, client, previousLoginId, ct);
 
             return await CompleteSignInAsync(demo, user, sessionId, databaseName, expiresAt.Value,
-                CustomRoleKey, user.FullName, ct);
+                CustomRoleKey, user.FullName, client, previousLoginId, ct);
         }
 
         // The visitor pressed "Exit demo" (or logged out): free the seat and drop the database now.
@@ -358,7 +365,7 @@ namespace Backend.Demo
                  (s.Status == DemoSessionStatus.Active && s.ExpiresAt > nowUtc)), ct);
 
         private async Task<DemoResult> LoadRoleAsync(int sessionId, string databaseName, DateTime expiresAtUtc,
-            string roleKey, CancellationToken ct)
+            string roleKey, ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
             var role = Roles[roleKey];
 
@@ -369,18 +376,44 @@ namespace Backend.Demo
                 return DemoResult.Fail(409,
                     $"The {role.Label} account was removed or disabled during this demo. Exit and start a new demo to get it back.");
 
-            return await CompleteSignInAsync(demo, user, sessionId, databaseName, expiresAtUtc, roleKey, role.Label, ct);
+            return await CompleteSignInAsync(demo, user, sessionId, databaseName, expiresAtUtc, roleKey, role.Label,
+                client, previousLoginId, ct);
         }
 
         // Every demo sign-in (first login, role switch, switch back, View as) is recorded exactly
-        // like a normal login: last-login time + the same "Welcome back" notification in that
-        // user's own inbox, so it shows on their bell with a count.
+        // like a normal login: last-login time, the same "Welcome back" notification in that
+        // user's own inbox, and a sign-in row (Settings > Security) that the token points to.
+        // The sign-in it replaces ends as "RoleSwitched".
         private static async Task<DemoResult> CompleteSignInAsync(Backend.Data.AppDbContext demo, User user,
             int sessionId, string databaseName, DateTime expiresAtUtc, string roleKey, string roleLabel,
-            CancellationToken ct)
+            ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
             var now = DateTime.Now;
+            var utcNow = DateTime.UtcNow;
             user.LastLogin = now;
+
+            if (previousLoginId != null)
+            {
+                var previous = await demo.LoginActivities.FirstOrDefaultAsync(a => a.LoginActivityID == previousLoginId, ct);
+                if (previous != null && previous.EndedAt == null)
+                {
+                    previous.EndedAt = utcNow;
+                    previous.EndReason = SessionEndReasons.RoleSwitched;
+                }
+            }
+
+            var signIn = new LoginActivity
+            {
+                UserID = user.UserID,
+                Username = user.Username.Length > 50 ? user.Username[..50] : user.Username,
+                Result = LoginResults.SignedIn,
+                IpAddress = client.IpAddress,
+                UserAgent = client.UserAgent,
+                CreatedAt = utcNow,
+                LastSeenAt = utcNow,
+                ExpiresAt = DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc)
+            };
+            demo.LoginActivities.Add(signIn);
 
             demo.Notifications.Add(new Notification
             {
@@ -403,7 +436,8 @@ namespace Backend.Demo
                 ExpiresAtUtc = DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc),
                 RoleKey = roleKey,
                 RoleLabel = roleLabel,
-                User = user
+                User = user,
+                LoginId = signIn.LoginActivityID
             };
         }
 

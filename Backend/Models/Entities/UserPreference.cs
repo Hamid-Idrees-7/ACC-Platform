@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // Personal display settings of one user (Settings > Appearance). Stored on the server
+    // Personal settings of one user (Settings > Appearance and Security). Stored on the server
     // so they follow the user to every device. One row per user; a user without a row
     // simply gets the defaults.
     public class UserPreference
@@ -32,6 +32,10 @@ namespace Backend.Models.Entities
         [Required]
         [MaxLength(5)]
         public string TimeFormat { get; set; } = PreferenceOptions.DefaultTimeFormat;
+
+        // Automatic sign-out after this many minutes without activity (0 = off).
+        // Null means the default (SecurityOptions.DefaultIdleMinutes).
+        public int? IdleMinutes { get; set; }
 
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }

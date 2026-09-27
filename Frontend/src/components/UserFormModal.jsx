@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { employeeService } from "../services/employeeService";
+import { passwordError } from "../utils/password";
+import PasswordStrength from "./PasswordStrength";
 import "./UserFormModal.css";
 
 // Validation helpers
@@ -63,12 +65,11 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
     else if (form.username.trim().length < 3) e.username = "Username must be at least 3 characters.";
     else if (/\s/.test(form.username.trim())) e.username = "Username cannot contain spaces.";
 
-    // Password: required on create, optional on edit
-    if (mode !== "edit") {
-      if (!form.password) e.password = "Password is required.";
-      else if (form.password.length < 5) e.password = "Password must be at least 5 characters.";
-    } else if (form.password && form.password.length < 5) {
-      e.password = "Password must be at least 5 characters.";
+    // Password: required on create, optional on edit. Same rule as the server.
+    if (mode !== "edit" && !form.password) e.password = "Password is required.";
+    else if (form.password) {
+      const problem = passwordError(form.password);
+      if (problem) e.password = problem;
     }
 
     if (!form.email.trim()) e.email = "Email is required.";
@@ -160,7 +161,8 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
                   )}
                 </button>
               </div>
-              {errors.password ? <span className="ufm-err">{errors.password}</span> : <span className="ufm-hint">{mode === "edit" ? "Only fill to change it" : "At least 5 characters"}</span>}
+              {errors.password ? <span className="ufm-err">{errors.password}</span> : <span className="ufm-hint">{mode === "edit" ? "Only fill to change it. The user will be signed out of every device." : "At least 8 characters, with a letter and a number"}</span>}
+              {(mode !== "edit" || form.password) && <PasswordStrength password={form.password} />}
             </div>
             <div className="ufm-field">
               <label>Email <span className="req">*</span></label>

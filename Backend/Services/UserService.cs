@@ -1,3 +1,4 @@
+using Backend.Auth;
 using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
@@ -9,15 +10,18 @@ namespace Backend.Services
         private readonly IUserRepository _repository;
         private readonly IPermissionRepository _permissionRepository;
         private readonly INotificationRepository _notificationRepository;
+        private readonly ISessionService _sessions;
 
         public UserService(
             IUserRepository repository,
             IPermissionRepository permissionRepository,
-            INotificationRepository notificationRepository)
+            INotificationRepository notificationRepository,
+            ISessionService sessions)
         {
             _repository = repository;
             _permissionRepository = permissionRepository;
             _notificationRepository = notificationRepository;
+            _sessions = sessions;
         }
 
         public async Task<List<UserDto>> GetAllUsersAsync()
@@ -42,6 +46,10 @@ namespace Backend.Services
             if (await _repository.UsernameExistsAsync(dto.Username.Trim()))
                 return (false, "That username is already taken.", null);
 
+            var passwordError = PasswordPolicy.Validate(dto.Password);
+            if (passwordError != null)
+                return (false, passwordError, null);
+
             var user = new User
             {
                 Username = dto.Username.Trim(),
@@ -61,7 +69,7 @@ namespace Backend.Services
             return (true, null, ToDto(created));
         }
 
-        public async Task<(bool, string?, UserDto?)> UpdateUserAsync(int id, CreateUserDto dto)
+        public async Task<(bool, string?, UserDto?)> UpdateUserAsync(int id, CreateUserDto dto, int? keepLoginId)
         {
             var user = await _repository.GetByIdAsync(id);
             if (user == null) return (false, "User not found.", null);
@@ -69,6 +77,25 @@ namespace Backend.Services
             // Username must be unique (ignoring this same user)
             if (await _repository.UsernameExistsAsync(dto.Username.Trim(), id))
                 return (false, "That username is already taken.", null);
+
+            var newPassword = !string.IsNullOrWhiteSpace(dto.Password);
+            if (newPassword)
+            {
+                var passwordError = PasswordPolicy.Validate(dto.Password);
+                if (passwordError != null)
+                    return (false, passwordError, null);
+            }
+
+            // Signs the user out of every device when their tokens would be wrong or unsafe:
+            //   - a new password or username (they sign in with the new one),
+            //   - becoming Admin or no longer Admin (full access is read from the token),
+            //   - a disabled account.
+            // Any other role name change (eg Manager to Site Manager) keeps them signed in:
+            // their access comes from Control Unit, which is always read fresh.
+            var signOut = newPassword ||
+                          !string.Equals(user.Username, dto.Username.Trim(), StringComparison.Ordinal) ||
+                          IsAdminRole(user.Role) != IsAdminRole(dto.Role) ||
+                          (user.IsActive && !dto.IsActive);
 
             user.Username = dto.Username.Trim();
             user.Email = dto.Email.Trim();
@@ -81,10 +108,14 @@ namespace Backend.Services
             user.UpdatedAt = DateTime.Now;
 
             // Only change the password if a new one was provided
-            if (!string.IsNullOrWhiteSpace(dto.Password))
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            if (newPassword)
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password!);
 
             await _repository.UpdateAsync(user);
+
+            if (signOut)
+                await _sessions.EndAllAsync(id, keepLoginId, SessionEndReasons.AccountChanged);
+
             return (true, null, ToDto(user));
         }
 
@@ -114,8 +145,34 @@ namespace Backend.Services
             user.IsActive = !user.IsActive;
             user.UpdatedAt = DateTime.Now;
             await _repository.UpdateAsync(user);
+
+            // Disabled: signed out of every device at once.
+            if (!user.IsActive)
+                await _sessions.EndAllAsync(id, null, SessionEndReasons.AccountChanged);
+
             return (true, null);
         }
+
+        public async Task<SecurityOverviewDto?> GetSecurityAsync(int id)
+        {
+            var user = await _repository.GetByIdAsync(id);
+            return user == null ? null : await _sessions.GetOverviewAsync(id, null);
+        }
+
+        public async Task<(bool, string?, int)> SignOutEverywhereAsync(int id, int currentUserId)
+        {
+            if (id == currentUserId)
+                return (false, "Manage your own devices in Settings > Security.", 0);
+
+            var user = await _repository.GetByIdAsync(id);
+            if (user == null) return (false, "User not found.", 0);
+
+            var ended = await _sessions.EndAllAsync(id, null, SessionEndReasons.SignedOutRemotely);
+            return (true, null, ended);
+        }
+
+        private static bool IsAdminRole(string? role) =>
+            string.Equals(role?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase);
 
         // Convert entity to DTO (never exposes the password hash)
         private UserDto ToDto(User u)

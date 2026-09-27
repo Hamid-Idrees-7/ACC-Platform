@@ -37,6 +37,9 @@ namespace Backend.Data
         public DbSet<CompanySetting> CompanySettings { get; set; }
         public DbSet<CompanyHoliday> CompanyHolidays { get; set; }
 
+        // Every sign-in attempt; successful ones are also the sessions behind the tokens.
+        public DbSet<LoginActivity> LoginActivities { get; set; }
+
         // Registry of isolated visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
 
@@ -71,6 +74,19 @@ namespace Backend.Data
                 .WithOne()
                 .HasForeignKey<UserPreference>(p => p.UserID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Sign-in history goes away with its user (rows of unknown usernames have no user).
+            modelBuilder.Entity<LoginActivity>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(a => a.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Settings > Security lists one user's history; sign-in counts failures per
+            // username and IP address; old rows are deleted by date.
+            modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.UserID, a.CreatedAt });
+            modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.Username, a.IpAddress, a.CreatedAt });
+            modelBuilder.Entity<LoginActivity>().HasIndex(a => a.CreatedAt);
         }
     }
 }

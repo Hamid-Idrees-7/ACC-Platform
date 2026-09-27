@@ -1,8 +1,10 @@
 using System.Threading.RateLimiting;
+using Backend.Auth;
 using Backend.Data;
 using Backend.Demo;
 using Backend.Repositories;
 using Backend.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
@@ -44,11 +46,24 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
+    // Sign-in is limited per IP address across all usernames (password guessing on many
+    // accounts at once). Wrong passwords for one username are paused separately (AuthService).
+    options.AddPolicy(SecurityOptions.LoginRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0
+            }));
     options.OnRejected = async (context, cancellationToken) =>
     {
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            new { message = "Too many demo attempts from your network. Please wait a few minutes and try again." },
-            cancellationToken);
+        var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+        var message = policy == SecurityOptions.LoginRateLimitPolicy
+            ? "Too many sign-in attempts from your network. Please wait a few minutes and try again."
+            : "Too many demo attempts from your network. Please wait a few minutes and try again.";
+        await context.HttpContext.Response.WriteAsJsonAsync(new { message }, cancellationToken);
     };
 });
 
@@ -114,6 +129,9 @@ builder.Services.AddScoped<IInquiryRepository, InquiryRepository>();
 builder.Services.AddScoped<IInquiryService, InquiryService>();
 // My Profile
 builder.Services.AddScoped<IProfileService, ProfileService>();
+// Sign-in history and sessions (Settings > Security)
+builder.Services.AddScoped<ILoginActivityRepository, LoginActivityRepository>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 // Auth
 builder.Services.AddScoped<Backend.Auth.TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -168,6 +186,9 @@ app.UseAuthentication();
 
 // Stops requests from demo tokens whose session has ended (right after the token is read).
 app.UseMiddleware<DemoSessionMiddleware>();
+
+// Stops requests from tokens whose session has ended (signed out, password changed, disabled...).
+app.UseMiddleware<SessionGuardMiddleware>();
 
 app.UseRateLimiter();
 

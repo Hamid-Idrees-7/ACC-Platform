@@ -1,11 +1,12 @@
 import { Fragment } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import { PermissionProvider } from "./context/PermissionContext";
 import { PreferencesProvider, usePreferences } from "./context/PreferencesContext";
 import { CompanyProvider, useCompany } from "./context/CompanyContext";
 import DemoTransition from "./components/DemoTransition";
+import SessionWatch from "./components/SessionWatch";
 
 // Public pages
 import Home from "./pages/Home";
@@ -55,19 +56,30 @@ import UnderConstruction from "./pages/UnderConstruction";
 // arrives from the server and differs from the cached one. Changes made in Settings > Appearance do NOT remount (that
 // would reload the page and jump it back to the top): the Settings page updates itself and
 // every other page picks up the new format when it opens.
+// Dashboard pages need a signed-in user: anyone else goes to the sign-in page, which
+// brings them back to the page they asked for afterwards.
 function SignedInBoundary() {
-  const { user, loading } = useAuth();
+  const { user, loading, exitTo } = useAuth();
   const { formatVersion } = usePreferences();
   const { companyVersion } = useCompany();
+  const location = useLocation();
 
   // Wait for the saved sign-in to be read, so pages mount once (not first as a guest).
   if (loading) return null;
 
-  const identity = user ? `${user.userID}:${user.username}` : "guest";
+  if (!user) {
+    if (exitTo) return <Navigate to={exitTo} replace />;
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  }
+
+  const identity = `${user.userID}:${user.username}`;
   return (
-    <Fragment key={`${identity}|${formatVersion}|${companyVersion}`}>
-      <Outlet />
-    </Fragment>
+    <>
+      <Fragment key={`${identity}|${formatVersion}|${companyVersion}`}>
+        <Outlet />
+      </Fragment>
+      <SessionWatch />
+    </>
   );
 }
 

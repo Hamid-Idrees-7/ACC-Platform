@@ -30,6 +30,7 @@ namespace Backend.Repositories
                 existing.NumberFormat = preference.NumberFormat;
                 existing.DateFormat = preference.DateFormat;
                 existing.TimeFormat = preference.TimeFormat;
+                existing.IdleMinutes = preference.IdleMinutes;
                 existing.UpdatedAt = DateTime.Now;
             }
             await _context.SaveChangesAsync();

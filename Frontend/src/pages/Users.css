@@ -353,6 +353,26 @@
 .us-detail-delete { background: var(--color-surface); border-color: var(--color-error-border); color: var(--color-error); }
 .us-detail-delete:hover { background: var(--color-error-soft-hover); }
 
+/* Sign-in activity and devices of this user */
+.us-detail-security {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    margin-bottom: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.us-detail-security:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
 /* Live demo: View as this user */
 .us-view-as {
     width: 100%;
