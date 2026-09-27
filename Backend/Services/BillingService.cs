@@ -10,17 +10,20 @@ namespace Backend.Services
         private readonly IClientRepository _clientRepository;
         private readonly IBillingRepository _billingRepository;
         private readonly IProjectExpenseRepository _expenseRepository;
+        private readonly ICompanySettingsService _companyService;
 
         public BillingService(
             IProjectRepository projectRepository,
             IClientRepository clientRepository,
             IBillingRepository billingRepository,
-            IProjectExpenseRepository expenseRepository)
+            IProjectExpenseRepository expenseRepository,
+            ICompanySettingsService companyService)
         {
             _projectRepository = projectRepository;
             _clientRepository = clientRepository;
             _billingRepository = billingRepository;
             _expenseRepository = expenseRepository;
+            _companyService = companyService;
         }
 
         // Overview (list page) 
@@ -181,13 +184,14 @@ namespace Backend.Services
             var (items, error) = await BuildItemsAsync(dto.ProjectID, null, dto.Items);
             if (error != null) return (null, error);
 
-            int seq = await _billingRepository.MaxInvoiceSeqAsync() + 1;
+            var issueDate = dto.IssueDate == default ? DateTime.Now : dto.IssueDate;
 
             var invoice = new Invoice
             {
-                InvoiceNumber = $"INV-{seq:0000}",
+                // The prefix comes from Settings > Company
+                InvoiceNumber = await _companyService.NewInvoiceNumberAsync(),
                 ProjectID = dto.ProjectID,
-                IssueDate = dto.IssueDate == default ? DateTime.Now : dto.IssueDate,
+                IssueDate = issueDate,
                 DueDate = dto.DueDate,
                 TaxAmount = dto.TaxAmount,
                 Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim(),
@@ -262,6 +266,7 @@ namespace Backend.Services
 
             return new InvoicePrintDto
             {
+                Company = await _companyService.GetBrandAsync(),
                 InvoiceID = invoice.InvoiceID,
                 InvoiceNumber = invoice.InvoiceNumber,
                 Status = invoiceDto.Status,

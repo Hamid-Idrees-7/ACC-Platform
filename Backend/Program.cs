@@ -69,6 +69,12 @@ builder.Services.AddScoped<ISalaryService, SalaryService>();
 // User display settings (Settings > Appearance)
 builder.Services.AddScoped<IPreferenceRepository, PreferenceRepository>();
 builder.Services.AddScoped<IPreferenceService, PreferenceService>();
+// Company details, currency and invoice defaults (Settings > Company)
+builder.Services.AddScoped<ICompanySettingsRepository, CompanySettingsRepository>();
+builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
+// Weekly off days and holidays (Settings > Calendar)
+builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
 // Project Expenses (plot, transfer, taxes, possession — feeds project cost and billing)
 builder.Services.AddScoped<IProjectExpenseRepository, ProjectExpenseRepository>();
 builder.Services.AddScoped<IProjectExpenseService, ProjectExpenseService>();

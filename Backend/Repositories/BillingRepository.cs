@@ -136,7 +136,8 @@ namespace Backend.Repositories
             int max = 0;
             foreach (var n in numbers)
             {
-                var m = Regex.Match(n ?? string.Empty, @"(\d+)");
+                // The running number is the last group of digits: INV-0042, ACC-2026-0042.
+                var m = Regex.Match(n ?? string.Empty, @"(\d+)$");
                 if (m.Success && int.TryParse(m.Value, out var val) && val > max)
                     max = val;
             }

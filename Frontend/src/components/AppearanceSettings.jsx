@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { usePreferences } from "../context/PreferencesContext";
-import { rupeesShort, amountInWords, setNumberSystem, getNumberSystem } from "../utils/format";
+import Toast, { useToast } from "./Toast";
+import { moneyShort, amountInWords, setNumberSystem, getNumberSystem } from "../utils/format";
 import { formatDate, formatDateShort, formatTime, setDatePrefs } from "../utils/dates";
 import "./AppearanceSettings.css";
 
@@ -32,7 +34,7 @@ const SAMPLE_AMOUNT = 12500000;
 const sampleNumber = (system) => {
   const current = getNumberSystem();
   setNumberSystem(system);
-  const text = { short: rupeesShort(SAMPLE_AMOUNT), words: amountInWords(SAMPLE_AMOUNT) };
+  const text = { short: moneyShort(SAMPLE_AMOUNT), words: amountInWords(SAMPLE_AMOUNT) };
   setNumberSystem(current);
   return text;
 };
@@ -63,6 +65,15 @@ function ThemePreview({ kind }) {
 // Every choice is applied at once and saved to the server.
 function AppearanceSettings() {
   const { prefs, updatePrefs, saveState } = usePreferences();
+  const [toast, showToast] = useToast(3000);
+
+  // A short toast at the bottom when a choice is saved (or could not be saved).
+  const firstState = useRef(saveState);
+  useEffect(() => {
+    if (saveState === firstState.current) return;
+    if (saveState.status === "saved") showToast("Appearance saved. It follows you to any device.");
+    if (saveState.status === "error") showToast(saveState.message, "error");
+  }, [saveState, showToast]);
 
   const choose = (changes) => {
     updatePrefs(changes).catch(() => {
@@ -169,11 +180,7 @@ function AppearanceSettings() {
         </div>
       </section>
 
-      {saveState.status !== "idle" && (
-        <div className={`aps-status aps-status-${saveState.status}`} role="status">
-          {saveState.status === "saving" ? "Saving..." : saveState.message}
-        </div>
-      )}
+      <Toast toast={toast} />
     </div>
   );
 }

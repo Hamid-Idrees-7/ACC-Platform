@@ -10,7 +10,7 @@ namespace Backend.Models.Entities
         [Key]
         public int InvoiceID { get; set; }
 
-        // Auto-generated, e.g INV-0001
+        // Auto-generated with the prefix from Settings > Company, eg INV-0001
         [Required]
         [MaxLength(20)]
         public string InvoiceNumber { get; set; } = string.Empty;

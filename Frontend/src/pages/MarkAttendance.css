@@ -126,6 +126,18 @@
 }
 .mka-banner.cancel { background: var(--color-error-soft); color: var(--color-error); }   /* intentional */
 .mka-banner.cancel svg { flex-shrink: 0; }
+.mka-banner.info { background: var(--color-info-soft); color: var(--color-text); }
+.mka-banner.info strong { color: var(--color-info-strong); }
+.mka-off-tag {
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    background: var(--color-info-soft);
+    color: var(--color-info-strong);
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
 .mka-banner.warn { background: var(--color-warning-soft); color: var(--color-warning-strong); }   /* amber, intentional */
 
 /* Sections */
@@ -218,15 +230,18 @@
 .mka-dot i { width: 22px; height: 22px; border-radius: 50%; background: var(--color-track); transition: transform 0.12s ease; }
 .mka-dot.present i { background: var(--color-success); }
 .mka-dot.absent i { background: var(--color-error); }
+/* Weekly off, not marked: a hollow ring instead of a grey dot */
+.mka-dot.off i { background: transparent; border: 2px dashed var(--color-border-strong); }
 .mka-dot.sel i { box-shadow: 0 0 0 3px var(--color-primary-soft), 0 0 0 4px var(--color-primary); }
 .mka-dot:hover i { transform: scale(1.12); }
 .mka-dot span { font-size: 9.5px; color: var(--color-text-muted); white-space: nowrap; }
 
-.mka-legend { display: flex; gap: 18px; }
+.mka-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .mka-legend span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
 .mka-legend i { width: 11px; height: 11px; border-radius: 50%; background: var(--color-track); }
 .mka-legend i.present { background: var(--color-success); }
 .mka-legend i.absent { background: var(--color-error); }
+.mka-legend i.off { background: transparent; border: 1.5px dashed var(--color-border-strong); }
 
 /* Toast */
 .mka-toast {

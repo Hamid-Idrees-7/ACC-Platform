@@ -27,7 +27,8 @@ namespace Backend.Repositories
         Task<InvoicePayment?> GetPaymentByIdAsync(int paymentId);
         Task<bool> DeletePaymentAsync(int paymentId);
 
-        // Highest numeric suffix currently used across all invoice numbers (for INV-0001 auto-numbering).
+        // Highest running number used by any invoice (the digits at the end, whatever the
+        // prefix), so numbering carries on when the admin changes the invoice prefix.
         Task<int> MaxInvoiceSeqAsync();
     }
 }

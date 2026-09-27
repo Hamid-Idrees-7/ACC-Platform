@@ -6,7 +6,7 @@ import { projectService } from "../services/projectService";
 import { clientService } from "../services/clientService";
 import ProjectFormModal from "../components/ProjectFormModal";
 import { formatDate } from "../components/DatePicker";
-import { rupeesShort, rupeesPK, amountInWords } from "../utils/format";
+import { moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./ProjectManagement.css";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
@@ -164,10 +164,10 @@ function ProjectManagement() {
         <div className="proj-stat proj-stat-budget no-click">
           <div className="proj-stat-icon">{statIcon("dollar")}</div>
           <div className="proj-stat-text">
-            <div className="proj-stat-money">{loading ? "" : rupeesShort(stats.activeBudget)}</div>
+            <div className="proj-stat-money">{loading ? "" : moneyShort(stats.activeBudget)}</div>
             <div className="proj-stat-label">Active Budget</div>
             {!loading && (
-              <div className="proj-stat-exact">{rupeesPK(stats.activeBudget)} <span className="proj-stat-words">({amountInWords(stats.activeBudget)})</span></div>
+              <div className="proj-stat-exact">{moneyGrouped(stats.activeBudget)} <span className="proj-stat-words">({amountInWords(stats.activeBudget)})</span></div>
             )}
           </div>
         </div>
@@ -234,7 +234,7 @@ function ProjectManagement() {
                 </div>
                 <div className="proj-card-row proj-card-budget">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-                  <span>{rupeesShort(p.budget)} <em>({rupeesPK(p.budget)})</em></span>
+                  <span>{moneyShort(p.budget)} <em>({moneyGrouped(p.budget)})</em></span>
                 </div>
                 <div className="proj-card-row">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>

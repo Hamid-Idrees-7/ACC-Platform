@@ -18,6 +18,8 @@
 }
 .dp-input:hover { border-color: var(--color-text-muted); }
 .dp-input.open { border-color: var(--color-primary); }
+.dp-input.invalid { border-color: var(--color-error); }
+.dp-input.invalid:focus-visible { box-shadow: 0 0 0 3px var(--color-error-soft); }
 .dp-input svg { color: var(--color-primary); flex-shrink: 0; }
 .dp-value { flex: 1; color: var(--color-text); white-space: nowrap; }
 .dp-placeholder { flex: 1; color: var(--color-text-subtle); white-space: nowrap; }

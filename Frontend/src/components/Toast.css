@@ -1,0 +1,37 @@
+/* Bottom toast. Prefix: tst- */
+
+.tst {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    animation: tstin 0.25s ease;
+}
+.tst svg { flex-shrink: 0; }
+.tst-success { background: var(--color-success); }
+.tst-error { background: var(--color-error); }
+.tst-warn { background: var(--color-text-muted); }
+.tst-raised { bottom: 112px; }
+
+@keyframes tstin { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 640px) {
+    .tst { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+    .tst-raised { bottom: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tst { animation: none; }
+}

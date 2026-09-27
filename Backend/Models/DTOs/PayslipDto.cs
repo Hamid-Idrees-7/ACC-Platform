@@ -3,7 +3,8 @@ namespace Backend.Models.DTOs
     // A printable payslip for one employee for one month.
     public class PayslipDto
     {
-        public string CompanyName { get; set; } = "Anonymous Construction & Co.";
+        // Letterhead and currency from Settings > Company
+        public CompanyBrandDto Company { get; set; } = new();
         public int Year { get; set; }
         public int Month { get; set; }
         public string PeriodLabel { get; set; } = string.Empty;   // July 2026

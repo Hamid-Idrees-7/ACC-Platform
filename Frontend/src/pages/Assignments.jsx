@@ -6,7 +6,7 @@ import { employeeService } from "../services/employeeService";
 import { projectService } from "../services/projectService";
 import AssignmentFormModal from "../components/AssignmentFormModal";
 import { formatDate } from "../components/DatePicker";
-import { rupees } from "../utils/format";
+import { money } from "../utils/format";
 import "./Assignments.css";
 
 const initials = (name) => (name || "?").charAt(0).toUpperCase();
@@ -212,7 +212,7 @@ function Assignments() {
                 </div>
 
                 <div className="asn-wage">
-                  <strong>{rupees(a.wageAmount)}</strong>
+                  <strong>{money(a.wageAmount)}</strong>
                   <span>{wageSuffix(a.wageType)}</span>
                 </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import DatePicker, { formatDate } from "./DatePicker";
 import { usePermissions } from "../context/PermissionContext";
 import { projectExpenseService } from "../services/projectExpenseService";
-import { rupees, amountInWords } from "../utils/format";
+import { money, amountInWords, currencySymbol } from "../utils/format";
 import "./ProjectExpenses.css";
 
 // Example text per category, so the description field shows what fits.
@@ -238,16 +238,16 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
           <div className="pex-stats">
             <div className="pex-stat company">
               <span className="pex-stat-lbl">COMPANY COST</span>
-              <strong>{rupees(data.companyTotal)}</strong>
+              <strong>{money(data.companyTotal)}</strong>
               <em>{amountInWords(data.companyTotal)}</em>
               <small>Added to this project's actual cost{topCategory ? ` · most on ${topCategory.label}` : ""}</small>
             </div>
             <div className="pex-stat recoverable">
               <span className="pex-stat-lbl">RECOVERABLE FROM CLIENT</span>
-              <strong>{rupees(data.recoverableTotal)}</strong>
+              <strong>{money(data.recoverableTotal)}</strong>
               <em>{amountInWords(data.recoverableTotal)}</em>
               <small>
-                {rupees(data.recoverableInvoiced)} billed · <b className={data.recoverablePending > 0 ? "pex-pending" : ""}>{rupees(data.recoverablePending)} to bill</b>
+                {money(data.recoverableInvoiced)} billed · <b className={data.recoverablePending > 0 ? "pex-pending" : ""}>{money(data.recoverablePending)} to bill</b>
               </small>
             </div>
           </div>
@@ -295,7 +295,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
                       <div className="pex-meta">{meta.join(" · ")}</div>
                     </div>
                     <div className="pex-amt">
-                      <strong>{rupees(e.amount)}</strong>
+                      <strong>{money(e.amount)}</strong>
                       <em className="pex-amt-words">{amountInWords(e.amount)}</em>
                       {!e.isRecoverable ? (
                         <span className="pex-tag company">Company cost</span>
@@ -371,7 +371,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
 
             <div className="pex-grid">
               <div className="pex-field">
-                <label>Amount (Rs.) <span>*</span></label>
+                <label>Amount ({currencySymbol()}) <span>*</span></label>
                 <input type="number" min="0" step="any" value={form.amount} disabled={lockedByInvoice} placeholder="0" onChange={(ev) => set("amount", ev.target.value)} />
                 {Number(form.amount) > 0 && <div className="pex-words">{amountInWords(form.amount)}</div>}
               </div>
@@ -437,7 +437,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
           <div className="pex-modal pex-confirm" role="dialog" aria-modal="true">
             <h3>Delete this expense?</h3>
             <p>
-              <strong>{confirmDel.description}</strong> ({rupees(confirmDel.amount)}, {formatDate(confirmDel.expenseDate)}) will be removed
+              <strong>{confirmDel.description}</strong> ({money(confirmDel.amount)}, {formatDate(confirmDel.expenseDate)}) will be removed
               {confirmDel.isRecoverable ? "." : " and the project cost will go down by this amount."}
             </p>
             <div className="pex-modal-actions">

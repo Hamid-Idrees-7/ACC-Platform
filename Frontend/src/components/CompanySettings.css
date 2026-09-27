@@ -1,0 +1,153 @@
+/* Settings > Company. Prefix: cps- (form fields reuse the st- classes of Settings.css) */
+
+.cps { display: flex; flex-direction: column; gap: 22px; }
+
+.cps-state { display: flex; justify-content: center; padding: 60px 0; }
+.cps-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: cpsspin 0.8s linear infinite;
+}
+@keyframes cpsspin { to { transform: rotate(360deg); } }
+
+.cps-note, .cps-warn {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+.cps-note { background: var(--color-info-soft); color: var(--color-text); border: 1px solid var(--color-info-border); }
+.cps-warn { margin-top: 12px; background: var(--color-warning-soft); color: var(--color-text); border: 1px solid var(--color-warning-border); }
+
+.cps-section { padding-bottom: 22px; border-bottom: 1px solid var(--color-border); }
+.cps-section:last-of-type { border-bottom: none; }
+.cps-sec-head { margin-bottom: 16px; }
+.cps-sec-head h4 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: var(--color-text); margin: 0 0 3px; }
+.cps-sec-head p { font-size: 13px; color: var(--color-text-muted); margin: 0; }
+
+/* Logo */
+.cps-logo-row { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+.cps-logo {
+    width: 180px;
+    height: 90px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--color-border-strong);
+    background: var(--color-surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.cps-logo span {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--color-text-inverse);
+    background: var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+}
+/* The logo is shown on white, the way it prints */
+.cps-logo.has-img { background: #FFFFFF; border-style: solid; }
+.cps-logo img { max-width: 100%; max-height: 100%; object-fit: contain; padding: 8px; }
+.cps-logo-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cps-logo-side .st-err, .cps-logo-side .st-hint { margin-top: 0; }
+.cps-logo-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.cps-next { color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+/* Currency cards */
+.cps-cur-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cps-cur {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-body);
+    min-width: 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cps-cur:hover { border-color: var(--color-primary-light); }
+.cps-cur.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+.cps-cur-sym {
+    min-width: 46px;
+    height: 46px;
+    padding: 0 6px;
+    border-radius: var(--radius-md);
+    background: var(--color-neutral-soft);
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-size: 17px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.cps-cur.active .cps-cur-sym { background: var(--color-primary); color: var(--color-text-inverse); }
+.cps-cur-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cps-cur-text strong { font-size: 14px; color: var(--color-text); }
+.cps-cur-text span { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cps-updated { font-size: 12.5px; color: var(--color-text-muted); margin: 0; }
+
+/* Save bar */
+.cps-bar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px 12px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    font-size: 13.5px;
+    color: var(--color-text-muted);
+}
+.cps-bar.show {
+    border-color: var(--color-primary-light);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text);
+    font-weight: 600;
+}
+.cps-bar-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.cps-bar .st-btn-save { padding: 10px 22px; }
+.cps-btn-ghost {
+    padding: 10px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.cps-btn-ghost:hover:not(:disabled) { background: var(--color-hover); }
+.cps-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cps button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+@media (max-width: 1100px) {
+    .cps-cur-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .cps-logo-row { flex-direction: column; align-items: flex-start; }
+    .cps-logo { width: 100%; max-width: 260px; }
+    .cps-cur-grid { grid-template-columns: minmax(0, 1fr); }
+    .cps-bar { flex-direction: column; align-items: stretch; padding: 12px; bottom: 8px; }
+    .cps-bar > span { text-align: center; }
+    .cps-bar-actions > * { flex: 1; }
+}

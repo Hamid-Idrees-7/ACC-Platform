@@ -11,6 +11,7 @@ namespace Backend.Services
         private readonly IProjectRepository _projectRepository;
         private readonly IAttendanceRepository _attendanceRepository;
         private readonly ISalaryRepository _salaryRepository;
+        private readonly ICompanySettingsService _companyService;
 
         private static readonly string[] MonthNames =
         {
@@ -23,13 +24,15 @@ namespace Backend.Services
             IAssignmentRepository assignmentRepository,
             IProjectRepository projectRepository,
             IAttendanceRepository attendanceRepository,
-            ISalaryRepository salaryRepository)
+            ISalaryRepository salaryRepository,
+            ICompanySettingsService companyService)
         {
             _employeeRepository = employeeRepository;
             _assignmentRepository = assignmentRepository;
             _projectRepository = projectRepository;
             _attendanceRepository = attendanceRepository;
             _salaryRepository = salaryRepository;
+            _companyService = companyService;
         }
 
         public async Task<SalaryPeriodDto> GetPeriodAsync(int year, int month, int? projectId)
@@ -178,6 +181,7 @@ namespace Backend.Services
 
             return new PayslipDto
             {
+                Company = await _companyService.GetBrandAsync(),
                 Year = year,
                 Month = month,
                 PeriodLabel = $"{MonthNames[month]} {year}",

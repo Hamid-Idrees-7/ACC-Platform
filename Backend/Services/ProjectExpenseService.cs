@@ -1,4 +1,3 @@
-using System.Globalization;
 using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
@@ -8,18 +7,21 @@ namespace Backend.Services
     // Business rules for project expenses (plot fees, transfer fees, taxes, possession charges...).
     public class ProjectExpenseService : IProjectExpenseService
     {
-        // Upper sanity limit for one expense (Rs 10 billion) — catches typing mistakes like extra zeros.
+        // Upper sanity limit for one expense (10 billion) — catches typing mistakes like extra zeros.
         private const decimal MaxAmount = 10_000_000_000m;
 
         private readonly IProjectExpenseRepository _repository;
         private readonly IProjectRepository _projectRepository;
+        private readonly ICompanySettingsService _companyService;
 
         public ProjectExpenseService(
             IProjectExpenseRepository repository,
-            IProjectRepository projectRepository)
+            IProjectRepository projectRepository,
+            ICompanySettingsService companyService)
         {
             _repository = repository;
             _projectRepository = projectRepository;
+            _companyService = companyService;
         }
 
         public async Task<ProjectExpensesDto?> GetProjectExpensesAsync(int projectId)
@@ -147,13 +149,11 @@ namespace Backend.Services
         public async Task<string> DescribeAsync(ProjectExpenseDto expense)
         {
             var project = await _projectRepository.GetByIdAsync(expense.ProjectID);
-            var label = $"{expense.Description} ({FormatRs(expense.Amount)}) on {project?.Title ?? "a project"}";
+            var amount = await _companyService.FormatMoneyAsync(expense.Amount);
+            var label = $"{expense.Description} ({amount}) on {project?.Title ?? "a project"}";
             // PendingAction.TargetName holds up to 150 characters.
             return label.Length <= 150 ? label : label[..147] + "...";
         }
-
-        public static string FormatRs(decimal amount) =>
-            "Rs " + amount.ToString("#,0.##", CultureInfo.InvariantCulture);
 
         // Validates and cleans the incoming values. Returns the cleaned copy or an error message.
         private async Task<(SaveProjectExpenseDto? Clean, string? Error)> ValidateAsync(int projectId, SaveProjectExpenseDto dto)

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatQty, rupees, amountInWords } from "../utils/format";
+import { formatQty, money, amountInWords, currencySymbol } from "../utils/format";
 import { projectService } from "../services/projectService";
 import "./StockModal.css";
 
@@ -119,12 +119,12 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
             {isIssue ? (
               <div className="stm-field">
                 <label>Issue Cost (avg) </label>
-                <div className="stm-readonly">{rupees(avgCost)} / {material.unit}</div>
+                <div className="stm-readonly">{money(avgCost)} / {material.unit}</div>
                 <span className="stm-hint">{amountInWords(avgCost)} / {material.unit}</span>
               </div>
             ) : (
               <div className="stm-field">
-                <label>Buying Price (Rs / {material.unit}) <span className="req">*</span></label>
+                <label>Buying Price ({currencySymbol()} / {material.unit}) <span className="req">*</span></label>
                 <input type="number" min="0" step="any" value={rate} onChange={(e) => { setRate(e.target.value); setErrors({ ...errors, rate: "" }); }} className={errors.rate ? "err" : ""} placeholder="0" />
                 {errors.rate ? <span className="stm-err">{errors.rate}</span> : Number(rate) > 0 && <span className="stm-hint">{amountInWords(rate)} / {material.unit}</span>}
               </div>
@@ -146,7 +146,7 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
             <div className="stm-preview-amount">
               <div className="stm-preview-row">
                 <span>Total Amount</span>
-                <strong className="accent">{rupees(total)}</strong>
+                <strong className="accent">{money(total)}</strong>
               </div>
               {total > 0 && <div className="stm-preview-words">({amountInWords(total)})</div>}
             </div>

@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
+import { useCompany, offDayOf } from "../context/CompanyContext";
 import { attendanceService } from "../services/attendanceService";
 import DatePicker from "../components/DatePicker";
 import { formatDayMonth, formatDateShort } from "../utils/dates";
-import { rupeesCompact } from "../utils/format";
+import { moneyCompact } from "../utils/format";
 import "./MarkAttendance.css";
 
 const dm = (d) => formatDayMonth(d);
@@ -14,7 +15,7 @@ const toISO = (d) => { const x = new Date(d); return `${x.getFullYear()}-${Strin
 const todayISO = () => toISO(new Date());
 
 // Compact money for wage tags: 75000 -> 75.0K, 120000 -> 1.20 Lac (or 120.0K)
-const money = (n) => rupeesCompact(n);
+const money = (n) => moneyCompact(n);
 const wageLabel = (w) => (w.wageType === "Monthly" ? `${money(w.wageAmount)}/mo` : w.wageType === "Contract" ? `${money(w.wageAmount)} contract` : `${money(w.wageAmount)}/day`);
 
 function MarkAttendance() {
@@ -22,6 +23,9 @@ function MarkAttendance() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const canMark = can("Attendance", "Mark");
+  // Weekly off days and holidays (Settings > Calendar)
+  const { calendar } = useCompany();
+  const hasOffDays = (calendar.weeklyOffDays || []).length > 0 || (calendar.holidays || []).length > 0;
 
   const [date, setDate] = useState(todayISO());
   const [sheet, setSheet] = useState(null);
@@ -60,6 +64,7 @@ function MarkAttendance() {
   const isFuture = date > todayISO();
   const readOnly = sheet?.isReadOnly || !canMark;
   const canEdit = !readOnly && !isFuture;
+  const offDay = offDayOf(calendar, date);
 
   const shiftDate = (days) => { const x = new Date(date); x.setDate(x.getDate() + days); setDate(toISO(x)); };
 
@@ -158,9 +163,10 @@ function MarkAttendance() {
                 <div className="mka-dots">
                   {w.timeline.map((d) => {
                     const iso = toISO(d.date);
-                    const cls = d.status === "Present" ? "present" : d.status === "Absent" ? "absent" : "none";
+                    const off = !d.status && offDayOf(calendar, iso);
+                    const cls = d.status === "Present" ? "present" : d.status === "Absent" ? "absent" : off ? "off" : "none";
                     return (
-                      <button key={iso} className={`mka-dot ${cls} ${iso === date ? "sel" : ""}`} onClick={() => setDate(iso)} title={dmy(d.date)}>
+                      <button key={iso} className={`mka-dot ${cls} ${iso === date ? "sel" : ""}`} onClick={() => setDate(iso)} title={off ? `${dmy(d.date)} · ${off.kind === "holiday" ? off.name : "weekly off"}` : dmy(d.date)}>
                         <i />
                         <span>{dm(d.date)}</span>
                       </button>
@@ -171,6 +177,7 @@ function MarkAttendance() {
                   <span><i className="present" /> Present</span>
                   <span><i className="absent" /> Absent</span>
                   <span><i className="none" /> Not marked</span>
+                  {hasOffDays && <span><i className="off" /> Off day / holiday</span>}
                 </div>
               </div>
             )}
@@ -210,7 +217,7 @@ function MarkAttendance() {
           </div>
         </div>
         <div className="mka-date-wrap">
-          <span className="mka-date-label">DATE</span>
+          <span className="mka-date-label">DATE{offDay && <em className="mka-off-tag">{offDay.kind === "holiday" ? "HOLIDAY" : "WEEKLY OFF"}</em>}</span>
           <div className="mka-date">
             <button className="mka-date-nav" onClick={() => shiftDate(-1)} aria-label="Previous day">‹</button>
             <div className="mka-date-box"><DatePicker value={date} onChange={(v) => setDate(v || todayISO())} allowClear={false} /></div>
@@ -224,7 +231,7 @@ function MarkAttendance() {
         <div className="mka-stats">
           <span className="mka-stat present">{counts.p} Present</span>
           <span className="mka-stat absent">{counts.a} Absent</span>
-          <span className="mka-stat none">{counts.u} Unmarked</span>
+          <span className="mka-stat none">{counts.u} {offDay ? "Off" : "Unmarked"}</span>
         </div>
         {!readOnly && (
           <div className="mka-actions">
@@ -245,6 +252,16 @@ function MarkAttendance() {
       )}
       {!sheet.isReadOnly && isFuture && (
         <div className="mka-banner warn">This is a future date — attendance can only be marked up to today.</div>
+      )}
+      {!sheet.isReadOnly && !isFuture && offDay && onSiteWorkers.length > 0 && (
+        <div className="mka-banner info">
+          <span>
+            {offDay?.kind === "holiday"
+              ? <>This day is a company holiday: <strong>{offDay.name}</strong>.</>
+              : <><strong>{offDay?.name}</strong> is the weekly off.</>}
+            {" "}Mark only the workers who came in; the rest can stay unmarked.
+          </span>
+        </div>
       )}
       {!sheet.isReadOnly && !isFuture && onSiteWorkers.length === 0 && (
         <div className="mka-banner warn">No worker is on site on this date.</div>

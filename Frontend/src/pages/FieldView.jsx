@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
+import { useCompany, offDayOf } from "../context/CompanyContext";
 import { fieldService } from "../services/fieldService";
-import { formatQty, amountInWords } from "../utils/format";
+import { formatQty, numberInWords } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./FieldView.css";
 
@@ -17,6 +18,9 @@ const todayISO = () => {
 function FieldView() {
   const { can } = usePermissions();
   const canManage = can("Field", "Manage");
+  // Is today a weekly off day or a holiday? (Settings > Calendar)
+  const { calendar } = useCompany();
+  const offToday = offDayOf(calendar, todayISO());
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -295,6 +299,12 @@ function FieldView() {
                 <>
                   {sheet.isReadOnly && <div className="fv-readonly">This project is cancelled — attendance is read-only.</div>}
                   {!canManage && !sheet.isReadOnly && <div className="fv-readonly">You have view access only — ask an admin for "Mark Attendance".</div>}
+                  {offToday && !sheet.isReadOnly && (
+                    <div className="fv-offday">
+                      {offToday.kind === "holiday" ? `Today is a company holiday (${offToday.name}).` : `Today is the weekly off (${offToday.name}).`}
+                      {" "}Mark only the workers who came in.
+                    </div>
+                  )}
 
                   {[...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])].length === 0 ? (
                     <div className="fv-empty"><p>No workers assigned to this site.</p></div>
@@ -432,7 +442,9 @@ function FieldView() {
                     <span className="fv-today">
                       <span className="fv-dot present" />{p.todayPresent}
                       <span className="fv-dot absent" />{p.todayAbsent}
-                      {p.todayUnmarked > 0 && <span className="fv-today-left">{p.todayUnmarked} to mark</span>}
+                      {offToday
+                        ? <span className="fv-today-off">{offToday.kind === "holiday" ? offToday.name : "Weekly off"}</span>
+                        : p.todayUnmarked > 0 && <span className="fv-today-left">{p.todayUnmarked} to mark</span>}
                     </span>
                   </div>
                 </button>
@@ -463,7 +475,7 @@ function FieldView() {
                 <input type="number" min="0" step="any" value={reqForm.quantity} onChange={(e) => setReqForm((f) => ({ ...f, quantity: e.target.value }))} placeholder="How much do you need?" />
                 {Number(reqForm.quantity) > 0 && (() => {
                   const unit = reqOptions.materials.find((m) => String(m.materialID) === reqForm.materialID)?.unit || "";
-                  const words = Number.isInteger(Number(reqForm.quantity)) ? ` (${amountInWords(reqForm.quantity).replace(/ rupees$/, "")})` : "";
+                  const words = Number.isInteger(Number(reqForm.quantity)) ? ` (${numberInWords(reqForm.quantity)})` : "";
                   return <div className="fv-qty-words">= {formatQty(reqForm.quantity)}{unit ? ` ${unit}` : ""}{words}</div>;
                 })()}
 

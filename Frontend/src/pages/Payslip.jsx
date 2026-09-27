@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { salaryService } from "../services/salaryService";
-import { rupees } from "../utils/format";
+import { money } from "../utils/format";
 import { formatDateTime } from "../utils/dates";
+import DocLetterhead from "../components/DocLetterhead";
 import "./Payslip.css";
 
 const rateLabel = (l) =>
-  l.sourceType === "Monthly" ? `${rupees(l.rate)}` : l.sourceType === "Contract" ? `${rupees(l.rate)}` : `${rupees(l.rate)}`;
+  l.sourceType === "Monthly" ? `${money(l.rate)}` : l.sourceType === "Contract" ? `${money(l.rate)}` : `${money(l.rate)}`;
 const rateUnit = (l) => (l.sourceType === "Daily" ? "/day" : l.sourceType === "Contract" ? "contract" : "/month");
 
 function Payslip() {
@@ -61,14 +62,9 @@ function Payslip() {
       <div className="psl-doc-scroll">
         <div className="psl-doc theme-paper" id="psl-print-area">
           <div className="psl-head">
-            <div className="psl-brand">
-              <div className="psl-logo">ACC</div>
-              <div>
-                <h2>{slip.companyName}</h2>
-                <span>Salary — Payslip Document</span>
-              </div>
-            </div>
+            <DocLetterhead company={slip.company} />
             <div className="psl-period">
+              <span className="psl-doc-kind">Salary Payslip</span>
               <span>PAY PERIOD</span>
               <strong>{slip.periodLabel}</strong>
             </div>
@@ -97,11 +93,11 @@ function Payslip() {
                     <td>{l.sourceType}</td>
                     <td>{rateLabel(l)} <span className="psl-unit">{rateUnit(l)}</span></td>
                     <td>{l.sourceType === "Daily" ? `${l.presentDays} present / ${l.absentDays} absent` : "—"}</td>
-                    <td className="r">{rupees(l.calculatedAmount)}</td>
+                    <td className="r">{money(l.calculatedAmount)}</td>
                     <td className="r">
                       {l.isPaid ? (
                         <div className="psl-paid">
-                          <strong>{rupees(l.paidAmount)}</strong>
+                          <strong>{money(l.paidAmount)}</strong>
                           {Number(l.paidAmount) !== Number(l.calculatedAmount) && <span className="psl-override">OVERRIDE</span>}
                         </div>
                       ) : (
@@ -115,12 +111,12 @@ function Payslip() {
           </div>
 
           <div className="psl-totals">
-            <div className="psl-total-row"><span>Total Calculated</span><strong>{rupees(slip.totalCalculated)}</strong></div>
-            <div className="psl-net"><span>Net Payable / Paid</span><strong>{rupees(slip.netPaid)}</strong></div>
+            <div className="psl-total-row"><span>Total Calculated</span><strong>{money(slip.totalCalculated)}</strong></div>
+            <div className="psl-net"><span>Net Payable / Paid</span><strong>{money(slip.netPaid)}</strong></div>
           </div>
 
           <div className="psl-foot">
-            <p>This is a system-generated payslip from the ACC.</p>
+            <p>This is a system-generated payslip from {(slip.company?.companyName || "").replace(/\.$/, "")}.</p>
             <p className="psl-gen">Generated on {formatDateTime(slip.generatedAt)}</p>
           </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { reportsService } from "../services/reportsService";
-import { rupees, rupeesShort, formatNum, formatQty, amountInWords } from "../utils/format";
+import { money, moneyShort, formatNum, formatQty, amountInWords } from "../utils/format";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -9,6 +9,7 @@ import {
 import { formatDateShort } from "../utils/dates";
 import { chartTheme } from "../utils/chartTheme";
 import { usePreferences } from "../context/PreferencesContext";
+import { useCompany } from "../context/CompanyContext";
 import "./Reports.css";
 
 const TABS = [
@@ -47,7 +48,7 @@ function ChartCard({ title, children, wide }) {
 }
 
 // Recharts tooltip that formats money nicely
-const moneyTip = (value) => rupeesShort(value);
+const moneyTip = (value) => moneyShort(value);
 
 function Reports() {
   const [data, setData] = useState(null);
@@ -55,6 +56,7 @@ function Reports() {
   const [error, setError] = useState(false);
   const [tab, setTab] = useState("financial");
   const { resolvedTheme } = usePreferences();
+  const { company } = useCompany();
   const chart = useMemo(() => chartTheme(resolvedTheme), [resolvedTheme]);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ function Reports() {
         </div>
 
         <div className="rep-print-head">
-          <h2>Anonymous Construction &amp; Co. — {TABS.find((t) => t.key === tab)?.label} Report</h2>
+          <h2>{company.companyName} — {TABS.find((t) => t.key === tab)?.label} Report</h2>
           <span>Generated on {genOn}</span>
         </div>
 
@@ -110,14 +112,14 @@ function Reports() {
         {tab === "financial" && (
           <>
             <div className="rep-kpis">
-              <Kpi label="Total Budget" value={rupeesShort(fin.totalBudget)} words={amountInWords(fin.totalBudget)} sub={`${fin.liveProjects} live project${fin.liveProjects === 1 ? "" : "s"}${fin.cancelledProjects > 0 ? ` · ${fin.cancelledProjects} cancelled excluded` : ""}`} tone="blue" />
-              <Kpi label="Total Cost" value={rupeesShort(fin.totalCost)} words={amountInWords(fin.totalCost)} sub={`Material ${rupeesShort(fin.materialCost)} · Labour ${rupeesShort(fin.labourCost)} · Expenses ${rupeesShort(fin.expenseCost || 0)}`} tone="amber" />
-              <Kpi label="Total Profit" value={rupeesShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
-              <Kpi label="Received" value={rupeesShort(fin.totalReceived)} words={amountInWords(fin.totalReceived)} sub={`Billed ${rupeesShort(fin.totalBilled)}`} tone="primary" />
+              <Kpi label="Total Budget" value={moneyShort(fin.totalBudget)} words={amountInWords(fin.totalBudget)} sub={`${fin.liveProjects} live project${fin.liveProjects === 1 ? "" : "s"}${fin.cancelledProjects > 0 ? ` · ${fin.cancelledProjects} cancelled excluded` : ""}`} tone="blue" />
+              <Kpi label="Total Cost" value={moneyShort(fin.totalCost)} words={amountInWords(fin.totalCost)} sub={`Material ${moneyShort(fin.materialCost)} · Labour ${moneyShort(fin.labourCost)} · Expenses ${moneyShort(fin.expenseCost || 0)}`} tone="amber" />
+              <Kpi label="Total Profit" value={moneyShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
+              <Kpi label="Received" value={moneyShort(fin.totalReceived)} words={amountInWords(fin.totalReceived)} sub={`Billed ${moneyShort(fin.totalBilled)}`} tone="primary" />
             </div>
             <div className="rep-kpis">
-              <Kpi label="Remaining" value={rupeesShort(fin.outstanding)} words={amountInWords(fin.outstanding)} tone={fin.outstanding > 0 ? "red" : ""} />
-              <Kpi label="Overdue" value={rupeesShort(fin.overdue)} words={amountInWords(fin.overdue)} tone={fin.overdue > 0 ? "red" : ""} />
+              <Kpi label="Remaining" value={moneyShort(fin.outstanding)} words={amountInWords(fin.outstanding)} tone={fin.outstanding > 0 ? "red" : ""} />
+              <Kpi label="Overdue" value={moneyShort(fin.overdue)} words={amountInWords(fin.overdue)} tone={fin.overdue > 0 ? "red" : ""} />
               <Kpi label="Active Projects" value={fin.activeProjects} />
               <Kpi label="Completed" value={fin.completedProjects} />
             </div>
@@ -128,7 +130,7 @@ function Reports() {
                   <LineChart data={fin.revenueTrend} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                     <XAxis dataKey="label" tick={{ fill: chart.text, fontSize: 12 }} />
-                    <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                    <YAxis tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
                     <Tooltip formatter={moneyTip} {...chart.tooltip} />
                     <Legend wrapperStyle={{ color: chart.text }} />
                     <Line type="monotone" dataKey="billed" name="Billed" stroke={C_BLUE} strokeWidth={2.5} dot={{ r: 3 }} />
@@ -142,7 +144,7 @@ function Reports() {
                   <BarChart data={[{ name: "Company", Budget: fin.totalBudget, Cost: fin.totalCost, Profit: fin.totalProfit }]} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                     <XAxis dataKey="name" tick={{ fill: chart.text, fontSize: 12 }} />
-                    <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                    <YAxis tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
                     <Tooltip formatter={moneyTip} {...chart.tooltip} />
                     <Legend wrapperStyle={{ color: chart.text }} />
                     <Bar dataKey="Budget" fill={C_BLUE} radius={[4, 4, 0, 0]} />
@@ -172,7 +174,7 @@ function Reports() {
                   <ResponsiveContainer width="100%" height={Math.max(160, fin.expensesByCategory.length * 44 + 40)}>
                     <BarChart data={fin.expensesByCategory} layout="vertical" margin={{ top: 4, right: 24, left: 10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} horizontal={false} />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <XAxis type="number" tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} />
                       <YAxis type="category" dataKey="label" tick={{ fill: chart.text, fontSize: 12 }} width={190} />
                       <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="value" name="Cost" fill={C_AMBER} radius={[0, 4, 4, 0]} />
@@ -181,8 +183,8 @@ function Reports() {
                 )}
                 {fin.recoverableTotal > 0 && (
                   <p className="rep-chart-note">
-                    Also paid on clients' behalf (billed back, not a cost): {rupees(fin.recoverableTotal)}
-                    {fin.recoverablePending > 0 ? ` · ${rupees(fin.recoverablePending)} still to bill` : " · all billed"}
+                    Also paid on clients' behalf (billed back, not a cost): {money(fin.recoverableTotal)}
+                    {fin.recoverablePending > 0 ? ` · ${money(fin.recoverablePending)} still to bill` : " · all billed"}
                   </p>
                 )}
               </ChartCard>
@@ -197,7 +199,7 @@ function Reports() {
               <Kpi label="Projects" value={fin.projectCount} tone="blue" />
               <Kpi label="Active" value={fin.activeProjects} tone="primary" />
               <Kpi label="Completed" value={fin.completedProjects} tone="green" />
-              <Kpi label="Total Profit" value={rupeesShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
+              <Kpi label="Total Profit" value={moneyShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
             </div>
 
             <div className="rep-charts">
@@ -207,7 +209,7 @@ function Reports() {
                     <BarChart data={data.projects.filter((p) => p.status !== "Cancelled").slice(0, 8)} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                       <XAxis dataKey="title" tick={{ fill: chart.text, fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                      <YAxis tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
+                      <YAxis tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} width={70} />
                       <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Legend wrapperStyle={{ color: chart.text }} />
                       <Bar dataKey="budget" name="Budget" fill={C_BLUE} radius={[4, 4, 0, 0]} />
@@ -235,18 +237,18 @@ function Reports() {
                       <td>{p.clientName}</td>
                       <td><span className={`rep-status ${p.status.replace(/\s/g, "").toLowerCase()}`}>{p.status}</span></td>
                       <td className="r">{p.progress}%</td>
-                      <td className="r">{rupees(p.budget)}</td>
-                      <td className="r">{rupees(p.cost)}</td>
+                      <td className="r">{money(p.budget)}</td>
+                      <td className="r">{money(p.cost)}</td>
                       {p.status === "Cancelled" ? (
                         <><td className="r">—</td><td className="r">—</td></>
                       ) : (
                         <>
-                          <td className={`r ${p.profit >= 0 ? "pos" : "neg"}`}>{rupees(p.profit)}</td>
+                          <td className={`r ${p.profit >= 0 ? "pos" : "neg"}`}>{money(p.profit)}</td>
                           <td className={`r ${p.profit >= 0 ? "pos" : "neg"}`}>{p.marginPercent}%</td>
                         </>
                       )}
-                      <td className="r">{rupees(p.received)}</td>
-                      <td className="r">{rupees(p.outstanding)}</td>
+                      <td className="r">{money(p.received)}</td>
+                      <td className="r">{money(p.outstanding)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -260,9 +262,9 @@ function Reports() {
           <>
             <div className="rep-kpis">
               <Kpi label="Materials" value={mat.totalMaterials} tone="blue" />
-              <Kpi label="Inventory Value" value={rupeesShort(mat.inventoryValue)} words={amountInWords(mat.inventoryValue)} tone="primary" />
-              <Kpi label="Total Purchased" value={rupeesShort(mat.totalPurchased)} words={amountInWords(mat.totalPurchased)} tone="green" />
-              <Kpi label="Issued to Projects" value={rupeesShort(mat.totalIssued)} words={amountInWords(mat.totalIssued)} tone="amber" />
+              <Kpi label="Inventory Value" value={moneyShort(mat.inventoryValue)} words={amountInWords(mat.inventoryValue)} tone="primary" />
+              <Kpi label="Total Purchased" value={moneyShort(mat.totalPurchased)} words={amountInWords(mat.totalPurchased)} tone="green" />
+              <Kpi label="Issued to Projects" value={moneyShort(mat.totalIssued)} words={amountInWords(mat.totalIssued)} tone="amber" />
             </div>
             <div className="rep-kpis">
               <Kpi label="Low Stock" value={mat.lowStock} tone={mat.lowStock > 0 ? "amber" : ""} />
@@ -288,7 +290,7 @@ function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={mat.topMaterials} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <XAxis type="number" tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" tick={{ fill: chart.text, fontSize: 11 }} width={110} />
                       <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="inventoryValue" name="Inventory Value" fill={C_PRIMARY} radius={[0, 4, 4, 0]} />
@@ -309,10 +311,10 @@ function Reports() {
                       <td>{m.name} {m.stockState !== "OK" && <span className={`rep-tag ${m.stockState.toLowerCase()}`}>{m.stockState}</span>}</td>
                       <td>{m.category}</td>
                       <td className="r">{formatQty(m.stock)} {m.unit}</td>
-                      <td className="r">{rupees(m.avgCost)}</td>
-                      <td className="r">{rupees(m.inventoryValue)}</td>
-                      <td className="r">{rupees(m.purchased)}</td>
-                      <td className="r">{rupees(m.issued)}</td>
+                      <td className="r">{money(m.avgCost)}</td>
+                      <td className="r">{money(m.inventoryValue)}</td>
+                      <td className="r">{money(m.purchased)}</td>
+                      <td className="r">{money(m.issued)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -328,7 +330,7 @@ function Reports() {
               <Kpi label="Employees" value={wf.totalEmployees} sub={`${wf.activeEmployees} active`} tone="blue" />
               <Kpi label="Assignments" value={wf.totalAssignments} sub={`${wf.activeAssignments} active`} tone="primary" />
               <Kpi label="Attendance Rate" value={`${wf.presentRate}%`} sub={`${formatNum(wf.presentCount)} present · ${formatNum(wf.absentCount)} absent`} tone="green" />
-              <Kpi label={`Payroll — ${wf.payrollPeriod}`} value={rupeesShort(wf.payrollTotal)} words={amountInWords(wf.payrollTotal)} sub={`Paid ${rupeesShort(wf.payrollPaid)} · Pending ${rupeesShort(wf.payrollPending)}`} tone="amber" />
+              <Kpi label={`Payroll — ${wf.payrollPeriod}`} value={moneyShort(wf.payrollTotal)} words={amountInWords(wf.payrollTotal)} sub={`Paid ${moneyShort(wf.payrollPaid)} · Pending ${moneyShort(wf.payrollPending)}`} tone="amber" />
             </div>
 
             <div className="rep-charts">
@@ -351,7 +353,7 @@ function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={wf.labourByProject} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
-                      <XAxis type="number" tickFormatter={rupeesShort} tick={{ fill: chart.text, fontSize: 11 }} />
+                      <XAxis type="number" tickFormatter={moneyShort} tick={{ fill: chart.text, fontSize: 11 }} />
                       <YAxis type="category" dataKey="label" tick={{ fill: chart.text, fontSize: 11 }} width={110} />
                       <Tooltip formatter={moneyTip} {...chart.tooltip} />
                       <Bar dataKey="value" name="Labour Cost" fill={C_AMBER} radius={[0, 4, 4, 0]} />

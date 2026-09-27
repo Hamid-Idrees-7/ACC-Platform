@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { salaryService } from "../services/salaryService";
-import { rupees, rupeesPK, amountInWords } from "../utils/format";
+import { money, moneyGrouped, amountInWords, currencySymbol } from "../utils/format";
 import "./Salaries.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
-  l.sourceType === "Monthly" ? `${rupees(l.rate)} /month` : l.sourceType === "Contract" ? `${rupees(l.rate)} contract` : `${rupees(l.rate)} /day`;
+  l.sourceType === "Monthly" ? `${money(l.rate)} /month` : l.sourceType === "Contract" ? `${money(l.rate)} contract` : `${money(l.rate)} /day`;
 
 const SECTIONS = [
   { type: "Monthly", title: "MONTHLY STAFF" },
@@ -117,7 +117,7 @@ function Salaries() {
       <div className="sal-card-body">
         <div className="sal-c-top">
           <span className="sal-c-project">{line.sourceType === "Monthly" ? "Company Payroll" : line.projectName}</span>
-          <span className="sal-c-amt">{rupees(line.isPaid ? line.paidAmount : line.calculatedAmount)}</span>
+          <span className="sal-c-amt">{money(line.isPaid ? line.paidAmount : line.calculatedAmount)}</span>
         </div>
         <div className="sal-c-meta">
           <span className={`sal-type ${line.sourceType.toLowerCase()}`}>{line.sourceType}</span>
@@ -125,7 +125,7 @@ function Salaries() {
           {line.sourceType === "Daily" && <span className="sal-att">{line.presentDays} P / {line.absentDays} A</span>}
         </div>
         {line.isPaid && Number(line.paidAmount) !== Number(line.calculatedAmount) && (
-          <div className="sal-override">Calculated: {rupees(line.calculatedAmount)} → Paid: {rupees(line.paidAmount)}</div>
+          <div className="sal-override">Calculated: {money(line.calculatedAmount)} → Paid: {money(line.paidAmount)}</div>
         )}
         {line.note && <div className="sal-line-note">“{line.note}”</div>}
       </div>
@@ -153,25 +153,25 @@ function Salaries() {
             <button className={`sal-stat ${statusFilter === "all" ? "active" : ""}`} onClick={() => setStatusFilter("all")}>
               <span className="sal-stat-ic blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg></span>
               <div>
-                <div className="sal-stat-val">{rupees(data.totalPayroll)}</div>
+                <div className="sal-stat-val">{money(data.totalPayroll)}</div>
                 <div className="sal-stat-lbl">Total Payroll</div>
-                <div className="sal-stat-exact">{rupeesPK(data.totalPayroll)} <span className="sal-stat-words">({amountInWords(data.totalPayroll)})</span></div>
+                <div className="sal-stat-exact">{moneyGrouped(data.totalPayroll)} <span className="sal-stat-words">({amountInWords(data.totalPayroll)})</span></div>
               </div>
             </button>
             <button className={`sal-stat ${statusFilter === "paid" ? "active" : ""}`} onClick={() => setStatusFilter("paid")}>
               <span className="sal-stat-ic green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg></span>
               <div>
-                <div className="sal-stat-val">{rupees(data.paid)}</div>
+                <div className="sal-stat-val">{money(data.paid)}</div>
                 <div className="sal-stat-lbl">Paid</div>
-                <div className="sal-stat-exact">{rupeesPK(data.paid)} <span className="sal-stat-words">({amountInWords(data.paid)})</span></div>
+                <div className="sal-stat-exact">{moneyGrouped(data.paid)} <span className="sal-stat-words">({amountInWords(data.paid)})</span></div>
               </div>
             </button>
             <button className={`sal-stat ${statusFilter === "pending" ? "active" : ""}`} onClick={() => setStatusFilter("pending")}>
               <span className="sal-stat-ic purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
               <div>
-                <div className="sal-stat-val">{rupees(data.pending)}</div>
+                <div className="sal-stat-val">{money(data.pending)}</div>
                 <div className="sal-stat-lbl">Pending</div>
-                <div className="sal-stat-exact">{rupeesPK(data.pending)} <span className="sal-stat-words">({amountInWords(data.pending)})</span></div>
+                <div className="sal-stat-exact">{moneyGrouped(data.pending)} <span className="sal-stat-words">({amountInWords(data.pending)})</span></div>
               </div>
             </button>
           </div>
@@ -221,13 +221,13 @@ function Salaries() {
                 <div className="sal-calc-lbl">System Calculated</div>
                 <div className="sal-calc-sub">
                   {payModal.sourceType === "Daily"
-                    ? `${payModal.presentDays} present days × ${rupees(payModal.rate)}/day`
+                    ? `${payModal.presentDays} present days × ${money(payModal.rate)}/day`
                     : payModal.sourceType === "Contract" ? "Contract amount" : "Monthly salary"}
                 </div>
               </div>
-              <div className="sal-calc-amt">{rupees(payModal.calculatedAmount)}</div>
+              <div className="sal-calc-amt">{money(payModal.calculatedAmount)}</div>
             </div>
-            <label className="sal-modal-label">Final Amount to Pay (Rs.) <span>*</span></label>
+            <label className="sal-modal-label">Final Amount to Pay ({currencySymbol()}) <span>*</span></label>
             <input type="number" min="0" step="any" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} autoFocus />
             {finalAmount !== "" && Number(finalAmount) > 0 && <div className="sal-words">= {amountInWords(finalAmount)}</div>}
             <label className="sal-modal-label">Payment Note</label>

@@ -10,7 +10,8 @@ const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 export { formatDate };
 
 // A pretty custom date picker. value/onChange use ISO date strings (YYYY-MM-DD).
-function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true }) {
+// id and invalid are optional: a form can jump to the picker and mark it red.
+function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true, id, invalid = false }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const selected = value ? new Date(value) : null;
@@ -63,13 +64,18 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
       const popupHeight = 360;
       const spaceBelow = window.innerHeight - rect.bottom;
       setDropUp(spaceBelow < popupHeight && rect.top > spaceBelow);
+      // Open on the chosen month (the value may have been set from outside)
+      if (selected && !isNaN(selected)) {
+        setViewMonth(selected.getMonth());
+        setViewYear(selected.getFullYear());
+      }
     }
     setOpen(!open);
   };
 
   return (
     <div className="dp-wrap" ref={ref}>
-      <button type="button" className={`dp-input ${open ? "open" : ""}`} onClick={toggleOpen}>
+      <button type="button" id={id} aria-invalid={invalid || undefined} className={`dp-input ${open ? "open" : ""} ${invalid ? "invalid" : ""}`} onClick={toggleOpen}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
         <span className={selected ? "dp-value" : "dp-placeholder"}>
           {selected ? formatDate(selected) : placeholder}

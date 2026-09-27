@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { billingService } from "../services/billingService";
-import { rupees, formatQty, amountInWords } from "../utils/format";
+import { money, formatQty, amountInWords } from "../utils/format";
 import { formatDateShort, formatDateTime } from "../utils/dates";
+import DocLetterhead from "../components/DocLetterhead";
 import "./InvoicePrint.css";
 
 const fmtDate = (d) => formatDateShort(d, "—");
@@ -39,6 +40,8 @@ function InvoicePrint() {
   }
 
   const st = (inv.status || "Unpaid").toLowerCase();
+  const company = inv.company || {};
+  const hasBank = !!(company.bankName || company.bankAccountNumber || company.bankIBAN);
 
   return (
     <DashboardLayout title="Invoice">
@@ -58,14 +61,9 @@ function InvoicePrint() {
         <div className="ivp-doc theme-paper" id="ivp-print-area">
           {/* Header */}
           <div className="ivp-head">
-            <div className="ivp-brand">
-              <div className="ivp-logo">ACC</div>
-              <div>
-                <h2>{inv.companyName}</h2>
-                <span>Tax Invoice</span>
-              </div>
-            </div>
+            <DocLetterhead company={company} />
             <div className="ivp-inv-meta">
+              <span className="ivp-doc-kind">{company.strn ? "Sales Tax Invoice" : "Invoice"}</span>
               <div className="ivp-inv-no">{inv.invoiceNumber}</div>
               <span className={`ivp-status ${st}`}>{inv.status.toUpperCase()}</span>
             </div>
@@ -104,8 +102,8 @@ function InvoicePrint() {
                     <td className="ivp-c-no">{i + 1}</td>
                     <td>{it.description}</td>
                     <td className="r">{formatQty(it.quantity)}</td>
-                    <td className="r">{rupees(it.rate)}</td>
-                    <td className="r">{rupees(it.amount)}</td>
+                    <td className="r">{money(it.rate)}</td>
+                    <td className="r">{money(it.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -119,11 +117,11 @@ function InvoicePrint() {
               <p>{amountInWords(inv.total)}</p>
             </div>
             <div className="ivp-totals">
-              <div className="ivp-t-row"><span>Subtotal</span><strong>{rupees(inv.subtotal)}</strong></div>
-              {inv.taxAmount > 0 && <div className="ivp-t-row"><span>Tax</span><strong>{rupees(inv.taxAmount)}</strong></div>}
-              <div className="ivp-t-row ivp-t-total"><span>Total</span><strong>{rupees(inv.total)}</strong></div>
-              <div className="ivp-t-row"><span>Paid</span><strong>{rupees(inv.paid)}</strong></div>
-              <div className="ivp-t-row ivp-t-due"><span>Balance Due</span><strong>{rupees(inv.remaining)}</strong></div>
+              <div className="ivp-t-row"><span>Subtotal</span><strong>{money(inv.subtotal)}</strong></div>
+              {inv.taxAmount > 0 && <div className="ivp-t-row"><span>Tax</span><strong>{money(inv.taxAmount)}</strong></div>}
+              <div className="ivp-t-row ivp-t-total"><span>Total</span><strong>{money(inv.total)}</strong></div>
+              <div className="ivp-t-row"><span>Paid</span><strong>{money(inv.paid)}</strong></div>
+              <div className="ivp-t-row ivp-t-due"><span>Balance Due</span><strong>{money(inv.remaining)}</strong></div>
             </div>
           </div>
 
@@ -139,7 +137,7 @@ function InvoicePrint() {
                       <td>{fmtDate(p.paymentDate)}</td>
                       <td>{p.method}</td>
                       <td>{p.reference || "—"}</td>
-                      <td className="r">{rupees(p.amount)}</td>
+                      <td className="r">{money(p.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -149,8 +147,29 @@ function InvoicePrint() {
 
           {inv.notes && <div className="ivp-notes"><strong>Notes:</strong> {inv.notes}</div>}
 
+          {/* Where to pay, and the company's standard terms (Settings > Company) */}
+          {(hasBank || company.invoiceTerms) && (
+            <div className="ivp-pay-info">
+              {hasBank && (
+                <div className="ivp-bank">
+                  <span className="ivp-lbl">PAYMENT DETAILS</span>
+                  {company.bankName && <div><span>Bank</span><strong>{company.bankName}</strong></div>}
+                  {company.bankAccountTitle && <div><span>Account title</span><strong>{company.bankAccountTitle}</strong></div>}
+                  {company.bankAccountNumber && <div><span>Account no.</span><strong>{company.bankAccountNumber}</strong></div>}
+                  {company.bankIBAN && <div><span>IBAN</span><strong>{company.bankIBAN}</strong></div>}
+                </div>
+              )}
+              {company.invoiceTerms && (
+                <div className="ivp-terms">
+                  <span className="ivp-lbl">TERMS</span>
+                  <p>{company.invoiceTerms}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="ivp-foot">
-            <p>This is a system-generated invoice from the ACC.</p>
+            <p>This is a system-generated invoice from {(company.companyName || "").replace(/\.$/, "")}.</p>
             <p className="ivp-gen">Generated on {formatDateTime(inv.generatedAt)}</p>
           </div>
 

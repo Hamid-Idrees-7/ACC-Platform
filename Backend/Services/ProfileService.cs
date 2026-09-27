@@ -1,4 +1,5 @@
-﻿using Backend.Data;
+﻿using System.Text.RegularExpressions;
+using Backend.Data;
 using Backend.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,42 +35,80 @@ namespace Backend.Services
         }
 
         // Update editable profile fields
-        public async Task<(bool Success, string Message)> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+        public async Task<(bool Success, string Message, string? Field)> UpdateProfileAsync(int userId, UpdateProfileDto dto)
         {
             var user = await _context.Users.FindAsync(userId);
-            if (user == null) return (false, "User not found.");
+            if (user == null) return (false, "User not found.", null);
 
-            user.FullName = dto.FullName.Trim();
-            user.Email = dto.Email.Trim();
-            user.Phone = dto.Phone?.Trim();
-            user.SecondaryPhone = dto.SecondaryPhone?.Trim();
-            user.Bio = dto.Bio?.Trim();
+            // Same rules as the Settings page, checked again here.
+            var fullName = (dto.FullName ?? "").Trim();
+            if (fullName.Length < 2) return (false, "Enter your full name.", "fullName");
+            if (fullName.Length > 100) return (false, "The name can be at most 100 characters.", "fullName");
+            if (!Regex.IsMatch(fullName, @"^[\p{L}][\p{L}\s.'-]*$"))
+                return (false, "The name can only contain letters, spaces, dots and dashes.", "fullName");
+
+            var email = (dto.Email ?? "").Trim();
+            if (email.Length == 0) return (false, "Enter your email address.", "email");
+            if (email.Length > 100 || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                return (false, "Enter a valid email address.", "email");
+
+            var phone = NormalizePhone(dto.Phone);
+            if (string.IsNullOrWhiteSpace(dto.Phone)) return (false, "Enter your phone number.", "phone");
+            if (phone == null) return (false, "Enter a valid phone number: 11 digits starting with 0, or +92.", "phone");
+
+            string? secondary = null;
+            if (!string.IsNullOrWhiteSpace(dto.SecondaryPhone))
+            {
+                secondary = NormalizePhone(dto.SecondaryPhone);
+                if (secondary == null) return (false, "Enter a valid phone number: 11 digits starting with 0, or +92.", "secondaryPhone");
+            }
+
+            var bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
+            if (bio != null && bio.Length > 300) return (false, "The bio can be at most 300 characters.", "bio");
+
+            user.FullName = fullName;
+            user.Email = email;
+            user.Phone = dto.Phone!.Trim();
+            user.SecondaryPhone = secondary == null ? null : dto.SecondaryPhone!.Trim();
+            user.Bio = bio;
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return (true, "Profile updated successfully.");
+            return (true, "Profile updated successfully.", null);
+        }
+
+        // A Pakistani number as typed (0300-1234567, +92 300 1234567), or null when it is not one.
+        private static string? NormalizePhone(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var raw = Regex.Replace(value.Trim(), @"[\s-]", "");
+            if (raw.StartsWith("+92")) raw = "0" + raw[3..];
+            return Regex.IsMatch(raw, @"^0\d{10}$") ? raw : null;
         }
 
         // Change password after verifying the current one
-        public async Task<(bool Success, string Message)> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        public async Task<(bool Success, string Message, string? Field)> ChangePasswordAsync(int userId, ChangePasswordDto dto)
         {
             var user = await _context.Users.FindAsync(userId);
-            if (user == null) return (false, "User not found.");
+            if (user == null) return (false, "User not found.", null);
+
+            if (string.IsNullOrEmpty(dto.NewPassword) || dto.NewPassword.Length < 5)
+                return (false, "The new password must be at least 5 characters.", "next");
 
             // Verify current password
-            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
-                return (false, "Your current password is incorrect.");
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword ?? "", user.PasswordHash))
+                return (false, "Your current password is incorrect.", "current");
 
             // New must be different from current
             if (BCrypt.Net.BCrypt.Verify(dto.NewPassword, user.PasswordHash))
-                return (false, "New password must be different from your current password.");
+                return (false, "New password must be different from your current password.", "next");
 
             // Hash and save the new password
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return (true, "Password changed successfully.");
+            return (true, "Password changed successfully.", null);
         }
 
         // Change username after verifying the current password (re-authentication)

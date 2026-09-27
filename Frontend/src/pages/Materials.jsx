@@ -6,7 +6,7 @@ import { materialService } from "../services/materialService";
 import { projectService } from "../services/projectService";
 import MaterialFormModal from "../components/MaterialFormModal";
 import StockModal from "../components/StockModal";
-import { formatQty, rupees, rupeesShort, rupeesPK, amountInWords } from "../utils/format";
+import { formatQty, money, moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./Materials.css";
 
 function Materials() {
@@ -189,10 +189,10 @@ function Materials() {
         <div className="mat-stat mat-stat-value-card no-click">
           <div className="mat-stat-icon">{statIcon("dollar")}</div>
           <div className="mat-stat-text">
-            <div className="mat-stat-money">{loading ? "" : rupeesShort(stats.inventoryValue)}</div>
+            <div className="mat-stat-money">{loading ? "" : moneyShort(stats.inventoryValue)}</div>
             <div className="mat-stat-label">Inventory Value (at cost)</div>
             {!loading && (
-              <div className="mat-stat-exact">{rupeesPK(stats.inventoryValue)} <span className="mat-stat-words">({amountInWords(stats.inventoryValue)})</span></div>
+              <div className="mat-stat-exact">{moneyGrouped(stats.inventoryValue)} <span className="mat-stat-words">({amountInWords(stats.inventoryValue)})</span></div>
             )}
           </div>
         </div>
@@ -254,8 +254,8 @@ function Materials() {
                 </div>
 
                 <div className="mat-card-info">
-                  <div className="mat-card-info-row"><span>Avg Cost</span><strong className="accent">{rupees(m.avgCost)} / {m.unit}</strong></div>
-                  <div className="mat-card-info-row"><span>Stock Value</span><strong>{rupees(m.stockValue)}</strong></div>
+                  <div className="mat-card-info-row"><span>Avg Cost</span><strong className="accent">{money(m.avgCost)} / {m.unit}</strong></div>
+                  <div className="mat-card-info-row"><span>Stock Value</span><strong>{money(m.stockValue)}</strong></div>
                   <div className="mat-card-info-row"><span>Min Alert</span><strong>{formatQty(m.lowStockThreshold)} {m.unit}</strong></div>
                 </div>
 

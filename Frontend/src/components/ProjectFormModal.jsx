@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DatePicker from "./DatePicker";
-import { amountInWords } from "../utils/format";
+import { amountInWords, currencySymbol } from "../utils/format";
 import "./ProjectFormModal.css";
 
 const emptyForm = {
@@ -140,7 +140,7 @@ function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [],
             </div>
 
             <div className="pfm-field">
-              <label>Total Budget (Rs.) <span className="req">*</span></label>
+              <label>Total Budget ({currencySymbol()}) <span className="req">*</span></label>
               <input type="number" min="0" step="any" value={form.budget} onChange={(e) => setField("budget", e.target.value)} className={errors.budget ? "err" : ""} placeholder="Enter amount" />
               {errors.budget ? <span className="pfm-err">{errors.budget}</span> : form.budget !== "" ? <span className="pfm-num">= {amountInWords(form.budget)}</span> : <span className="pfm-hint">From the client</span>}
             </div>

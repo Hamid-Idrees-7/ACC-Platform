@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import DatePicker from "../components/DatePicker";
 import { usePermissions } from "../context/PermissionContext";
+import { useCompany } from "../context/CompanyContext";
 import { billingService } from "../services/billingService";
-import { rupees, amountInWords, formatQty } from "../utils/format";
+import { money, amountInWords, formatQty, currencySymbol } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./ProjectBilling.css";
 
@@ -38,6 +39,9 @@ function ProjectBilling() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const canManage = can("Billing", "Manage");
+  // Default tax for new invoices (Settings > Company)
+  const { company } = useCompany();
+  const taxPercent = Number(company.defaultTaxPercent) || 0;
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +92,8 @@ function ProjectBilling() {
       dueDate: "",
       items: prefill.length > 0 ? prefill.map(expenseItem) : [emptyItem()],
       taxAmount: "",
+      // The default tax is worked out from the subtotal until it is typed by hand.
+      autoTax: taxPercent > 0,
       notes: "",
     });
     setPhasePick("");
@@ -113,6 +119,7 @@ function ProjectBilling() {
         expenseID: i.expenseID ?? null,
       })),
       taxAmount: inv.taxAmount ? String(inv.taxAmount) : "",
+      autoTax: false,
       notes: inv.notes || "",
     });
     setPhasePick("");
@@ -167,9 +174,15 @@ function ProjectBilling() {
   const formTotals = useMemo(() => {
     if (!form) return { subtotal: 0, tax: 0, total: 0 };
     const subtotal = form.items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.rate) || 0), 0);
-    const tax = Number(form.taxAmount) || 0;
+    // Default tax applies to the work lines only; reimbursed expenses are passed on as they are.
+    const taxable = form.items
+      .filter((it) => !it.expenseID)
+      .reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.rate) || 0), 0);
+    const tax = form.autoTax
+      ? Math.round((taxable * taxPercent) / 100)
+      : Number(form.taxAmount) || 0;
     return { subtotal, tax, total: subtotal + tax };
-  }, [form]);
+  }, [form, taxPercent]);
 
   const canSubmitInvoice = form && form.items.some((it) => it.description.trim() && Number(it.rate) > 0);
 
@@ -181,7 +194,7 @@ function ProjectBilling() {
         projectID: Number(projectId),
         issueDate: form.issueDate || todayISO(),
         dueDate: form.dueDate || null,
-        taxAmount: Number(form.taxAmount) || 0,
+        taxAmount: formTotals.tax,
         notes: form.notes.trim() || null,
         items: form.items
           .filter((it) => it.expenseID || it.description.trim() || Number(it.rate) !== 0)
@@ -311,20 +324,20 @@ function ProjectBilling() {
         <div className="pbl-metrics">
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Budget</span>
-            <span className="pbl-metric-val">{rupees(data.budget)}</span>
+            <span className="pbl-metric-val">{money(data.budget)}</span>
           </div>
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Invoiced</span>
-            <span className="pbl-metric-val">{rupees(data.totalInvoiced)}</span>
-            {data.reimbursementInvoiced > 0 && <span className="pbl-metric-sub">incl. {rupees(data.reimbursementInvoiced)} expenses</span>}
+            <span className="pbl-metric-val">{money(data.totalInvoiced)}</span>
+            {data.reimbursementInvoiced > 0 && <span className="pbl-metric-sub">incl. {money(data.reimbursementInvoiced)} expenses</span>}
           </div>
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Received</span>
-            <span className="pbl-metric-val green">{rupees(data.received)}</span>
+            <span className="pbl-metric-val green">{money(data.received)}</span>
           </div>
           <div className="pbl-metric">
             <span className="pbl-metric-lbl">Remaining</span>
-            <span className={`pbl-metric-val ${data.outstanding > 0 ? "amber" : ""}`}>{rupees(data.outstanding)}</span>
+            <span className={`pbl-metric-val ${data.outstanding > 0 ? "amber" : ""}`}>{money(data.outstanding)}</span>
           </div>
         </div>
       </div>
@@ -337,7 +350,7 @@ function ProjectBilling() {
         </div>
         <div className="pbl-bar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? "full" : ""} /></div>
         {data.reimbursementInvoiced > 0 && (
-          <p className="pbl-budgetbar-note">Reimbursed project expenses ({rupees(data.reimbursementInvoiced)}) are billed on top of the budget and are not counted here.</p>
+          <p className="pbl-budgetbar-note">Reimbursed project expenses ({money(data.reimbursementInvoiced)}) are billed on top of the budget and are not counted here.</p>
         )}
       </div>
 
@@ -345,7 +358,7 @@ function ProjectBilling() {
       {pending.length > 0 && (
         <div className="pbl-reimb">
           <div className="pbl-reimb-text">
-            <strong>{pending.length} recoverable expense{pending.length === 1 ? "" : "s"} not billed yet · {rupees(pendingTotal)}</strong>
+            <strong>{pending.length} recoverable expense{pending.length === 1 ? "" : "s"} not billed yet · {money(pendingTotal)}</strong>
             <span>{pending.slice(0, 3).map((e) => e.description).join(", ")}{pending.length > 3 ? ` and ${pending.length - 3} more` : ""}</span>
           </div>
           {canManage && (
@@ -380,11 +393,11 @@ function ProjectBilling() {
                   <div className="pbl-inv-amts">
                     <div className="pbl-inv-amt">
                       <span className="pbl-inv-amt-lbl">Total</span>
-                      <span className="pbl-inv-amt-val">{rupees(inv.total)}</span>
+                      <span className="pbl-inv-amt-val">{money(inv.total)}</span>
                     </div>
                     <div className="pbl-inv-amt">
                       <span className="pbl-inv-amt-lbl">Due</span>
-                      <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{rupees(inv.due)}</span>
+                      <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{money(inv.due)}</span>
                     </div>
                   </div>
                   <svg className={`pbl-chev ${open ? "up" : ""}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
@@ -402,20 +415,20 @@ function ProjectBilling() {
                           <tr key={it.itemID}>
                             <td>{it.description}{it.expenseID && <span className="pbl-reimb-tag">Reimbursement</span>}</td>
                             <td className="r">{formatQty(it.quantity)}</td>
-                            <td className="r">{rupees(it.rate)}</td>
-                            <td className="r">{rupees(it.amount)}</td>
+                            <td className="r">{money(it.rate)}</td>
+                            <td className="r">{money(it.amount)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
 
                     <div className="pbl-inv-totals">
-                      <div className="pbl-tot-row"><span>Subtotal</span><strong>{rupees(inv.subtotal)}</strong></div>
-                      {inv.taxAmount > 0 && <div className="pbl-tot-row"><span>Tax</span><strong>{rupees(inv.taxAmount)}</strong></div>}
-                      <div className="pbl-tot-row big"><span>Total</span><strong>{rupees(inv.total)}</strong></div>
+                      <div className="pbl-tot-row"><span>Subtotal</span><strong>{money(inv.subtotal)}</strong></div>
+                      {inv.taxAmount > 0 && <div className="pbl-tot-row"><span>Tax</span><strong>{money(inv.taxAmount)}</strong></div>}
+                      <div className="pbl-tot-row big"><span>Total</span><strong>{money(inv.total)}</strong></div>
                       <div className="pbl-tot-words">{amountInWords(inv.total)}</div>
-                      <div className="pbl-tot-row"><span>Paid</span><strong className="green">{rupees(inv.paid)}</strong></div>
-                      <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{rupees(inv.due)}</strong></div>
+                      <div className="pbl-tot-row"><span>Paid</span><strong className="green">{money(inv.paid)}</strong></div>
+                      <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{money(inv.due)}</strong></div>
                     </div>
 
                     {inv.notes && <div className="pbl-inv-notes"><strong>Notes:</strong> {inv.notes}</div>}
@@ -427,7 +440,7 @@ function ProjectBilling() {
                         {inv.payments.map((p) => (
                           <div key={p.paymentID} className="pbl-pay-row">
                             <div className="pbl-pay-main">
-                              <span className="pbl-pay-amt">{rupees(p.amount)}</span>
+                              <span className="pbl-pay-amt">{money(p.amount)}</span>
                               <span className={`pbl-pay-method ${p.method.replace(/\s/g, "").toLowerCase()}`}>{p.method}</span>
                               {p.reference && <span className="pbl-pay-ref">#{p.reference}</span>}
                             </div>
@@ -511,7 +524,7 @@ function ProjectBilling() {
                   <select value={expensePick} onChange={(e) => { setExpensePick(e.target.value); if (e.target.value) addExpenseLine(e.target.value); }}>
                     <option value="">+ Bill an expense paid on the client's behalf…</option>
                     {expenseOptions.map((e) => (
-                      <option key={e.expenseID} value={e.expenseID}>{e.description} — {rupees(e.amount)}</option>
+                      <option key={e.expenseID} value={e.expenseID}>{e.description} — {money(e.amount)}</option>
                     ))}
                   </select>
                   <p className="pbl-phasefill-hint">Adds the expense at its exact amount. It is billed on top of the budget.</p>
@@ -523,7 +536,7 @@ function ProjectBilling() {
                 <div className="pbl-items-head">
                   <span className="col-desc">Description</span>
                   <span className="col-qty">Qty</span>
-                  <span className="col-rate">Rate (Rs.)</span>
+                  <span className="col-rate">Rate ({currencySymbol()})</span>
                   <span className="col-amt">Amount</span>
                   <span className="col-x" />
                 </div>
@@ -535,7 +548,7 @@ function ProjectBilling() {
                       <input className="col-desc" type="text" maxLength={200} placeholder="e.g. Foundation milestone" value={it.description} onChange={(e) => setItem(idx, "description", e.target.value)} title={isExpense ? "Reimbursement of a recoverable project expense" : undefined} />
                       <input className="col-qty" type="number" min="0" step="any" value={it.quantity} readOnly={isExpense} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
                       <input className="col-rate" type="number" min="0" step="any" placeholder="0" value={it.rate} readOnly={isExpense} onChange={(e) => setItem(idx, "rate", e.target.value)} />
-                      <span className="col-amt pbl-item-amt">{rupees(amt)}</span>
+                      <span className="col-amt pbl-item-amt">{money(amt)}</span>
                       <button className="col-x pbl-item-x" onClick={() => removeItem(idx)} disabled={form.items.length === 1} title="Remove line">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                       </button>
@@ -551,8 +564,22 @@ function ProjectBilling() {
               {/* Tax + notes + totals */}
               <div className="pbl-form-row">
                 <div className="pbl-field">
-                  <label>Tax Amount (Rs.)</label>
-                  <input type="number" min="0" step="any" placeholder="Leave 0 if none" value={form.taxAmount} onChange={(e) => setForm((f) => ({ ...f, taxAmount: e.target.value }))} />
+                  <label>Tax Amount ({currencySymbol()})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Leave 0 if none"
+                    value={form.autoTax ? (formTotals.tax || "") : form.taxAmount}
+                    onChange={(e) => setForm((f) => ({ ...f, taxAmount: e.target.value, autoTax: false }))}
+                  />
+                  {taxPercent > 0 && (form.autoTax ? (
+                    <span className="pbl-field-hint">Default {taxPercent}% of the work lines (reimbursements are not taxed)</span>
+                  ) : (
+                    <button type="button" className="pbl-field-link" onClick={() => setForm((f) => ({ ...f, autoTax: true, taxAmount: "" }))}>
+                      Use the default {taxPercent}%
+                    </button>
+                  ))}
                 </div>
                 <div className="pbl-field">
                   <label>Notes</label>
@@ -561,9 +588,9 @@ function ProjectBilling() {
               </div>
 
               <div className="pbl-form-totals">
-                <div className="pbl-ft-row"><span>Subtotal</span><strong>{rupees(formTotals.subtotal)}</strong></div>
-                <div className="pbl-ft-row"><span>Tax</span><strong>{rupees(formTotals.tax)}</strong></div>
-                <div className="pbl-ft-row big"><span>Total</span><strong>{rupees(formTotals.total)}</strong></div>
+                <div className="pbl-ft-row"><span>Subtotal</span><strong>{money(formTotals.subtotal)}</strong></div>
+                <div className="pbl-ft-row"><span>Tax</span><strong>{money(formTotals.tax)}</strong></div>
+                <div className="pbl-ft-row big"><span>Total</span><strong>{money(formTotals.total)}</strong></div>
                 {formTotals.total > 0 && <div className="pbl-ft-words">{amountInWords(formTotals.total)}</div>}
               </div>
 
@@ -593,10 +620,10 @@ function ProjectBilling() {
             <div className="pbl-modal-body">
               <div className="pbl-pay-summary">
                 <span>{payModal.invoiceNumber}</span>
-                <div><span className="pbl-pay-due-lbl">Remaining due</span><strong>{rupees(payModal.due)}</strong></div>
+                <div><span className="pbl-pay-due-lbl">Remaining due</span><strong>{money(payModal.due)}</strong></div>
               </div>
 
-              <label className="pbl-modal-label">Amount (Rs.) <span>*</span></label>
+              <label className="pbl-modal-label">Amount ({currencySymbol()}) <span>*</span></label>
               <input type="number" min="0" step="any" value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} autoFocus />
               {payForm.amount !== "" && Number(payForm.amount) > 0 && <div className="pbl-words">= {amountInWords(payForm.amount)}</div>}
 
@@ -649,7 +676,7 @@ function ProjectBilling() {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </div>
             <h3>Remove this payment?</h3>
-            <p>{rupees(delPayment.payment.amount)} ({delPayment.payment.method}) will be removed from {delPayment.invoice.invoiceNumber}. The balance due will increase again.</p>
+            <p>{money(delPayment.payment.amount)} ({delPayment.payment.method}) will be removed from {delPayment.invoice.invoiceNumber}. The balance due will increase again.</p>
             <div className="pbl-modal-actions">
               <button className="pbl-btn-cancel" onClick={() => setDelPayment(null)} disabled={busy}>Cancel</button>
               <button className="pbl-btn-danger" onClick={doDeletePayment} disabled={busy}>{busy ? "..." : "Yes, Remove"}</button>

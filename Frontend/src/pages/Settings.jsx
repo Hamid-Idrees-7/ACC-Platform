@@ -1,20 +1,61 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { profileService } from "../services/profileService";
 import ImageCropModal from "../components/ImageCropModal";
 import AppearanceSettings from "../components/AppearanceSettings";
+import CompanySettings from "../components/CompanySettings";
+import CalendarSettings from "../components/CalendarSettings";
+import Toast, { useToast } from "../components/Toast";
+import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
 import "./Settings.css";
 
-const isValidPhone = (phone) => {
-  const raw = phone.trim().replace(/[\s-]/g, "");
-  const normalized = raw.startsWith("+92") ? "0" + raw.slice(3) : raw;
-  return /^0\d{10}$/.test(normalized);
-};
-const SETTINGS_TABS = ["profile", "account", "appearance"];
+const SETTINGS_TABS = ["profile", "account", "appearance", "company", "calendar"];
+const ADMIN_TABS = ["company", "calendar"];
+const BIO_MAX = 300;
 
-const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+// Same rules as the server. Each returns { field: message }.
+const validateProfile = (f) => {
+  const e = {};
+  const name = f.fullName.trim();
+  if (name.length < 2) e.fullName = "Enter your full name.";
+  else if (!isName(name)) e.fullName = "The name can only contain letters, spaces, dots and dashes.";
+  if (!f.email.trim()) e.email = "Enter your email address.";
+  else if (!isEmail(f.email)) e.email = "Enter a valid email address, eg name@company.com.";
+  if (!f.phone.trim()) e.phone = "Enter your phone number.";
+  else if (!isPkPhone(f.phone)) e.phone = "Enter a valid phone number: 11 digits starting with 0, or +92.";
+  if (f.secondaryPhone.trim() && !isPkPhone(f.secondaryPhone)) e.secondaryPhone = "Enter a valid phone number: 11 digits starting with 0, or +92.";
+  if (f.bio.length > BIO_MAX) e.bio = `The bio can be at most ${BIO_MAX} characters.`;
+  return e;
+};
+
+const validatePassword = (f) => {
+  const e = {};
+  if (!f.current) e.current = "Enter your current password.";
+  if (!f.next) e.next = "Enter a new password.";
+  else if (f.next.length < 5) e.next = "The new password must be at least 5 characters.";
+  else if (f.current && f.next === f.current) e.next = "The new password must be different from the current one.";
+  if (!f.confirm) e.confirm = "Type the new password again.";
+  else if (f.next && f.confirm !== f.next) e.confirm = "The passwords do not match.";
+  return e;
+};
+
+// The server may answer with a field name, or with ASP.NET's list of errors per field.
+const serverFieldErrors = (err, map) => {
+  const data = err?.response?.data;
+  if (data?.field) return { [data.field]: data.message };
+  if (data?.errors) {
+    const out = {};
+    Object.entries(data.errors).forEach(([k, v]) => {
+      const key = map[k.toLowerCase()];
+      if (key) out[key] = Array.isArray(v) ? v[0] : String(v);
+    });
+    if (Object.keys(out).length) return out;
+  }
+  return null;
+};
+
 
 function Settings() {
   const { user, updateUser, logout } = useAuth();
@@ -27,22 +68,41 @@ function Settings() {
   const [loading, setLoading] = useState(true);
   const [photo, setPhoto] = useState(null);
 
-  // Active section lives in the address (?tab=appearance), so it survives a reload
-  // and the redraw that follows a change of number or date format.
+  // Active section lives in the address (?tab=appearance), so it survives a reload.
+  // Company is for the Admin only.
+  const isAdmin = user?.role?.toLowerCase() === "admin";
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = SETTINGS_TABS.includes(searchParams.get("tab")) ? searchParams.get("tab") : "profile";
-  const setTab = (key) => setSearchParams(key === "profile" ? {} : { tab: key }, { replace: true });
+  const requested = searchParams.get("tab");
+  const tab = SETTINGS_TABS.includes(requested) && (!ADMIN_TABS.includes(requested) || isAdmin) ? requested : "profile";
+  const goToTab = (key) => setSearchParams(key === "profile" ? {} : { tab: key }, { replace: true });
+
+  // Leaving Company with unsaved changes asks first.
+  const [companyDirty, setCompanyDirty] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+  const onCompanyDirty = useCallback((d) => setCompanyDirty(d), []);
+  const setTab = (key) => {
+    if (key === tab) return;
+    if (tab === "company" && companyDirty) { setPendingTab(key); return; }
+    goToTab(key);
+  };
+  const leaveCompany = () => {
+    setCompanyDirty(false);
+    goToTab(pendingTab);
+    setPendingTab(null);
+  };
 
   // Profile form
   const [form, setForm] = useState({ fullName: "", email: "", phone: "", secondaryPhone: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
-  const [profileMsg, setProfileMsg] = useState({ type: "", text: "" });
+  const [profileErrors, setProfileErrors] = useState({});
+  const [loadError, setLoadError] = useState("");
+  const [toast, showToast] = useToast(3500);
 
   // Password form
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
   const [savingPw, setSavingPw] = useState(false);
-  const [pwMsg, setPwMsg] = useState({ type: "", text: "" });
+  const [pwErrors, setPwErrors] = useState({});
 
   // Photo
   const [cropSrc, setCropSrc] = useState(null);
@@ -66,7 +126,7 @@ function Settings() {
           bio: data.bio || "",
         });
       } catch {
-        setProfileMsg({ type: "error", text: "Could not load your profile." });
+        setLoadError("Could not load your profile. Please refresh the page.");
       } finally {
         setLoading(false);
       }
@@ -74,15 +134,35 @@ function Settings() {
     load();
   }, []);
 
-  const handleFormChange = (field, value) => setForm({ ...form, [field]: value });
-  const handlePwChange = (field, value) => setPwForm({ ...pwForm, [field]: value });
+  // Typing in a field clears its message.
+  const handleFormChange = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    if (profileErrors[field]) setProfileErrors((e) => ({ ...e, [field]: "" }));
+  };
+  const handlePwChange = (field, value) => {
+    setPwForm((f) => ({ ...f, [field]: value }));
+    if (pwErrors[field]) setPwErrors((e) => ({ ...e, [field]: "" }));
+  };
+
+  // Shows the problems under their fields and takes the user to the first one.
+  const showFieldErrors = (errs, setter, order, prefix) => {
+    setter(errs);
+    const first = order.find((k) => errs[k]);
+    if (first) focusField(`${prefix}-${first}`);
+  };
 
   // ---- Photo ----
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setProfileMsg({ type: "error", text: "Please choose an image file." });
+      e.target.value = "";
+      showToast("Please choose an image file (JPG, PNG or WebP).", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      e.target.value = "";
+      showToast("The image is larger than 5 MB. Choose a smaller one.", "error");
       return;
     }
     const reader = new FileReader();
@@ -94,14 +174,13 @@ function Settings() {
   const handleCropDone = async (base64) => {
     setCropSrc(null);
     setSavingPhoto(true);
-    setProfileMsg({ type: "", text: "" });
     try {
       await profileService.updatePicture(base64);
       setPhoto(base64);
       updateUser({ profilePicture: base64 });
-      setProfileMsg({ type: "success", text: "Profile picture updated." });
+      showToast("Profile picture updated.");
     } catch (err) {
-      setProfileMsg({ type: "error", text: err.response?.data?.message || "Could not update picture." });
+      showToast(err.response?.data?.message || "Could not update the picture. Please try again.", "error");
     } finally {
       setSavingPhoto(false);
     }
@@ -113,58 +192,58 @@ function Settings() {
       await profileService.updatePicture(null);
       setPhoto(null);
       updateUser({ profilePicture: null });
-      setProfileMsg({ type: "success", text: "Profile picture removed." });
+      showToast("Profile picture removed.");
     } catch {
-      setProfileMsg({ type: "error", text: "Could not remove picture." });
+      showToast("Could not remove the picture. Please try again.", "error");
     } finally {
       setSavingPhoto(false);
     }
   };
 
   // ---- Save profile ----
+  const PROFILE_ORDER = ["fullName", "email", "phone", "secondaryPhone", "bio"];
   const handleSaveProfile = async () => {
-    setProfileMsg({ type: "", text: "" });
-    if (!form.fullName.trim()) return setProfileMsg({ type: "error", text: "Full name is required." });
-    if (!form.email.trim()) return setProfileMsg({ type: "error", text: "Email is required." });
-    if (!isValidEmail(form.email)) return setProfileMsg({ type: "error", text: "Please enter a valid email address." });
-    if (!form.phone.trim()) return setProfileMsg({ type: "error", text: "Phone number is required." });
-    if (!isValidPhone(form.phone)) return setProfileMsg({ type: "error", text: "Enter a valid phone (11 digits, 0 or +92)." });
-    if (form.secondaryPhone.trim() && !isValidPhone(form.secondaryPhone)) return setProfileMsg({ type: "error", text: "Secondary phone is not valid." });
+    const errs = validateProfile(form);
+    if (Object.keys(errs).length) return showFieldErrors(errs, setProfileErrors, PROFILE_ORDER, "st-p");
 
     setSavingProfile(true);
     try {
       const res = await profileService.update({
-        fullName: form.fullName,
-        email: form.email,
-        phone: form.phone,
-        secondaryPhone: form.secondaryPhone,
-        bio: form.bio,
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        secondaryPhone: form.secondaryPhone.trim(),
+        bio: form.bio.trim(),
       });
-      setProfileMsg({ type: "success", text: res.message || "Profile updated." });
-      updateUser({ fullName: form.fullName });
+      setProfileErrors({});
+      showToast(res.message || "Profile updated.");
+      updateUser({ fullName: form.fullName.trim() });
       setProfile({ ...profile, ...form });
     } catch (err) {
-      setProfileMsg({ type: "error", text: err.response?.data?.message || "Could not update profile." });
+      const fieldErrs = serverFieldErrors(err, { fullname: "fullName", email: "email", phone: "phone", secondaryphone: "secondaryPhone", bio: "bio" });
+      if (fieldErrs) showFieldErrors(fieldErrs, setProfileErrors, PROFILE_ORDER, "st-p");
+      else showToast(err.response?.data?.message || "Could not update your profile. Please try again.", "error");
     } finally {
       setSavingProfile(false);
     }
   };
 
   // ---- Change password ----
+  const PW_ORDER = ["current", "next", "confirm"];
   const handleChangePassword = async () => {
-    setPwMsg({ type: "", text: "" });
-    if (!pwForm.current || !pwForm.next || !pwForm.confirm) return setPwMsg({ type: "error", text: "Please fill in all password fields." });
-    if (pwForm.next.length < 5) return setPwMsg({ type: "error", text: "New password must be at least 5 characters." });
-    if (pwForm.next !== pwForm.confirm) return setPwMsg({ type: "error", text: "New passwords do not match." });
-    if (pwForm.next === pwForm.current) return setPwMsg({ type: "error", text: "New password must be different from the current one." });
+    const errs = validatePassword(pwForm);
+    if (Object.keys(errs).length) return showFieldErrors(errs, setPwErrors, PW_ORDER, "st-pw");
 
     setSavingPw(true);
     try {
       const res = await profileService.changePassword(pwForm.current, pwForm.next);
-      setPwMsg({ type: "success", text: res.message || "Password changed." });
+      setPwErrors({});
+      showToast(res.message || "Password changed.");
       setPwForm({ current: "", next: "", confirm: "" });
     } catch (err) {
-      setPwMsg({ type: "error", text: err.response?.data?.message || "Could not change password." });
+      const fieldErrs = serverFieldErrors(err, { currentpassword: "current", newpassword: "next" });
+      if (fieldErrs) showFieldErrors(fieldErrs, setPwErrors, PW_ORDER, "st-pw");
+      else showToast(err.response?.data?.message || "Could not change the password. Please try again.", "error");
     } finally {
       setSavingPw(false);
     }
@@ -179,8 +258,8 @@ function Settings() {
   const initials = (profile?.fullName || "U").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   const bioLen = form.bio.length;
 
-  // Profile and account need the profile data; Appearance does not.
-  if (loading && tab !== "appearance") {
+  // Profile and account need the profile data; the other tabs do not.
+  if (loading && (tab === "profile" || tab === "account")) {
     return (
       <DashboardLayout title="Settings">
         <div className="st-loading"><div className="st-spinner" /></div>
@@ -192,6 +271,8 @@ function Settings() {
     { key: "profile", label: "Profile Management", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { key: "account", label: "Account Management", icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
     { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
+    ...(isAdmin ? [{ key: "company", label: "Company", icon: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><line x1="9" y1="9" x2="9" y2="9.01" /><line x1="9" y1="12" x2="9" y2="12.01" /><line x1="9" y1="15" x2="9" y2="15.01" /><line x1="9" y1="18" x2="9" y2="18.01" /></> }] : []),
+    ...(isAdmin ? [{ key: "calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></> }] : []),
   ];
 
   return (
@@ -217,7 +298,7 @@ function Settings() {
                 <p>Update your photo, name, contact details, and bio</p>
               </div>
 
-              {profileMsg.text && <div className={`st-msg st-msg-${profileMsg.type}`}>{profileMsg.text}</div>}
+              {loadError && <div className="st-msg st-msg-error">{loadError}</div>}
 
               {/* Photo */}
               <div className="st-photo-row">
@@ -235,28 +316,33 @@ function Settings() {
               </div>
 
               <div className="st-form-grid">
-                <div className="st-field">
-                  <label>Full Name <span className="req">*</span></label>
-                  <input type="text" maxLength={100} value={form.fullName} onChange={(e) => handleFormChange("fullName", e.target.value)} />
+                <div className={`st-field ${profileErrors.fullName ? "has-err" : ""}`}>
+                  <label htmlFor="st-p-fullName">Full Name <span className="req">*</span></label>
+                  <input id="st-p-fullName" type="text" maxLength={100} value={form.fullName} onChange={(e) => handleFormChange("fullName", e.target.value)} aria-invalid={!!profileErrors.fullName} />
+                  {profileErrors.fullName && <span className="st-err">{profileErrors.fullName}</span>}
                 </div>
-                <div className="st-field">
-                  <label>Email <span className="req">*</span></label>
-                  <input type="email" maxLength={100} value={form.email} onChange={(e) => handleFormChange("email", e.target.value)} />
+                <div className={`st-field ${profileErrors.email ? "has-err" : ""}`}>
+                  <label htmlFor="st-p-email">Email <span className="req">*</span></label>
+                  <input id="st-p-email" type="email" maxLength={100} value={form.email} onChange={(e) => handleFormChange("email", e.target.value)} aria-invalid={!!profileErrors.email} />
+                  {profileErrors.email && <span className="st-err">{profileErrors.email}</span>}
                 </div>
-                <div className="st-field">
-                  <label>Phone <span className="req">*</span></label>
-                  <input type="text" maxLength={15} placeholder="+92 300 0000000" value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} />
+                <div className={`st-field ${profileErrors.phone ? "has-err" : ""}`}>
+                  <label htmlFor="st-p-phone">Phone <span className="req">*</span></label>
+                  <input id="st-p-phone" type="tel" maxLength={15} placeholder="+92 300 0000000" value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} aria-invalid={!!profileErrors.phone} />
+                  {profileErrors.phone && <span className="st-err">{profileErrors.phone}</span>}
                 </div>
-                <div className="st-field">
-                  <label>Secondary Phone</label>
-                  <input type="text" maxLength={15} placeholder="Optional" value={form.secondaryPhone} onChange={(e) => handleFormChange("secondaryPhone", e.target.value)} />
+                <div className={`st-field ${profileErrors.secondaryPhone ? "has-err" : ""}`}>
+                  <label htmlFor="st-p-secondaryPhone">Secondary Phone</label>
+                  <input id="st-p-secondaryPhone" type="tel" maxLength={15} placeholder="Optional" value={form.secondaryPhone} onChange={(e) => handleFormChange("secondaryPhone", e.target.value)} aria-invalid={!!profileErrors.secondaryPhone} />
+                  {profileErrors.secondaryPhone && <span className="st-err">{profileErrors.secondaryPhone}</span>}
                 </div>
-                <div className="st-field st-field-full">
+                <div className={`st-field st-field-full ${profileErrors.bio ? "has-err" : ""}`}>
                   <div className="st-label-row">
-                    <label>Bio</label>
-                    <span className={`st-counter ${bioLen >= 450 ? "warn" : ""}`}>{bioLen}/500</span>
+                    <label htmlFor="st-p-bio">Bio</label>
+                    <span className={`st-counter ${bioLen >= BIO_MAX - 30 ? "warn" : ""}`}>{bioLen}/{BIO_MAX}</span>
                   </div>
-                  <textarea rows="3" maxLength={500} placeholder="A short description about yourself" value={form.bio} onChange={(e) => handleFormChange("bio", e.target.value)} />
+                  <textarea id="st-p-bio" rows="3" maxLength={BIO_MAX} placeholder="A short description about yourself" value={form.bio} onChange={(e) => handleFormChange("bio", e.target.value)} />
+                  {profileErrors.bio && <span className="st-err">{profileErrors.bio}</span>}
                 </div>
               </div>
 
@@ -318,29 +404,30 @@ function Settings() {
               {/* Change password */}
               <fieldset className="st-subsection st-fieldset" disabled={isDemoAccount}>
                 <h4 className="st-subsection-title">Change Password</h4>
-                {pwMsg.text && <div className={`st-msg st-msg-${pwMsg.type}`}>{pwMsg.text}</div>}
                 <div className="st-form-grid">
-                  <div className="st-field st-field-full">
-                    <label>Current Password <span className="req">*</span></label>
+                  <div className={`st-field st-field-full ${pwErrors.current ? "has-err" : ""}`}>
+                    <label htmlFor="st-pw-current">Current Password <span className="req">*</span></label>
                     <div className="st-pw-wrap">
-                      <input type={showPw.current ? "text" : "password"} value={pwForm.current} onChange={(e) => handlePwChange("current", e.target.value)} autoComplete="current-password" />
+                      <input id="st-pw-current" type={showPw.current ? "text" : "password"} value={pwForm.current} onChange={(e) => handlePwChange("current", e.target.value)} autoComplete="current-password" />
                       <button type="button" onClick={() => setShowPw({ ...showPw, current: !showPw.current })}>{eyeIcon(showPw.current)}</button>
                     </div>
+                    {pwErrors.current && <span className="st-err">{pwErrors.current}</span>}
                   </div>
-                  <div className="st-field">
-                    <label>New Password <span className="req">*</span></label>
+                  <div className={`st-field ${pwErrors.next ? "has-err" : ""}`}>
+                    <label htmlFor="st-pw-next">New Password <span className="req">*</span></label>
                     <div className="st-pw-wrap">
-                      <input type={showPw.next ? "text" : "password"} value={pwForm.next} onChange={(e) => handlePwChange("next", e.target.value)} autoComplete="new-password" />
+                      <input id="st-pw-next" type={showPw.next ? "text" : "password"} value={pwForm.next} onChange={(e) => handlePwChange("next", e.target.value)} autoComplete="new-password" />
                       <button type="button" onClick={() => setShowPw({ ...showPw, next: !showPw.next })}>{eyeIcon(showPw.next)}</button>
                     </div>
-                    <span className="st-hint">At least 5 characters</span>
+                    {pwErrors.next ? <span className="st-err">{pwErrors.next}</span> : <span className="st-hint">At least 5 characters</span>}
                   </div>
-                  <div className="st-field">
-                    <label>Confirm New Password <span className="req">*</span></label>
+                  <div className={`st-field ${pwErrors.confirm ? "has-err" : ""}`}>
+                    <label htmlFor="st-pw-confirm">Confirm New Password <span className="req">*</span></label>
                     <div className="st-pw-wrap">
-                      <input type={showPw.confirm ? "text" : "password"} value={pwForm.confirm} onChange={(e) => handlePwChange("confirm", e.target.value)} autoComplete="new-password" />
+                      <input id="st-pw-confirm" type={showPw.confirm ? "text" : "password"} value={pwForm.confirm} onChange={(e) => handlePwChange("confirm", e.target.value)} autoComplete="new-password" />
                       <button type="button" onClick={() => setShowPw({ ...showPw, confirm: !showPw.confirm })}>{eyeIcon(showPw.confirm)}</button>
                     </div>
+                    {pwErrors.confirm && <span className="st-err">{pwErrors.confirm}</span>}
                   </div>
                 </div>
                 <div className="st-actions">
@@ -362,8 +449,48 @@ function Settings() {
               <AppearanceSettings />
             </div>
           )}
+
+          {/* COMPANY (Admin) */}
+          {tab === "company" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Company</h3>
+                <p>Company details, currency, invoice defaults and bank details. Used by the whole system.</p>
+              </div>
+              <CompanySettings onDirtyChange={onCompanyDirty} />
+            </div>
+          )}
+
+          {/* CALENDAR (Admin) */}
+          {tab === "calendar" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Calendar</h3>
+                <p>Weekly off days and company holidays. Attendance shows these days as off.</p>
+              </div>
+              <CalendarSettings />
+            </div>
+          )}
         </div>
       </div>
+
+      <Toast toast={toast} />
+
+      {/* Unsaved company changes */}
+      {pendingTab && (
+        <div className="st-modal-overlay" onClick={(e) => e.target.classList.contains("st-modal-overlay") && setPendingTab(null)}>
+          <div className="st-modal st-leave" role="dialog" aria-modal="true" aria-labelledby="st-leave-title">
+            <div className="st-modal-body">
+              <h3 id="st-leave-title">Discard unsaved changes?</h3>
+              <p>The changes you made to the company settings have not been saved yet.</p>
+              <div className="st-leave-actions">
+                <button className="st-leave-keep" onClick={() => setPendingTab(null)} autoFocus>Keep editing</button>
+                <button className="st-leave-discard" onClick={leaveCompany}>Discard changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Crop modal */}
       {cropSrc && <ImageCropModal imageSrc={cropSrc} onCancel={() => setCropSrc(null)} onCrop={handleCropDone} />}
@@ -443,9 +570,8 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
             <>
               <h3>Confirm it's you</h3>
               <p>Changing your username is a sensitive action. Enter your current password to continue.</p>
-              {msg.text && <div className={`st-msg st-msg-${msg.type}`}>{msg.text}</div>}
-              <div className="st-pw-wrap st-modal-input">
-                <input type={showPw ? "text" : "password"} placeholder="Current password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" onKeyDown={(e) => e.key === "Enter" && handleUnlock()} />
+              <div className={`st-pw-wrap st-modal-input ${msg.type === "error" ? "has-err" : ""}`}>
+                <input type={showPw ? "text" : "password"} placeholder="Current password" value={password} onChange={(e) => { setPassword(e.target.value); if (msg.type === "error") setMsg({ type: "", text: "" }); }} autoComplete="current-password" onKeyDown={(e) => e.key === "Enter" && handleUnlock()} />
                 <button type="button" onClick={() => setShowPw(!showPw)}>
                   {showPw ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
@@ -454,16 +580,18 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
                   )}
                 </button>
               </div>
+              {msg.type === "error" && <span className="st-err st-modal-err" role="alert">{msg.text}</span>}
               <button className="st-modal-btn" onClick={handleUnlock} disabled={busy}>{busy ? "Verifying..." : "Continue"}</button>
             </>
           ) : (
             <>
               <h3>Choose a new username</h3>
               <p>You're changing from <strong>@{currentUsername}</strong>. You'll be logged out and need to sign in again.</p>
-              {msg.text && <div className={`st-msg st-msg-${msg.type}`}>{msg.text}</div>}
-              <div className="st-modal-input">
-                <input type="text" placeholder="New username" maxLength={50} value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" onKeyDown={(e) => e.key === "Enter" && !busy && handleSave()} />
+              {msg.type === "success" && <div className="st-msg st-msg-success">{msg.text}</div>}
+              <div className={`st-modal-input ${msg.type === "error" ? "has-err" : ""}`}>
+                <input type="text" placeholder="New username" maxLength={50} value={newUsername} onChange={(e) => { setNewUsername(e.target.value); if (msg.type === "error") setMsg({ type: "", text: "" }); }} autoComplete="off" onKeyDown={(e) => e.key === "Enter" && !busy && handleSave()} />
               </div>
+              {msg.type === "error" && <span className="st-err st-modal-err" role="alert">{msg.text}</span>}
               <button className="st-modal-btn" onClick={handleSave} disabled={busy}>
                 {busy ? "Saving..." : "Save & Re-login"}
               </button>

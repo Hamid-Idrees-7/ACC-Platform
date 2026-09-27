@@ -41,8 +41,8 @@ namespace Backend.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var (success, message) = await _service.UpdateProfileAsync(GetUserId(), dto);
-            if (!success) return BadRequest(new { message });
+            var (success, message, field) = await _service.UpdateProfileAsync(GetUserId(), dto);
+            if (!success) return BadRequest(new { message, field });
             return Ok(new { message });
         }
 
@@ -81,8 +81,8 @@ namespace Backend.Controllers
             if (IsDemoAccount())
                 return BadRequest(new { message = "The password can't be changed on a demo account." });
 
-            var (success, message) = await _service.ChangePasswordAsync(GetUserId(), dto);
-            if (!success) return BadRequest(new { message });
+            var (success, message, field) = await _service.ChangePasswordAsync(GetUserId(), dto);
+            if (!success) return BadRequest(new { message, field });
             return Ok(new { message });
         }
 

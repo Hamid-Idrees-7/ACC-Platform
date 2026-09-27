@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { materialService } from "../services/materialService";
-import { formatQty, rupees } from "../utils/format";
+import { formatQty, money } from "../utils/format";
 import { formatDateTime } from "../utils/dates";
 import "./MaterialHistory.css";
 
@@ -90,7 +90,7 @@ function MaterialHistory() {
       <div className="mhist-banner">
         <h2>{data.name}</h2>
         <div className="mhist-banner-meta">
-          Unit: <strong>{data.unit}</strong> · <span className="accent">Avg Cost: {rupees(data.avgCost)} / {data.unit}</span> · Current Stock: <strong>{formatQty(data.currentStock)} {data.unit}</strong>
+          Unit: <strong>{data.unit}</strong> · <span className="accent">Avg Cost: {money(data.avgCost)} / {data.unit}</span> · Current Stock: <strong>{formatQty(data.currentStock)} {data.unit}</strong>
         </div>
       </div>
 
@@ -101,16 +101,16 @@ function MaterialHistory() {
           <div>
             <div className="mhist-stat-value">{formatQty(data.totalPurchasedQty)} {data.unit}</div>
             <div className="mhist-stat-label">Total Purchased</div>
-            <div className="mhist-stat-sub">{rupees(data.totalInvested)} invested</div>
+            <div className="mhist-stat-sub">{money(data.totalInvested)} invested</div>
           </div>
         </div>
 
         <div className="mhist-stat">
           <div className="mhist-stat-icon cost">$</div>
           <div>
-            <div className="mhist-stat-value">{rupees(data.avgCost)}</div>
+            <div className="mhist-stat-value">{money(data.avgCost)}</div>
             <div className="mhist-stat-label">Weighted Avg Cost / {data.unit}</div>
-            <div className="mhist-stat-sub">Min: {rupees(data.minRate)} · Max: {rupees(data.maxRate)}</div>
+            <div className="mhist-stat-sub">Min: {money(data.minRate)} · Max: {money(data.maxRate)}</div>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ function MaterialHistory() {
           <div>
             <div className="mhist-stat-value">{formatQty(data.totalIssuedQty)} {data.unit}</div>
             <div className="mhist-stat-label">Total Issued (active)</div>
-            <div className="mhist-stat-sub">{rupees(data.totalIssuedCost)} issued cost</div>
+            <div className="mhist-stat-sub">{money(data.totalIssuedCost)} issued cost</div>
           </div>
         </div>
 
@@ -161,12 +161,12 @@ function MaterialHistory() {
                   </div>
                   <div className="mhist-row-meta">
                     {isIssue && t.projectName && <>Project: <strong>{t.projectName}</strong> · </>}
-                    Rate: {rupees(t.rate)} / {data.unit}
+                    Rate: {money(t.rate)} / {data.unit}
                   </div>
                   {t.note && <div className="mhist-row-note">{t.note}</div>}
                   <div className="mhist-row-date">{formatDateTime(t.createdAt)}</div>
                 </div>
-                <div className={`mhist-row-amount ${cancelled ? "struck" : ""}`}>{rupees(t.amount)}</div>
+                <div className={`mhist-row-amount ${cancelled ? "struck" : ""}`}>{money(t.amount)}</div>
                 {canManage && (
                   <div className="mhist-row-action">
                     {cancelled ? null : t.locked ? (

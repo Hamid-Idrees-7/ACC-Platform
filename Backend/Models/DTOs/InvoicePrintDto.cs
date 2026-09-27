@@ -4,7 +4,8 @@ namespace Backend.Models.DTOs
     // frontend print view does no extra lookups.
     public class InvoicePrintDto
     {
-        public string CompanyName { get; set; } = "Anonymous Construction & Co.";
+        // Letterhead, bank details and currency from Settings > Company
+        public CompanyBrandDto Company { get; set; } = new();
 
         public int InvoiceID { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;

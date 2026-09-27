@@ -10,12 +10,14 @@ import { employeeService } from "../services/employeeService";
 import { projectService } from "../services/projectService";
 import { billingService } from "../services/billingService";
 import { materialRequestService } from "../services/materialRequestService";
-import { rupeesShort, amountInWords } from "../utils/format";
+import { moneyShort, amountInWords } from "../utils/format";
+import { useCompany } from "../context/CompanyContext";
 import "./Dashboard.css";
 
 function Dashboard() {
   const { user } = useAuth();
   const { isAdmin, canView, can } = usePermissions();
+  const { company } = useCompany();
   const navigate = useNavigate();
   const firstName = (user?.fullName || user?.username || "there").split(" ")[0];
 
@@ -104,7 +106,7 @@ function Dashboard() {
     { label: "Active Users", value: metrics.loaded ? String(metrics.users) : "—", icon: "users" },
     { label: "Active Employees", value: metrics.loaded ? String(metrics.employees) : "—", icon: "user" },
     { label: "Active Projects", value: metrics.loaded ? String(metrics.projects) : "—", icon: "building" },
-    { label: "Total Revenue", value: metrics.loaded ? rupeesShort(metrics.revenue) : "—", words: metrics.loaded ? amountInWords(metrics.revenue) : "", icon: "dollar" },
+    { label: "Total Revenue", value: metrics.loaded ? moneyShort(metrics.revenue) : "—", words: metrics.loaded ? amountInWords(metrics.revenue) : "", icon: "dollar" },
   ];
 
   const statIcon = (name) => {
@@ -124,7 +126,7 @@ function Dashboard() {
       {/* Welcome banner */}
       <div className="dash-welcome">
         <h2>Welcome, <span>{firstName}</span></h2>
-        <p>Here's what's happening with Anonymous Construction Co. today.</p>
+        <p>Here's what's happening with {company.companyName} today.</p>
       </div>
 
       {/* Stat cards - Admin only */}

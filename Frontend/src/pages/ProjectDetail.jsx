@@ -4,7 +4,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { projectService } from "../services/projectService";
 import { formatDate } from "../components/DatePicker";
-import { rupees, formatQty, amountInWords } from "../utils/format";
+import { money, formatQty, amountInWords } from "../utils/format";
 import ProjectExpenses from "../components/ProjectExpenses";
 import "./ProjectDetail.css";
 
@@ -185,7 +185,7 @@ function ProjectDetail() {
   const accrualText = (m) => {
     if (m.wageType !== "Daily") return null;
     const days = m.presentDays || 0;
-    return `${days} present ${days === 1 ? "day" : "days"} = ${rupees(days * (m.wageAmount || 0))}`;
+    return `${days} present ${days === 1 ? "day" : "days"} = ${money(days * (m.wageAmount || 0))}`;
   };
 
   return (
@@ -241,41 +241,41 @@ function ProjectDetail() {
             <div className="pd-fin-rows">
               <div className="pd-fin-row">
                 <span>Budget (from client)</span>
-                <div className="pd-fin-amt pos"><strong>+ {rupees(f.budget)}</strong><em>{amountInWords(f.budget)}</em></div>
+                <div className="pd-fin-amt pos"><strong>+ {money(f.budget)}</strong><em>{amountInWords(f.budget)}</em></div>
               </div>
               <div className="pd-fin-row">
                 <span>Material Cost <b className="pd-tag">ISSUED</b></span>
-                <div className="pd-fin-amt neg"><strong>− {rupees(f.materialCost)}</strong><em>{amountInWords(f.materialCost)}</em></div>
+                <div className="pd-fin-amt neg"><strong>− {money(f.materialCost)}</strong><em>{amountInWords(f.materialCost)}</em></div>
               </div>
               <div className="pd-fin-row">
                 <span>Contract Labour <b className="pd-tag">FIXED</b></span>
-                <div className="pd-fin-amt neg"><strong>− {rupees(contractLabour)}</strong><em>{amountInWords(contractLabour)}</em></div>
+                <div className="pd-fin-amt neg"><strong>− {money(contractLabour)}</strong><em>{amountInWords(contractLabour)}</em></div>
               </div>
               <div className="pd-fin-row">
                 <span>Daily Wages <b className="pd-tag">ATTENDANCE</b></span>
-                <div className="pd-fin-amt neg"><strong>− {rupees(dailyLabour)}</strong><em>{amountInWords(dailyLabour)}</em></div>
+                <div className="pd-fin-amt neg"><strong>− {money(dailyLabour)}</strong><em>{amountInWords(dailyLabour)}</em></div>
               </div>
               <div className="pd-fin-row">
                 <span>Other Expenses <b className="pd-tag">PLOT · FEES · TAXES</b></span>
-                <div className="pd-fin-amt neg"><strong>− {rupees(f.expenseCost)}</strong><em>{amountInWords(f.expenseCost)}</em></div>
+                <div className="pd-fin-amt neg"><strong>− {money(f.expenseCost)}</strong><em>{amountInWords(f.expenseCost)}</em></div>
               </div>
               <div className="pd-fin-row pd-fin-total">
                 <span>Actual Cost</span>
-                <div className="pd-fin-amt"><strong>{rupees(f.actualCost)}</strong><em>{amountInWords(f.actualCost)}</em></div>
+                <div className="pd-fin-amt"><strong>{money(f.actualCost)}</strong><em>{amountInWords(f.actualCost)}</em></div>
               </div>
               {f.recoverableTotal > 0 && (
                 <div className="pd-fin-row pd-fin-rec">
                   <span>Paid for client <b className="pd-tag rec">RECOVERABLE</b></span>
                   <div className="pd-fin-amt">
-                    <strong>{rupees(f.recoverableTotal)}</strong>
-                    <em>{rupees(f.recoverableInvoiced)} billed · {rupees(f.recoverableTotal - f.recoverableInvoiced)} to bill · not a cost</em>
+                    <strong>{money(f.recoverableTotal)}</strong>
+                    <em>{money(f.recoverableInvoiced)} billed · {money(f.recoverableTotal - f.recoverableInvoiced)} to bill · not a cost</em>
                   </div>
                 </div>
               )}
             </div>
             <div className={`pd-profit ${f.profit >= 0 ? "pos" : "neg"}`}>
               <span>{f.profit >= 0 ? "PROFIT" : "LOSS"}</span>
-              <strong>{rupees(f.profit)}</strong>
+              <strong>{money(f.profit)}</strong>
               <em>{amountInWords(f.profit)}</em>
             </div>
           </div>
@@ -366,7 +366,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
+                        <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
                       </div>
                     ))}
                   </div>
@@ -385,7 +385,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{rupees(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
+                        <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
                       </div>
                     ))}
                   </div>
@@ -410,7 +410,7 @@ function ProjectDetail() {
               <div key={idx} className="pd-mat-phase">
                 <div className="pd-mat-phase-head">
                   <span>{pm.phaseName}</span>
-                  <span className="pd-mat-sub">{rupees(pm.subtotal)} <em>({amountInWords(pm.subtotal)})</em></span>
+                  <span className="pd-mat-sub">{money(pm.subtotal)} <em>({amountInWords(pm.subtotal)})</em></span>
                 </div>
                 {pm.items.map((it, j) => (
                   <div key={j} className="pd-mat-line">
@@ -418,7 +418,7 @@ function ProjectDetail() {
                       <div className="pd-mat-name">{it.materialName}</div>
                       <div className="pd-mat-qty">{formatQty(it.quantity)} {it.unit}</div>
                     </div>
-                    <span className="pd-mat-amt">{rupees(it.amount)}</span>
+                    <span className="pd-mat-amt">{money(it.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -426,7 +426,7 @@ function ProjectDetail() {
             <div className="pd-mat-grand">
               <span>Grand Total — All Materials</span>
               <div className="pd-mat-grand-amt">
-                <strong>{rupees(project.financials.materialCost)}</strong>
+                <strong>{money(project.financials.materialCost)}</strong>
                 <em>({amountInWords(project.financials.materialCost)})</em>
               </div>
             </div>

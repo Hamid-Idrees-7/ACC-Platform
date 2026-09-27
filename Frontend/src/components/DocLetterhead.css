@@ -1,0 +1,28 @@
+/* Company letterhead on invoices and payslips. Prefix: dlh- */
+
+.dlh { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+.dlh-logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dlh-logo span {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dlh-logo.has-img img { display: block; max-width: 150px; max-height: 64px; object-fit: contain; }
+.dlh-text { min-width: 0; }
+.dlh-text h2 { font-family: var(--font-heading); font-size: 23px; font-weight: 800; color: var(--color-text); line-height: 1.2; }
+.dlh-sub { display: block; font-size: 13px; color: var(--color-text-muted); letter-spacing: 0.3px; margin-top: 2px; }
+.dlh-line { font-size: 12.5px; color: var(--color-text-muted); margin-top: 3px; line-height: 1.45; }
+.dlh-tax { color: var(--color-text); font-weight: 600; }

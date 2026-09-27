@@ -34,6 +34,8 @@ namespace Backend.Data
         public DbSet<MaterialRequest> MaterialRequests { get; set; }
         public DbSet<ProjectExpense> ProjectExpenses { get; set; }
         public DbSet<UserPreference> UserPreferences { get; set; }
+        public DbSet<CompanySetting> CompanySettings { get; set; }
+        public DbSet<CompanyHoliday> CompanyHolidays { get; set; }
 
         // Registry of isolated visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }

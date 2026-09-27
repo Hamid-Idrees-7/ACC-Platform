@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import DatePicker, { formatDate } from "./DatePicker";
-import { amountInWords } from "../utils/format";
+import { amountInWords, currencySymbol } from "../utils/format";
 import "./AssignmentFormModal.css";
 
 const WAGE_TYPES = [
@@ -10,7 +10,7 @@ const WAGE_TYPES = [
 ];
 
 const wageLabel = (type) =>
-  type === "Monthly" ? "Monthly Salary (Rs.)" : type === "Contract" ? "Contract Amount (Rs.)" : "Daily Wage (Rs.)";
+  `${type === "Monthly" ? "Monthly Salary" : type === "Contract" ? "Contract Amount" : "Daily Wage"} (${currencySymbol()})`;
 
 function AssignmentFormModal({ mode, initialData, employees = [], projects = [], assignments = [], onClose, onSave }) {
   const isEdit = mode === "edit";

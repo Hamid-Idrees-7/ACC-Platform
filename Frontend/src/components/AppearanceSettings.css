@@ -102,10 +102,6 @@
     background: var(--color-primary);
 }
 
-.aps-status { font-size: 13.5px; padding: 10px 14px; border-radius: var(--radius-md); }
-.aps-status-saving { background: var(--color-neutral-soft); color: var(--color-text-muted); }
-.aps-status-saved { background: var(--color-success-soft); color: var(--color-success-strong); }
-.aps-status-error { background: var(--color-error-soft); color: var(--color-error); }
 
 .aps button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
