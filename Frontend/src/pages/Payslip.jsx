@@ -5,6 +5,7 @@ import { salaryService } from "../services/salaryService";
 import { money } from "../utils/format";
 import { formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
+import Toast, { useToast } from "../components/Toast";
 import "./Payslip.css";
 
 const rateLabel = (l) =>
@@ -20,6 +21,8 @@ function Payslip() {
 
   const [slip, setSlip] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [making, setMaking] = useState(false);
+  const [toast, showToast] = useToast(3500);
 
   useEffect(() => {
     (async () => {
@@ -45,6 +48,21 @@ function Payslip() {
     );
   }
 
+  // A real pdf file (sharp text, same layout as this page) made in the browser
+  const downloadPdf = async () => {
+    setMaking(true);
+    try {
+      const { downloadPayslipPdf } = await import("../utils/pdf/payslipPdf");
+      await downloadPayslipPdf(slip);
+      showToast("Payslip PDF downloaded.");
+    } catch (err) {
+      console.error("PDF could not be created:", err);
+      showToast("Could not create the PDF. Please try again.", "error");
+    } finally {
+      setMaking(false);
+    }
+  };
+
   return (
     <DashboardLayout title="Salary Payslip">
       <div className="psl-bar">
@@ -52,10 +70,16 @@ function Payslip() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           Back to Salaries
         </button>
-        <button className="psl-print" onClick={() => window.print()}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
-          Print Payslip
-        </button>
+        <div className="psl-actions">
+          <button className="psl-print ghost" onClick={() => window.print()}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+            Print
+          </button>
+          <button className="psl-print" onClick={downloadPdf} disabled={making}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            {making ? "Preparing PDF..." : "Download PDF"}
+          </button>
+        </div>
       </div>
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
@@ -112,7 +136,7 @@ function Payslip() {
 
           <div className="psl-totals">
             <div className="psl-total-row"><span>Total Calculated</span><strong>{money(slip.totalCalculated)}</strong></div>
-            <div className="psl-net"><span>Net Payable / Paid</span><strong>{money(slip.netPaid)}</strong></div>
+            <div className="psl-net"><span>{slip.status === "Paid" ? "Net Paid" : "Net Payable"}</span><strong>{money(slip.netPaid)}</strong></div>
           </div>
 
           <div className="psl-foot">
@@ -126,6 +150,7 @@ function Payslip() {
           </div>
         </div>
       </div>
+      <Toast toast={toast} />
     </DashboardLayout>
   );
 }

@@ -5,6 +5,7 @@ import { billingService } from "../services/billingService";
 import { money, formatQty, amountInWords } from "../utils/format";
 import { formatDateShort, formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
+import Toast, { useToast } from "../components/Toast";
 import "./InvoicePrint.css";
 
 const fmtDate = (d) => formatDateShort(d, "—");
@@ -14,6 +15,8 @@ function InvoicePrint() {
   const navigate = useNavigate();
   const [inv, setInv] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [making, setMaking] = useState(false);
+  const [toast, showToast] = useToast(3500);
 
   useEffect(() => {
     (async () => {
@@ -39,6 +42,21 @@ function InvoicePrint() {
     );
   }
 
+  // A real pdf file (sharp text, same layout as this page), made in the browser
+  const downloadPdf = async () => {
+    setMaking(true);
+    try {
+      const { downloadInvoicePdf } = await import("../utils/pdf/invoicePdf");
+      await downloadInvoicePdf(inv);
+      showToast(`${inv.invoiceNumber}.pdf downloaded.`);
+    } catch (err) {
+      console.error("PDF could not be created:", err);
+      showToast("Could not create the PDF. Please try again.", "error");
+    } finally {
+      setMaking(false);
+    }
+  };
+
   const st = (inv.status || "Unpaid").toLowerCase();
   const company = inv.company || {};
   const hasBank = !!(company.bankName || company.bankAccountNumber || company.bankIBAN);
@@ -50,10 +68,16 @@ function InvoicePrint() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           Back
         </button>
-        <button className="ivp-print" onClick={() => window.print()}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
-          Print / Save PDF
-        </button>
+        <div className="ivp-actions">
+          <button className="ivp-print ghost" onClick={() => window.print()}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+            Print
+          </button>
+          <button className="ivp-print" onClick={downloadPdf} disabled={making}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            {making ? "Preparing PDF..." : "Download PDF"}
+          </button>
+        </div>
       </div>
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
@@ -179,6 +203,7 @@ function InvoicePrint() {
           </div>
         </div>
       </div>
+      <Toast toast={toast} />
     </DashboardLayout>
   );
 }

@@ -18,6 +18,11 @@
     color: var(--color-text); font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .rep-print:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.rep-actions { display: flex; gap: 10px; flex-shrink: 0; }
+/* Download PDF is the main action; Print stays as the plain button */
+.rep-print:not(.ghost) { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.rep-print:not(.ghost):hover:not(:disabled) { background: var(--color-primary-dark); color: #fff; }
+.rep-print:disabled { opacity: 0.7; cursor: wait; }
 
 /* Print-only report header */
 .rep-print-head { display: none; }

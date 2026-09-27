@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { reportsService } from "../services/reportsService";
 import { money, moneyShort, formatNum, formatQty, amountInWords } from "../utils/format";
@@ -10,6 +10,7 @@ import { formatDateShort } from "../utils/dates";
 import { chartTheme } from "../utils/chartTheme";
 import { usePreferences } from "../context/PreferencesContext";
 import { useCompany } from "../context/CompanyContext";
+import Toast, { useToast } from "../components/Toast";
 import "./Reports.css";
 
 const TABS = [
@@ -38,6 +39,14 @@ function Kpi({ label, value, sub, words, tone }) {
   );
 }
 
+function KpiRows({ rows }) {
+  return rows.map((row, i) => (
+    <div className="rep-kpis" key={i}>
+      {row.map((k) => <Kpi key={k.label} {...k} />)}
+    </div>
+  ));
+}
+
 function ChartCard({ title, children, wide }) {
   return (
     <div className={`rep-chart-card ${wide ? "wide" : ""}`}>
@@ -50,6 +59,82 @@ function ChartCard({ title, children, wide }) {
 // Recharts tooltip that formats money nicely
 const moneyTip = (value) => moneyShort(value);
 
+// The figure cards of each tab, in rows. Used by the page and by the PDF.
+function kpiRows(tab, data) {
+  const fin = data.financial;
+  const mat = data.materials;
+  const wf = data.workforce;
+  if (tab === "financial") return [
+    [
+      { label: "Total Budget", value: moneyShort(fin.totalBudget), words: amountInWords(fin.totalBudget), sub: `${fin.liveProjects} live project${fin.liveProjects === 1 ? "" : "s"}${fin.cancelledProjects > 0 ? ` · ${fin.cancelledProjects} cancelled excluded` : ""}`, tone: "blue" },
+      { label: "Total Cost", value: moneyShort(fin.totalCost), words: amountInWords(fin.totalCost), sub: `Material ${moneyShort(fin.materialCost)} · Labour ${moneyShort(fin.labourCost)} · Expenses ${moneyShort(fin.expenseCost || 0)}`, tone: "amber" },
+      { label: "Total Profit", value: moneyShort(fin.totalProfit), words: amountInWords(fin.totalProfit), sub: `Margin ${fin.marginPercent}%`, tone: "green" },
+      { label: "Received", value: moneyShort(fin.totalReceived), words: amountInWords(fin.totalReceived), sub: `Billed ${moneyShort(fin.totalBilled)}`, tone: "primary" },
+    ],
+    [
+      { label: "Remaining", value: moneyShort(fin.outstanding), words: amountInWords(fin.outstanding), tone: fin.outstanding > 0 ? "red" : "" },
+      { label: "Overdue", value: moneyShort(fin.overdue), words: amountInWords(fin.overdue), tone: fin.overdue > 0 ? "red" : "" },
+      { label: "Active Projects", value: fin.activeProjects },
+      { label: "Completed", value: fin.completedProjects },
+    ],
+  ];
+  if (tab === "projects") return [[
+    { label: "Projects", value: fin.projectCount, tone: "blue" },
+    { label: "Active", value: fin.activeProjects, tone: "primary" },
+    { label: "Completed", value: fin.completedProjects, tone: "green" },
+    { label: "Total Profit", value: moneyShort(fin.totalProfit), words: amountInWords(fin.totalProfit), sub: `Margin ${fin.marginPercent}%`, tone: "green" },
+  ]];
+  if (tab === "materials") return [
+    [
+      { label: "Materials", value: mat.totalMaterials, tone: "blue" },
+      { label: "Inventory Value", value: moneyShort(mat.inventoryValue), words: amountInWords(mat.inventoryValue), tone: "primary" },
+      { label: "Total Purchased", value: moneyShort(mat.totalPurchased), words: amountInWords(mat.totalPurchased), tone: "green" },
+      { label: "Issued to Projects", value: moneyShort(mat.totalIssued), words: amountInWords(mat.totalIssued), tone: "amber" },
+    ],
+    [
+      { label: "Low Stock", value: mat.lowStock, tone: mat.lowStock > 0 ? "amber" : "" },
+      { label: "Out of Stock", value: mat.outOfStock, tone: mat.outOfStock > 0 ? "red" : "" },
+    ],
+  ];
+  return [[
+    { label: "Employees", value: wf.totalEmployees, sub: `${wf.activeEmployees} active`, tone: "blue" },
+    { label: "Assignments", value: wf.totalAssignments, sub: `${wf.activeAssignments} active`, tone: "primary" },
+    { label: "Attendance Rate", value: `${wf.presentRate}%`, sub: `${formatNum(wf.presentCount)} present · ${formatNum(wf.absentCount)} absent`, tone: "green" },
+    { label: `Payroll — ${wf.payrollPeriod}`, value: moneyShort(wf.payrollTotal), words: amountInWords(wf.payrollTotal), sub: `Paid ${moneyShort(wf.payrollPaid)} · Pending ${moneyShort(wf.payrollPending)}`, tone: "amber" },
+  ]];
+}
+
+// The tables of each tab for the PDF (the page draws its own).
+function pdfTables(tab, data) {
+  if (tab === "projects") return [{
+    title: "Projects",
+    headers: ["Project", "Client", "Status", "Progress", "Budget", "Cost", "Profit", "Margin", "Received", "Remaining"],
+    align: ["left", "left", "left", "right", "right", "right", "right", "right", "right", "right"],
+    widths: ["*", 95, 55, "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
+    rows: data.projects.map((p) => {
+      const cancelled = p.status === "Cancelled";
+      const tone = p.profit >= 0 ? "#067647" : "#DC2626";
+      return [
+        p.title, p.clientName, p.status, `${p.progress}%`, money(p.budget), money(p.cost),
+        cancelled ? "—" : { text: money(p.profit), color: tone },
+        cancelled ? "—" : { text: `${p.marginPercent}%`, color: tone },
+        money(p.received), money(p.outstanding),
+      ];
+    }),
+  }];
+  if (tab === "materials") return [{
+    title: "Materials",
+    headers: ["Material", "Category", "Stock", "Avg cost", "Inventory value", "Purchased", "Issued"],
+    align: ["left", "left", "right", "right", "right", "right", "right"],
+    widths: ["*", 64, "auto", "auto", "auto", "auto", "auto"],
+    rows: data.materials.topMaterials.map((m) => [
+      m.stockState !== "OK" ? { text: [m.name, { text: `  ${m.stockState}`, color: m.stockState === "Out" ? "#DC2626" : "#B54708", fontSize: 7, bold: true }] } : m.name,
+      m.category, `${formatQty(m.stock)} ${m.unit}`, money(m.avgCost), money(m.inventoryValue), money(m.purchased), money(m.issued),
+    ]),
+  }];
+  return [];
+}
+
 function Reports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +143,12 @@ function Reports() {
   const { resolvedTheme } = usePreferences();
   const { company } = useCompany();
   const chart = useMemo(() => chartTheme(resolvedTheme), [resolvedTheme]);
+  const printAreaRef = useRef(null);
+  // When the open tab appeared: the charts need their draw-in animation to finish before a PDF.
+  const shownAt = useRef(Date.now());
+  useEffect(() => { shownAt.current = Date.now(); }, [tab, loading]);
+  const [making, setMaking] = useState(false);
+  const [toast, showToast] = useToast(3500);
 
   useEffect(() => {
     (async () => {
@@ -85,10 +176,38 @@ function Reports() {
   const wf = data.workforce;
 
   const genOn = formatDateShort(data.generatedAt);
+  const tabLabel = TABS.find((t) => t.key === tab)?.label;
+
+  // PDF of the open tab: its figures, its charts as drawn and its tables.
+  const downloadPdf = async () => {
+    setMaking(true);
+    try {
+      const { downloadReportPdf, captureCharts, waitForCharts } = await import("../utils/pdf/reportPdf");
+      const wait = 2000 - (Date.now() - shownAt.current);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      await waitForCharts(printAreaRef.current);
+      await downloadReportPdf({
+        title: `${tabLabel} Report`,
+        company,
+        generatedAt: data.generatedAt,
+        kpis: kpiRows(tab, data).flat(),
+        charts: captureCharts(printAreaRef.current),
+        tables: pdfTables(tab, data),
+        // The projects table has ten columns: a wide page keeps it readable.
+        landscape: tab === "projects",
+      });
+      showToast(`${tabLabel} report downloaded.`);
+    } catch (err) {
+      console.error("PDF could not be created:", err);
+      showToast("Could not create the PDF. Please try again.", "error");
+    } finally {
+      setMaking(false);
+    }
+  };
 
   return (
     <DashboardLayout title="Reports">
-      <div id="rep-print-area">
+      <div id="rep-print-area" ref={printAreaRef}>
         <div className="rep-topbar">
           <div className="rep-tabs">
             {TABS.map((t) => (
@@ -97,32 +216,27 @@ function Reports() {
               </button>
             ))}
           </div>
-          <button className="rep-print" onClick={() => window.print()}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
-            Print / PDF
-          </button>
+          <div className="rep-actions">
+            <button className="rep-print ghost" onClick={() => window.print()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+              Print
+            </button>
+            <button className="rep-print" onClick={downloadPdf} disabled={making}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              {making ? "Preparing PDF..." : "Download PDF"}
+            </button>
+          </div>
         </div>
 
         <div className="rep-print-head">
-          <h2>{company.companyName} — {TABS.find((t) => t.key === tab)?.label} Report</h2>
+          <h2>{company.companyName} — {tabLabel} Report</h2>
           <span>Generated on {genOn}</span>
         </div>
 
         {/* FINANCIAL */}
         {tab === "financial" && (
           <>
-            <div className="rep-kpis">
-              <Kpi label="Total Budget" value={moneyShort(fin.totalBudget)} words={amountInWords(fin.totalBudget)} sub={`${fin.liveProjects} live project${fin.liveProjects === 1 ? "" : "s"}${fin.cancelledProjects > 0 ? ` · ${fin.cancelledProjects} cancelled excluded` : ""}`} tone="blue" />
-              <Kpi label="Total Cost" value={moneyShort(fin.totalCost)} words={amountInWords(fin.totalCost)} sub={`Material ${moneyShort(fin.materialCost)} · Labour ${moneyShort(fin.labourCost)} · Expenses ${moneyShort(fin.expenseCost || 0)}`} tone="amber" />
-              <Kpi label="Total Profit" value={moneyShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
-              <Kpi label="Received" value={moneyShort(fin.totalReceived)} words={amountInWords(fin.totalReceived)} sub={`Billed ${moneyShort(fin.totalBilled)}`} tone="primary" />
-            </div>
-            <div className="rep-kpis">
-              <Kpi label="Remaining" value={moneyShort(fin.outstanding)} words={amountInWords(fin.outstanding)} tone={fin.outstanding > 0 ? "red" : ""} />
-              <Kpi label="Overdue" value={moneyShort(fin.overdue)} words={amountInWords(fin.overdue)} tone={fin.overdue > 0 ? "red" : ""} />
-              <Kpi label="Active Projects" value={fin.activeProjects} />
-              <Kpi label="Completed" value={fin.completedProjects} />
-            </div>
+            <KpiRows rows={kpiRows(tab, data)} />
 
             <div className="rep-charts">
               <ChartCard title="Revenue Trend — last 6 months" wide>
@@ -195,12 +309,7 @@ function Reports() {
         {/* PROJECTS */}
         {tab === "projects" && (
           <>
-            <div className="rep-kpis">
-              <Kpi label="Projects" value={fin.projectCount} tone="blue" />
-              <Kpi label="Active" value={fin.activeProjects} tone="primary" />
-              <Kpi label="Completed" value={fin.completedProjects} tone="green" />
-              <Kpi label="Total Profit" value={moneyShort(fin.totalProfit)} words={amountInWords(fin.totalProfit)} sub={`Margin ${fin.marginPercent}%`} tone="green" />
-            </div>
+            <KpiRows rows={kpiRows(tab, data)} />
 
             <div className="rep-charts">
               <ChartCard title="Budget vs Cost by Project" wide>
@@ -260,16 +369,7 @@ function Reports() {
         {/* MATERIALS */}
         {tab === "materials" && (
           <>
-            <div className="rep-kpis">
-              <Kpi label="Materials" value={mat.totalMaterials} tone="blue" />
-              <Kpi label="Inventory Value" value={moneyShort(mat.inventoryValue)} words={amountInWords(mat.inventoryValue)} tone="primary" />
-              <Kpi label="Total Purchased" value={moneyShort(mat.totalPurchased)} words={amountInWords(mat.totalPurchased)} tone="green" />
-              <Kpi label="Issued to Projects" value={moneyShort(mat.totalIssued)} words={amountInWords(mat.totalIssued)} tone="amber" />
-            </div>
-            <div className="rep-kpis">
-              <Kpi label="Low Stock" value={mat.lowStock} tone={mat.lowStock > 0 ? "amber" : ""} />
-              <Kpi label="Out of Stock" value={mat.outOfStock} tone={mat.outOfStock > 0 ? "red" : ""} />
-            </div>
+            <KpiRows rows={kpiRows(tab, data)} />
 
             <div className="rep-charts">
               <ChartCard title="Inventory Value by Category">
@@ -326,12 +426,7 @@ function Reports() {
         {/* WORKFORCE */}
         {tab === "workforce" && (
           <>
-            <div className="rep-kpis">
-              <Kpi label="Employees" value={wf.totalEmployees} sub={`${wf.activeEmployees} active`} tone="blue" />
-              <Kpi label="Assignments" value={wf.totalAssignments} sub={`${wf.activeAssignments} active`} tone="primary" />
-              <Kpi label="Attendance Rate" value={`${wf.presentRate}%`} sub={`${formatNum(wf.presentCount)} present · ${formatNum(wf.absentCount)} absent`} tone="green" />
-              <Kpi label={`Payroll — ${wf.payrollPeriod}`} value={moneyShort(wf.payrollTotal)} words={amountInWords(wf.payrollTotal)} sub={`Paid ${moneyShort(wf.payrollPaid)} · Pending ${moneyShort(wf.payrollPending)}`} tone="amber" />
-            </div>
+            <KpiRows rows={kpiRows(tab, data)} />
 
             <div className="rep-charts">
               <ChartCard title="Employees by Designation">
@@ -379,6 +474,7 @@ function Reports() {
           </>
         )}
       </div>
+      <Toast toast={toast} />
     </DashboardLayout>
   );
 }

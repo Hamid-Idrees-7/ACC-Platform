@@ -67,6 +67,25 @@ function ProjectBilling() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
+  // Download an invoice as pdf straight from the list 
+  const [pdfBusy, setPdfBusy] = useState(null);
+  const downloadInvoice = async (inv) => {
+    setPdfBusy(inv.invoiceID);
+    try {
+      const [printData, { downloadInvoicePdf }] = await Promise.all([
+        billingService.getInvoicePrint(inv.invoiceID),
+        import("../utils/pdf/invoicePdf"),
+      ]);
+      await downloadInvoicePdf(printData);
+      showToast(`${inv.invoiceNumber}.pdf downloaded.`);
+    } catch (err) {
+      console.error("PDF could not be created:", err);
+      showToast("Could not create the PDF. Please try again.", "error");
+    } finally {
+      setPdfBusy(null);
+    }
+  };
+
   // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
   // page on screen, so it never jumps back to the top.
   const load = async ({ quiet = false } = {}) => {
@@ -461,7 +480,11 @@ function ProjectBilling() {
                     <div className="pbl-inv-actions">
                       <button className="pbl-act print" onClick={() => navigate(`/dashboard/billing/invoice/${inv.invoiceID}/print`)}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
-                        Print
+                        View
+                      </button>
+                      <button className="pbl-act print" onClick={() => downloadInvoice(inv)} disabled={pdfBusy === inv.invoiceID}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        {pdfBusy === inv.invoiceID ? "Preparing..." : "PDF"}
                       </button>
                       {canManage && inv.due > 0 && (
                         <button className="pbl-act pay" onClick={() => openPay(inv)}>Record Payment</button>
