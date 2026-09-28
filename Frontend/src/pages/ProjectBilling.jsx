@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import DatePicker from "../components/DatePicker";
 import { usePermissions } from "../context/PermissionContext";
@@ -8,6 +8,8 @@ import { billingService } from "../services/billingService";
 import { money, amountInWords, formatQty, currencySymbol } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./ProjectBilling.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -46,7 +48,8 @@ function ProjectBilling() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [expanded, setExpanded] = useState(null);       
+  const [params] = useSearchParams();
+  const [expanded, setExpanded] = useState(() => Number(params.get("highlight")) || null);       
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -101,6 +104,10 @@ function ProjectBilling() {
     }
   };
   useEffect(() => { load(); }, [projectId]);
+
+  useLiveRefresh(["billing", "expenses", "projects", "clients", "company"], () => load({ quiet: true }));
+
+  useHighlight(data ? data.projectID : null);
 
   // Invoice form 
   // prefill: optional list of recoverable expenses to start the invoice with.
@@ -399,7 +406,7 @@ function ProjectBilling() {
             const open = expanded === inv.invoiceID;
             const st = (inv.status || "Unpaid").toLowerCase();
             return (
-              <div key={inv.invoiceID} className={`pbl-inv ${st}`}>
+              <div key={inv.invoiceID} className={`pbl-inv ${st}`} data-highlight={inv.invoiceID}>
                 <button className="pbl-inv-head" onClick={() => setExpanded(open ? null : inv.invoiceID)}>
                   <div className="pbl-inv-id">
                     <span className="pbl-inv-num">{inv.invoiceNumber}</span>

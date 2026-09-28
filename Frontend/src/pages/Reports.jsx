@@ -12,6 +12,7 @@ import { usePreferences } from "../context/PreferencesContext";
 import { useCompany } from "../context/CompanyContext";
 import Toast, { useToast } from "../components/Toast";
 import "./Reports.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const TABS = [
   { key: "financial", label: "Financial" },
@@ -147,6 +148,14 @@ function Reports() {
   // When the open tab appeared: the charts need their draw-in animation to finish before a PDF.
   const shownAt = useRef(Date.now());
   useEffect(() => { shownAt.current = Date.now(); }, [tab, loading]);
+
+  useLiveRefresh(["projects", "billing", "expenses", "materials", "salaries", "attendance", "employees", "assignments", "clients"], async () => {
+    try {
+      setData(await reportsService.getReports());
+    } catch {
+      return;
+    }
+  }, { delay: 1500 });
   const [making, setMaking] = useState(false);
   const [toast, showToast] = useToast(3500);
 

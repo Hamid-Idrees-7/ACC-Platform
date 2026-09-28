@@ -8,6 +8,8 @@ import MaterialFormModal from "../components/MaterialFormModal";
 import StockModal from "../components/StockModal";
 import { formatQty, money, moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./Materials.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 function Materials() {
   const navigate = useNavigate();
@@ -67,6 +69,9 @@ function Materials() {
 
   useEffect(() => { loadMaterials(); loadProjects(); }, []);
 
+  useLiveRefresh(["materials", "material-requests"], () => loadMaterials({ quiet: true }));
+  useLiveRefresh(["projects"], () => loadProjects());
+
   const isOut = (m) => Number(m.currentStock) <= 0;
   const isLow = (m) => Number(m.currentStock) > 0 && Number(m.currentStock) <= Number(m.lowStockThreshold);
 
@@ -98,6 +103,7 @@ function Materials() {
     }
     return list;
   }, [materials, stockFilter, categoryFilter, search]);
+  useHighlight(loading ? null : `${filtered.length}:${search}:${categoryFilter}:${stockFilter}`, () => { setSearch(""); setCategoryFilter("All"); setStockFilter("All"); });
 
   // ---- Actions ----
   const handleSave = async (data) => {
@@ -235,7 +241,7 @@ function Materials() {
             const low = isLow(m);
             const out = isOut(m);
             return (
-              <div key={m.materialID} className={`mat-card ${out ? "out" : low ? "low" : ""}`}>
+              <div key={m.materialID} data-highlight={m.materialID} className={`mat-card ${out ? "out" : low ? "low" : ""}`}>
                 {(low || out) && (
                   <div className={`mat-card-flag ${out ? "out" : "low"}`}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>

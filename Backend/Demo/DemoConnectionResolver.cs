@@ -19,9 +19,11 @@ namespace Backend.Demo
         {
             var context = _http.HttpContext;
 
-            // Background work (no request) always uses the main database.
+            // Background work (no request) uses the main database unless a demo database is chosen for it.
             if (context == null)
-                return _factory.MainConnectionString;
+                return DemoDbFactory.IsValidName(DatabaseScope.DemoDatabase)
+                    ? _factory.ConnectionStringFor(DatabaseScope.DemoDatabase!)
+                    : _factory.MainConnectionString;
 
             // Endpoints such as the public contact form and the normal sign-in always use the
             // real database, even if the browser still holds a demo token.

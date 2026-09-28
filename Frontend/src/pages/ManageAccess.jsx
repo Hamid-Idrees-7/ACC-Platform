@@ -5,6 +5,7 @@ import { userService } from "../services/userService";
 import { permissionService } from "../services/permissionService";
 import { MODULE_GROUPS } from "../config/moduleConfig";
 import "./ManageAccess.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function ManageAccess() {
   const { userId } = useParams();
@@ -39,6 +40,20 @@ function ManageAccess() {
   };
 
   useEffect(() => { load(); }, [userId]);
+
+  useLiveRefresh(["permissions", "users"], async () => {
+    try {
+      const [userData, permData] = await Promise.all([userService.getById(userId), permissionService.getForUser(userId)]);
+      setUser(userData);
+      const map = {};
+      permData.forEach((p) => {
+        map[key(p.module, p.action)] = { allowed: p.isAllowed, approval: p.requiresApproval };
+      });
+      setPerms(map);
+    } catch {
+      return;
+    }
+  });
 
   const getPerm = (module, action) => perms[key(module, action)] || { allowed: false, approval: false };
 

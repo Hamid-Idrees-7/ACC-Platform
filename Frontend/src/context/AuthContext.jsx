@@ -3,6 +3,7 @@ import api from "../services/api";
 import { tokenExpiresAt } from "../utils/token";
 import { DEMO_NOTE_KEY } from "../config/demoConfig";
 import { LOGIN_NOTE_KEY, SIGNOUT_NOTE_KEY, ACTIVITY_KEY } from "../config/sessionConfig";
+import { ALERT_BASELINE_KEY } from "../config/notificationConfig";
 
 // Create the context (the shared "notice board")
 const AuthContext = createContext();
@@ -81,6 +82,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", authData.token);
     localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
     localStorage.removeItem(SIGNOUT_NOTE_KEY);
+    sessionStorage.removeItem(ALERT_BASELINE_KEY);
     const userInfo = {
       userID: authData.userID,
       username: authData.username,

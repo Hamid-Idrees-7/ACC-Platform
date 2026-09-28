@@ -13,6 +13,11 @@ export const notificationService = {
     return response.data.count;
   },
 
+  getUnreadCounts: async () => {
+    const response = await api.get("/notifications/unread-count");
+    return { count: response.data.count ?? 0, alerts: response.data.alerts ?? 0 };
+  },
+
   // Mark one as read
   markRead: async (id) => {
     const response = await api.put(`/notifications/${id}/read`);

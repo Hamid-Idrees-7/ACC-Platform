@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+﻿using System.Security.Claims;
+using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
 
@@ -9,15 +10,32 @@ namespace Backend.Services
         private readonly INotificationRepository _repository;
         private readonly IUserRepository _userRepository;
         private readonly IPermissionRepository _permissionRepository;
+        private readonly IPreferenceRepository _preferenceRepository;
+        private readonly IHttpContextAccessor _http;
 
         public NotificationService(
             INotificationRepository repository,
             IUserRepository userRepository,
-            IPermissionRepository permissionRepository)
+            IPermissionRepository permissionRepository,
+            IPreferenceRepository preferenceRepository,
+            IHttpContextAccessor http)
         {
             _repository = repository;
             _userRepository = userRepository;
             _permissionRepository = permissionRepository;
+            _preferenceRepository = preferenceRepository;
+            _http = http;
+        }
+
+        private int? ActingUserId =>
+            int.TryParse(_http.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+        private async Task<HashSet<int>> MutedForAsync(IEnumerable<int> userIds, string category)
+        {
+            var muted = await _preferenceRepository.GetMutedAsync(userIds);
+            return muted.Where(m => NotificationCategories.IsMuted(m.Value, category))
+                        .Select(m => m.Key)
+                        .ToHashSet();
         }
 
         public async Task<List<NotificationDto>> GetForUserAsync(int userId, string type)
@@ -31,9 +49,16 @@ namespace Backend.Services
             return await _repository.GetUnreadCountAsync(userId);
         }
 
-        // Create a personal notification for one user (their own activity / approval updates)
-        public async Task NotifyPersonalAsync(int userId, string category, string title, string message, string? reason = null)
+        public async Task<int> GetUnreadAlertCountAsync(int userId)
         {
+            return await _repository.GetUnreadAlertCountAsync(userId);
+        }
+
+        // Create a personal notification for one user (their own activity / approval updates)
+        public async Task NotifyPersonalAsync(int userId, string category, string title, string message, string? reason = null, string? link = null)
+        {
+            if ((await MutedForAsync(new[] { userId }, category)).Contains(userId)) return;
+
             await _repository.AddAsync(new Notification
             {
                 UserID = userId,
@@ -42,21 +67,23 @@ namespace Backend.Services
                 Title = title,
                 Message = message,
                 Reason = reason,
+                Link = link,
                 IsRead = false,
+                FromSelf = ActingUserId == userId,
                 CreatedAt = DateTime.Now
             });
         }
 
         // Create an activity notification for every admin (records what a user did).
-        // excludeUserId skips one user — used so an admin who performs an action isn't
-        // notified about their own action in the audit feed.
-        public async Task NotifyAdminsActivityAsync(string category, string title, string message, int? excludeUserId = null)
+        // The admin who performed the action is left out, unless includeActingUser is set.
+        public async Task NotifyAdminsActivityAsync(string category, string title, string message, int? excludeUserId = null, bool includeActingUser = false, string? link = null)
         {
+            var exclude = excludeUserId ?? (includeActingUser ? null : ActingUserId);
             var users = await _userRepository.GetAllAsync();
             var admins = users.Where(u => u.Role != null &&
                                           u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
                                           u.IsActive &&
-                                          u.UserID != excludeUserId);
+                                          u.UserID != exclude);
 
             foreach (var admin in admins)
             {
@@ -67,17 +94,17 @@ namespace Backend.Services
                     Category = category,
                     Title = title,
                     Message = message,
+                    Link = link,
                     IsRead = false,
                     CreatedAt = DateTime.Now
                 });
             }
         }
 
-        // Send a personal (action needed) notification to every non-admin user who holds a
-        // given permission (module+action, and the module's View baseline) and is active.
-        // Admins are intentionally skipped here — they get the audit via NotifyAdminsActivityAsync.
+        // Send a personal (action needed) notification to every active admin and every user who
+        // holds a given permission (module+action, and the module's View baseline).
         // excludeUserId skips one user (e.g. the person who raised the request).
-        public async Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null)
+        public async Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null, string? link = null)
         {
             var perms = await _permissionRepository.GetAllAsync();
 
@@ -86,15 +113,17 @@ namespace Backend.Services
             var canView = perms.Where(p => p.Module == module && p.Action == "View" && p.IsAllowed)
                                .Select(p => p.UserID).ToHashSet();
             var eligibleIds = canAct.Where(id => canView.Contains(id)).ToHashSet();
-            if (eligibleIds.Count == 0) return;
 
             var users = await _userRepository.GetAllAsync();
-            var recipients = users.Where(u => eligibleIds.Contains(u.UserID) &&
-                                              u.IsActive &&
+            var recipients = users.Where(u => u.IsActive &&
                                               u.UserID != excludeUserId &&
-                                              !(u.Role != null && u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)));
+                                              (eligibleIds.Contains(u.UserID) ||
+                                               (u.Role != null && u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))))
+                                  .ToList();
 
-            foreach (var u in recipients)
+            var muted = await MutedForAsync(recipients.Select(u => u.UserID), category);
+
+            foreach (var u in recipients.Where(u => !muted.Contains(u.UserID)))
             {
                 await _repository.AddAsync(new Notification
                 {
@@ -103,7 +132,9 @@ namespace Backend.Services
                     Category = category,
                     Title = title,
                     Message = message,
+                    Link = link,
                     IsRead = false,
+                    FromSelf = ActingUserId == u.UserID,
                     CreatedAt = DateTime.Now
                 });
             }
@@ -131,6 +162,7 @@ namespace Backend.Services
             Message = n.Message,
             Reason = n.Reason,
             IsRead = n.IsRead,
+            Link = n.Link,
             CreatedAt = n.CreatedAt
         };
     }

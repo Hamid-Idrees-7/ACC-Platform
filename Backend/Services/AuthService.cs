@@ -13,6 +13,7 @@ namespace Backend.Services
         private readonly TokenService _tokenService;
         private readonly INotificationService _notificationService;
         private readonly ISessionService _sessions;
+        private readonly IAlertService _alerts;
 
         // Checked when the username does not exist, so a wrong username takes as long as a
         // wrong password (the timing does not reveal which usernames exist).
@@ -21,12 +22,13 @@ namespace Backend.Services
         private const string InvalidCredentials = "Invalid username or password.";
 
         public AuthService(AppDbContext context, TokenService tokenService,
-            INotificationService notificationService, ISessionService sessions)
+            INotificationService notificationService, ISessionService sessions, IAlertService alerts)
         {
             _context = context;
             _tokenService = tokenService;
             _notificationService = notificationService;
             _sessions = sessions;
+            _alerts = alerts;
         }
 
         // Register a new user (admin only, see AuthController). No token is returned:
@@ -120,6 +122,8 @@ namespace Backend.Services
                 user.UserID, LoginNotification.Category, LoginNotification.Title,
                 LoginNotification.Message(DateTime.Now));
 
+            await _alerts.CheckNewDeviceAsync(user, client, session.LoginActivityID);
+
             return LoginResult.Ok(BuildAuthResponse(user, session.LoginActivityID, session.ExpiresAt!.Value));
         }
 
@@ -148,7 +152,7 @@ namespace Backend.Services
                 $"{SecurityOptions.MaxFailedAttempts} wrong passwords were entered for your account from " +
                 $"{device.Browser} on {device.Os}{place}. Sign-in from there is paused for " +
                 $"{SecurityOptions.LockoutWindow.TotalMinutes:0} minutes. If this wasn't you, change your password " +
-                "in Settings > Account Management.");
+                "in Settings > Account Management.", link: NotificationLinks.Security);
         }
 
         // Helper: build the auth response (token + basic user info)

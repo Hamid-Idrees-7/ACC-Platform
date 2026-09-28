@@ -4,6 +4,8 @@ import { materialRequestService } from "../services/materialRequestService";
 import { formatQty } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./MaterialRequests.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 const FILTERS = ["Pending", "Approved", "Rejected", "All"];
 
@@ -35,6 +37,8 @@ function MaterialRequests() {
   };
   useEffect(() => { load(); }, []);
 
+  useLiveRefresh(["material-requests"], () => load({ quiet: true }));
+
   const counts = useMemo(() => ({
     Pending: requests.filter((r) => r.status === "Pending").length,
     Approved: requests.filter((r) => r.status === "Approved").length,
@@ -46,6 +50,7 @@ function MaterialRequests() {
     if (filter === "All") return requests;
     return requests.filter((r) => r.status === filter);
   }, [requests, filter]);
+  useHighlight(loading ? null : `${visible.length}:${filter}`, () => setFilter("All"));
 
   const approve = async (r) => {
     setBusy(r.requestID);
@@ -101,7 +106,7 @@ function MaterialRequests() {
               {visible.map((r) => {
                 const short = r.status === "Pending" && r.quantity > r.availableStock;
                 return (
-                  <div key={r.requestID} className={`mrq-card ${r.status.toLowerCase()}`}>
+                  <div key={r.requestID} data-highlight={r.requestID} className={`mrq-card ${r.status.toLowerCase()}`}>
                     <div className="mrq-main">
                       <div className="mrq-head">
                         <span className="mrq-mat">{formatQty(r.quantity)} {r.unit} · {r.materialName}</span>

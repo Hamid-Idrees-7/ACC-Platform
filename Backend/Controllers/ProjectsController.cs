@@ -73,9 +73,11 @@ namespace Backend.Controllers
             var project = await _service.CreateProjectAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Project", "Project created", $"You created project: {project.Title}.");
+                GetUserId(), "Project", "Project created", $"You created project: {project.Title}.",
+                link: NotificationLinks.Project(project.ProjectID));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Project", "New project", $"{GetUserName()} created project: {project.Title}.");
+                "Project", "New project", $"{GetUserName()} created project: {project.Title}.",
+                link: NotificationLinks.Project(project.ProjectID));
 
             return CreatedAtAction(nameof(GetById), new { id = project.ProjectID }, project);
         }
@@ -102,7 +104,8 @@ namespace Backend.Controllers
                 return NotFound(new { message = "Project not found or invalid status." });
 
             await _notificationService.NotifyAdminsActivityAsync(
-                "Project", "Status changed", $"{GetUserName()} set project \"{project.Title}\" to {project.Status}.");
+                "Project", "Status changed", $"{GetUserName()} set project \"{project.Title}\" to {project.Status}.",
+                link: NotificationLinks.Project(project.ProjectID));
 
             return Ok(project);
         }
@@ -124,9 +127,16 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> UpdatePhase(int phaseId, [FromBody] UpdatePhaseDto dto)
         {
+            var before = await _service.DescribePhaseAsync(phaseId);
             var phase = await _service.UpdatePhaseAsync(phaseId, dto);
             if (phase == null)
                 return NotFound(new { message = "Phase not found" });
+
+            if (before != null && (before.Progress != phase.Progress || before.Status != phase.Status))
+                await _notificationService.NotifyAdminsActivityAsync(
+                    "Project", "Phase progress updated",
+                    $"{GetUserName()} set {phase.Name} at {before.ProjectTitle} to {phase.Progress}% ({phase.Status}).",
+                    link: NotificationLinks.Project(before.ProjectID));
 
             return Ok(phase);
         }

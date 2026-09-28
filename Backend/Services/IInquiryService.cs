@@ -8,6 +8,7 @@ namespace Backend.Services
         Task<List<InquiryDto>> GetAllInquiriesAsync();
         Task<InquiryDto?> MarkAsReadAsync(int id);
         Task<bool> DeleteInquiryAsync(int id);
+        Task<string?> GetSenderNameAsync(int id);
         Task DeleteAllInquiriesAsync();
         Task<int> GetUnreadCountAsync();
     }

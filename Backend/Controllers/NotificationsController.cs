@@ -49,7 +49,8 @@ namespace Backend.Controllers
         public async Task<IActionResult> GetUnreadCount()
         {
             var count = await _service.GetUnreadCountAsync(GetUserId());
-            return Ok(new { count });
+            var alerts = await _service.GetUnreadAlertCountAsync(GetUserId());
+            return Ok(new { count, alerts });
         }
 
         // PUT: /api/notifications/5/read = mark one as read

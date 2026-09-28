@@ -79,9 +79,11 @@ namespace Backend.Controllers
 
             // Notifications: personal (to the actor) + activity (to admins)
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Client", "Client added", $"You added client: {client.FullName}.");
+                GetUserId(), "Client", "Client added", $"You added client: {client.FullName}.",
+                link: NotificationLinks.Client(client.ClientID));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Client", "New client", $"{GetUserName()} added client: {client.FullName}.");
+                "Client", "New client", $"{GetUserName()} added client: {client.FullName}.",
+                link: NotificationLinks.Client(client.ClientID));
 
             return CreatedAtAction(nameof(GetById), new { id = client.ClientID }, client);
         }

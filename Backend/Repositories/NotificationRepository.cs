@@ -29,6 +29,12 @@ namespace Backend.Repositories
                 .CountAsync(n => n.UserID == userId && n.Type == "Personal" && !n.IsRead);
         }
 
+        public async Task<int> GetUnreadAlertCountAsync(int userId)
+        {
+            return await _context.Notifications
+                .CountAsync(n => n.UserID == userId && n.Type == "Personal" && !n.IsRead && !n.FromSelf);
+        }
+
         public async Task AddAsync(Notification notification)
         {
             _context.Notifications.Add(notification);

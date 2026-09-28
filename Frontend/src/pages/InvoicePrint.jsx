@@ -7,6 +7,7 @@ import { formatDateShort, formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
 import Toast, { useToast } from "../components/Toast";
 import "./InvoicePrint.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -29,6 +30,14 @@ function InvoicePrint() {
       }
     })();
   }, [invoiceId]);
+
+  useLiveRefresh(["billing", "company"], async () => {
+    try {
+      setInv(await billingService.getInvoicePrint(invoiceId));
+    } catch {
+      return;
+    }
+  });
 
   if (loading) {
     return <DashboardLayout title="Invoice"><div className="ivp-loading"><div className="ivp-spinner" /></div></DashboardLayout>;

@@ -5,6 +5,8 @@ import { employeeService } from "../services/employeeService";
 import EmployeeFormModal from "../components/EmployeeFormModal";
 import { formatDate } from "../components/DatePicker";
 import "./Employees.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 function Employees() {
   const { can } = usePermissions();
@@ -52,6 +54,8 @@ function Employees() {
 
   useEffect(() => { loadEmployees(); }, []);
 
+  useLiveRefresh(["employees"], () => loadEmployees({ quiet: true }));
+
   const stats = useMemo(() => ({
     total: employees.length,
     active: employees.filter((e) => e.status === "Active").length,
@@ -81,6 +85,7 @@ function Employees() {
     list.sort((a, b) => (a.status === "Inactive" ? 1 : 0) - (b.status === "Inactive" ? 1 : 0));
     return list;
   }, [employees, statusFilter, designationFilter, search]);
+  useHighlight(loading ? null : `${filtered.length}:${search}:${statusFilter}:${designationFilter}`, () => { setSearch(""); setStatusFilter("All"); setDesignationFilter("All"); });
 
   // ---- Actions ----
   const handleSave = async (data) => {
@@ -199,6 +204,7 @@ function Employees() {
           {filtered.map((emp) => (
             <div
               key={emp.employeeID}
+              data-highlight={emp.employeeID}
               className={`emp-card ${emp.status === "Inactive" ? "inactive" : ""}`}
               onClick={() => setDetailEmp(emp)}
             >

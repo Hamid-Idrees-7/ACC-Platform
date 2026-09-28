@@ -2,15 +2,37 @@ import { useState, useEffect, useCallback, useRef, startTransition } from "react
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
-import { useDashboardTheme } from "../context/PreferencesContext";
+import { useDashboardTheme, usePreferences } from "../context/PreferencesContext";
 import { notificationService } from "../services/notificationService";
+import { alertService } from "../services/alertService";
 import { demoService } from "../services/demoService";
 import { DEMO_ENDED_EVENT, DEMO_NOTE_KEY, getDemoRole } from "../config/demoConfig";
+import { NOTIFICATION_POLL_MS, ALERT_BASELINE_KEY } from "../config/notificationConfig";
+import { ALERT_SEEN_KEY, ALERT_LIVE_MODULES } from "../config/alertConfig";
+import { playNotificationSound, unlockNotificationSound } from "../utils/notificationSound";
+import { onLive, isLiveConnected } from "../services/live";
+import { useLiveRefresh } from "../hooks/useLive";
 import DemoBar from "./DemoBar";
 import "./DashboardLayout.css";
 
 const DEMO_EXIT_NOTE = "You've left the demo. Thanks for exploring ACC!";
 const DEMO_ENDED_NOTE = "Your demo session has ended. Thanks for exploring ACC!";
+
+const readBaseline = (key = ALERT_BASELINE_KEY) => {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+};
+
+const writeBaseline = (value, key = ALERT_BASELINE_KEY) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    return;
+  }
+};
 
 // Sidebar structure. Each item can declare how its visibility is decided:
 //  - always: everyone sees it
@@ -40,6 +62,7 @@ const navSections = [
       { id: "billing", label: "Billing & Invoices", path: "/dashboard/billing", icon: "dollar", show: "module", module: "Billing" },
       { id: "field", label: "Field View", path: "/dashboard/field", icon: "hardhat", show: "module", module: "Field" },
       { id: "notifications", label: "Notifications", path: "/dashboard/notifications", icon: "bell", show: "always" },
+      { id: "alerts", label: "Alerts", path: "/dashboard/alerts", icon: "alert", show: "always" },
     ],
   },
   {
@@ -66,6 +89,7 @@ function Icon({ name }) {
     dollar: <><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>,
     hardhat: <><path d="M2 18a10 10 0 0 1 20 0" /><line x1="1" y1="18" x2="23" y2="18" /><path d="M10 5a2 2 0 0 1 4 0v4" /><path d="M8 9V6" /><path d="M16 9V6" /></>,
     bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
+    alert: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>,
     menu: <><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></>,
@@ -80,9 +104,14 @@ function Icon({ name }) {
 function DashboardLayout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [openAlerts, setOpenAlerts] = useState(0);
   const { user, logout, signOut, login, demoTransition, runDemoTransition } = useAuth();
   const { canView, isAdmin } = usePermissions();
   useDashboardTheme();
+  const { prefs } = usePreferences();
+  const soundOn = prefs.notificationSound !== false;
+  const soundRef = useRef(soundOn);
+  useEffect(() => { soundRef.current = soundOn; }, [soundOn]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -132,11 +161,16 @@ function DashboardLayout({ title, children }) {
     }
   };
 
+  const who = user ? `${user.userID}:${user.username}` : null;
+
   // Load the unread notification count for the bell / sidebar badge
   useEffect(() => {
     const loadCount = async () => {
       try {
-        const count = await notificationService.getUnreadCount();
+        const { count, alerts } = await notificationService.getUnreadCounts();
+        const seen = readBaseline();
+        if (seen?.who === who && alerts > seen.alerts && soundRef.current) playNotificationSound();
+        writeBaseline({ who, alerts });
         setUnreadCount(count);
       } catch {
         // silent
@@ -147,8 +181,57 @@ function DashboardLayout({ title, children }) {
     // Refresh the badge immediately when notifications are marked read
     const onUpdate = () => loadCount();
     window.addEventListener("notifications-updated", onUpdate);
-    return () => window.removeEventListener("notifications-updated", onUpdate);
-  }, [location.pathname]);
+    const offLive = onLive("notifications", onUpdate);
+    const offSync = onLive("resync", onUpdate);
+    const timer = setInterval(() => {
+      if (!isLiveConnected() && document.visibilityState === "visible") loadCount();
+    }, NOTIFICATION_POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && !isLiveConnected()) loadCount();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pointerdown", unlockNotificationSound, { once: true });
+    return () => {
+      window.removeEventListener("notifications-updated", onUpdate);
+      window.removeEventListener("pointerdown", unlockNotificationSound);
+      document.removeEventListener("visibilitychange", onVisible);
+      offLive();
+      offSync();
+      clearInterval(timer);
+    };
+  }, [location.pathname, who]);
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      if (!who) return;
+      try {
+        const { open = 0, latestId = 0 } = await alertService.getSummary();
+        const seen = readBaseline(ALERT_SEEN_KEY);
+        if (seen?.who === who && latestId > seen.latestId && soundRef.current) playNotificationSound();
+        writeBaseline({ who, latestId: Math.max(latestId, seen?.who === who ? seen.latestId : 0) }, ALERT_SEEN_KEY);
+        setOpenAlerts(open);
+      } catch {
+        return;
+      }
+    };
+    loadAlerts();
+    const onUpdate = () => loadAlerts();
+    window.addEventListener("alerts-updated", onUpdate);
+    const timer = setInterval(() => {
+      if (!isLiveConnected() && document.visibilityState === "visible") loadAlerts();
+    }, NOTIFICATION_POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && !isLiveConnected()) loadAlerts();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("alerts-updated", onUpdate);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(timer);
+    };
+  }, [who]);
+
+  useLiveRefresh(ALERT_LIVE_MODULES, () => window.dispatchEvent(new Event("alerts-updated")), { delay: 250 });
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -231,6 +314,7 @@ function DashboardLayout({ title, children }) {
                   {item.id === "notifications" && unreadCount > 0 && (
                     <span className="dash-nav-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
                   )}
+                  {item.id === "alerts" && openAlerts > 0 && <span className="dash-nav-dot" aria-label="Open alerts" />}
                 </button>
               ))}
               {/* Logout sits inside the last section - no separate gap */}
@@ -268,6 +352,17 @@ function DashboardLayout({ title, children }) {
           </div>
 
           <div className="dash-header-right">
+            <button
+              type="button"
+              className={`dash-alerts ${openAlerts > 0 ? "has-open" : ""} ${isActive("/dashboard/alerts") ? "active" : ""}`}
+              onClick={() => navigate("/dashboard/alerts")}
+              aria-label={openAlerts > 0 ? `Alerts: ${openAlerts} open` : "Alerts: none open"}
+              title={openAlerts > 0 ? `${openAlerts} open alert${openAlerts === 1 ? "" : "s"}` : "No open alerts"}
+            >
+              <Icon name="alert" />
+              <span className="dash-alerts-label">Alerts</span>
+              {openAlerts > 0 && <span className="dash-alerts-dot" aria-hidden="true" />}
+            </button>
             <button className="dash-bell" onClick={() => navigate("/dashboard/notifications")}>
               <Icon name="bell" />
               {unreadCount > 0 && <span className="dash-bell-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}

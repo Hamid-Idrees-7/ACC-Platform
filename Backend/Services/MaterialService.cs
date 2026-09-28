@@ -262,7 +262,7 @@ namespace Backend.Services
                 await _repository.UpdateAsync(material);
             }
 
-            return new StockResult { Success = true, Material = material != null ? await ToDtoAsync(material) : null };
+            return new StockResult { Success = true, Material = material != null ? await ToDtoAsync(material) : null, Transaction = tx };
         }
 
         private async Task<MaterialDto> ToDtoAsync(Material material)

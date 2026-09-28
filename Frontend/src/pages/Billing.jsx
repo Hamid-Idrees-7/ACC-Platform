@@ -4,6 +4,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import { billingService } from "../services/billingService";
 import { money, moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./Billing.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function Billing() {
   const navigate = useNavigate();
@@ -26,6 +27,14 @@ function Billing() {
       }
     })();
   }, []);
+
+  useLiveRefresh(["billing", "projects", "expenses", "clients"], async () => {
+    try {
+      setData(await billingService.getOverview());
+    } catch {
+      return;
+    }
+  });
 
   // Top-line totals rolled up from the project cards.
   const totals = useMemo(() => {

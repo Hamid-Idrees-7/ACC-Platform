@@ -11,5 +11,9 @@ namespace Backend.Models.DTOs
         // Minutes without activity before automatic sign-out: 0 (off), 15, 30 or 60.
         // Left out when saving = keep the current value.
         public int? IdleMinutes { get; set; }
+
+        public bool? NotificationSound { get; set; }
+
+        public List<string>? MutedCategories { get; set; }
     }
 }

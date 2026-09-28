@@ -91,5 +91,14 @@ namespace Backend.Repositories
                 .Where(a => a.CreatedAt < beforeUtc)
                 .ExecuteDeleteAsync();
         }
+
+        public async Task<List<string?>> GetSignInAgentsAsync(int userId, int exceptId)
+        {
+            return await _context.LoginActivities
+                .Where(a => a.UserID == userId && a.Result == LoginResults.SignedIn && a.LoginActivityID != exceptId)
+                .Select(a => a.UserAgent)
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }

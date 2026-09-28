@@ -9,5 +9,7 @@ namespace Backend.Repositories
 
         // Creates the row the first time, updates it afterwards.
         Task SaveAsync(UserPreference preference);
+
+        Task<Dictionary<int, string?>> GetMutedAsync(IEnumerable<int> userIds);
     }
 }

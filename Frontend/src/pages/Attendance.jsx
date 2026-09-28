@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { attendanceService } from "../services/attendanceService";
 import "./Attendance.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 // Groups are shown in this order; each has its own accent colour.
 const STATUS_GROUPS = [
@@ -32,6 +33,14 @@ function Attendance() {
       }
     })();
   }, []);
+
+  useLiveRefresh(["attendance", "assignments", "projects", "calendar"], async () => {
+    try {
+      setCards(await attendanceService.getCards());
+    } catch {
+      return;
+    }
+  });
 
   const openProject = (p) => navigate(`/dashboard/attendance/${p.projectID}`);
 

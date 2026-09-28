@@ -40,6 +40,9 @@ namespace Backend.Data
         // Every sign-in attempt; successful ones are also the sessions behind the tokens.
         public DbSet<LoginActivity> LoginActivities { get; set; }
 
+        public DbSet<Alert> Alerts { get; set; }
+        public DbSet<AlertRule> AlertRules { get; set; }
+
         // Registry of isolated visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
 
@@ -87,6 +90,18 @@ namespace Backend.Data
             modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.UserID, a.CreatedAt });
             modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.Username, a.IpAddress, a.CreatedAt });
             modelBuilder.Entity<LoginActivity>().HasIndex(a => a.CreatedAt);
+
+            modelBuilder.Entity<Alert>()
+                .HasIndex(a => a.Key)
+                .IsUnique()
+                .HasFilter("[Status] = 'Open'");
+            modelBuilder.Entity<Alert>().HasIndex(a => new { a.Status, a.ResolvedAt });
+
+            modelBuilder.Entity<Alert>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(a => a.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

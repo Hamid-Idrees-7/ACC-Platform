@@ -1,5 +1,6 @@
 using Backend.Data;
 using Backend.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Repositories
 {
@@ -31,9 +32,22 @@ namespace Backend.Repositories
                 existing.DateFormat = preference.DateFormat;
                 existing.TimeFormat = preference.TimeFormat;
                 existing.IdleMinutes = preference.IdleMinutes;
+                existing.NotificationSound = preference.NotificationSound;
+                existing.MutedNotifications = preference.MutedNotifications;
                 existing.UpdatedAt = DateTime.Now;
             }
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<Dictionary<int, string?>> GetMutedAsync(IEnumerable<int> userIds)
+        {
+            var ids = userIds.Distinct().ToList();
+            if (ids.Count == 0) return new Dictionary<int, string?>();
+
+            return await _context.UserPreferences
+                .AsNoTracking()
+                .Where(p => ids.Contains(p.UserID) && p.MutedNotifications != null)
+                .ToDictionaryAsync(p => p.UserID, p => p.MutedNotifications);
         }
     }
 }

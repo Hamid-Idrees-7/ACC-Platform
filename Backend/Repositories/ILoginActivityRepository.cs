@@ -26,5 +26,7 @@ namespace Backend.Repositories
 
         // Deletes history older than the cut-off.
         Task PurgeAsync(DateTime beforeUtc);
+
+        Task<List<string?>> GetSignInAgentsAsync(int userId, int exceptId);
     }
 }

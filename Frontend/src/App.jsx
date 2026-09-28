@@ -7,6 +7,7 @@ import { PreferencesProvider, usePreferences } from "./context/PreferencesContex
 import { CompanyProvider, useCompany } from "./context/CompanyContext";
 import DemoTransition from "./components/DemoTransition";
 import SessionWatch from "./components/SessionWatch";
+import LiveConnection from "./components/LiveConnection";
 
 // Public pages
 import Home from "./pages/Home";
@@ -25,6 +26,7 @@ import ControlUnit from "./pages/ControlUnit";
 import ManageAccess from "./pages/ManageAccess";
 import Approvals from "./pages/Approvals";
 import Notifications from "./pages/Notifications";
+import Alerts from "./pages/Alerts";
 
 
 // Modules
@@ -91,6 +93,7 @@ function App() {
       <PermissionProvider>
       {/* Live demo role-change card: lives above the routes so it survives page changes */}
       <DemoTransition />
+      <LiveConnection />
       <BrowserRouter>
         <Routes>
           {/* ===== Public website ===== */}
@@ -110,6 +113,7 @@ function App() {
             <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
             <Route path="/dashboard/approvals" element={<Approvals />} />
             <Route path="/dashboard/notifications" element={<Notifications />} />
+            <Route path="/dashboard/alerts" element={<Alerts />} />
 
             {/* ===== Modules ===== */}
             <Route path="/dashboard/clients" element={<Clients />} />

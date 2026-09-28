@@ -85,9 +85,11 @@ namespace Backend.Controllers
             var material = await _service.CreateMaterialAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Material", "Material added", $"You added material: {material.Name}.");
+                GetUserId(), "Material", "Material added", $"You added material: {material.Name}.",
+                link: NotificationLinks.Material(material.MaterialID));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Material", "New material", $"{GetUserName()} added material: {material.Name}.");
+                "Material", "New material", $"{GetUserName()} added material: {material.Name}.",
+                link: NotificationLinks.Material(material.MaterialID));
 
             return CreatedAtAction(nameof(GetById), new { id = material.MaterialID }, material);
         }
@@ -116,10 +118,12 @@ namespace Backend.Controllers
             var material = result.Material!;
             await _notificationService.NotifyPersonalAsync(
                 GetUserId(), "Material", "Stock added",
-                $"You restocked {dto.Quantity} {material.Unit} of {material.Name}.");
+                $"You restocked {dto.Quantity} {material.Unit} of {material.Name}.",
+                link: NotificationLinks.MaterialHistory(id));
             await _notificationService.NotifyAdminsActivityAsync(
                 "Material", "Stock added",
-                $"{GetUserName()} restocked {dto.Quantity} {material.Unit} of {material.Name}.");
+                $"{GetUserName()} restocked {dto.Quantity} {material.Unit} of {material.Name}.",
+                link: NotificationLinks.MaterialHistory(id));
 
             return Ok(material);
         }
@@ -136,10 +140,12 @@ namespace Backend.Controllers
             var material = result.Material!;
             await _notificationService.NotifyPersonalAsync(
                 GetUserId(), "Material", "Stock issued",
-                $"You issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.");
+                $"You issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.",
+                link: NotificationLinks.MaterialHistory(id));
             await _notificationService.NotifyAdminsActivityAsync(
                 "Material", "Stock issued",
-                $"{GetUserName()} issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.");
+                $"{GetUserName()} issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.",
+                link: NotificationLinks.MaterialHistory(id));
 
             return Ok(material);
         }
@@ -152,6 +158,22 @@ namespace Backend.Controllers
             var result = await _service.CancelTransactionAsync(txId);
             if (!result.Success)
                 return BadRequest(new { message = result.Error });
+
+            if (result.Material != null && result.Transaction != null)
+            {
+                var material = result.Material;
+                var tx = result.Transaction;
+                var amount = $"{tx.Quantity:0.##} {material.Unit} of {material.Name}";
+                var what = tx.Type == "Issue"
+                    ? $"the issue of {amount} to {tx.ProjectName ?? "a project"}. The stock went back to the store."
+                    : $"the purchase of {amount}. It is no longer in stock.";
+                await _notificationService.NotifyPersonalAsync(
+                    GetUserId(), "Material", "Stock entry cancelled", $"You cancelled {what}",
+                    link: NotificationLinks.MaterialHistory(material.MaterialID));
+                await _notificationService.NotifyAdminsActivityAsync(
+                    "Material", "Stock entry cancelled", $"{GetUserName()} cancelled {what}",
+                    link: NotificationLinks.MaterialHistory(material.MaterialID));
+            }
 
             return Ok(result.Material);
         }

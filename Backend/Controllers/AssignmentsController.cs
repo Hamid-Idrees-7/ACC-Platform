@@ -74,10 +74,12 @@ namespace Backend.Controllers
 
             await _notificationService.NotifyPersonalAsync(
                 GetUserId(), "Assignment", "Assignment created",
-                $"You assigned {assignment.EmployeeName} to {assignment.ProjectTitle}.");
+                $"You assigned {assignment.EmployeeName} to {assignment.ProjectTitle}.",
+                link: NotificationLinks.Assignment(assignment.AssignmentID));
             await _notificationService.NotifyAdminsActivityAsync(
                 "Assignment", "New assignment",
-                $"{GetUserName()} assigned {assignment.EmployeeName} to {assignment.ProjectTitle}.");
+                $"{GetUserName()} assigned {assignment.EmployeeName} to {assignment.ProjectTitle}.",
+                link: NotificationLinks.Assignment(assignment.AssignmentID));
 
             return CreatedAtAction(nameof(GetById), new { id = assignment.AssignmentID }, assignment);
         }

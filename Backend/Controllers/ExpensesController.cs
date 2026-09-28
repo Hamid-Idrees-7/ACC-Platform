@@ -70,10 +70,11 @@ namespace Backend.Controllers
 
             var label = await _service.DescribeAsync(result.Expense!);
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Expense", "Expense added", $"You added an expense: {label}.");
+                GetUserId(), "Expense", "Expense added", $"You added an expense: {label}.",
+                link: NotificationLinks.Project(result.Expense!.ProjectID));
             await _notificationService.NotifyAdminsActivityAsync(
                 "Expense", "New expense", $"{GetUserName()} added an expense: {label}.",
-                excludeUserId: GetUserId());
+                excludeUserId: GetUserId(), link: NotificationLinks.Project(result.Expense!.ProjectID));
 
             return Ok(result.Expense);
         }
@@ -93,7 +94,7 @@ namespace Backend.Controllers
             var label = await _service.DescribeAsync(result.Expense!);
             await _notificationService.NotifyAdminsActivityAsync(
                 "Expense", "Expense updated", $"{GetUserName()} updated an expense: {label}.",
-                excludeUserId: GetUserId());
+                excludeUserId: GetUserId(), link: NotificationLinks.Project(result.Expense!.ProjectID));
 
             return Ok(result.Expense);
         }

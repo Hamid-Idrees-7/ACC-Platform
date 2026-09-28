@@ -74,9 +74,11 @@ namespace Backend.Controllers
             var employee = await _service.CreateEmployeeAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Employee", "Employee added", $"You added employee: {employee.FullName}.");
+                GetUserId(), "Employee", "Employee added", $"You added employee: {employee.FullName}.",
+                link: NotificationLinks.Employee(employee.EmployeeID));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Employee", "New employee", $"{GetUserName()} added employee: {employee.FullName}.");
+                "Employee", "New employee", $"{GetUserName()} added employee: {employee.FullName}.",
+                link: NotificationLinks.Employee(employee.EmployeeID));
 
             return CreatedAtAction(nameof(GetById), new { id = employee.EmployeeID }, employee);
         }

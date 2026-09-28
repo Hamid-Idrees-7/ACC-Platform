@@ -27,5 +27,13 @@ namespace Backend.Services
 
         // Printable invoice. Null if not found.
         Task<InvoicePrintDto?> GetInvoicePrintAsync(int invoiceId);
+
+        Task<InvoiceSummary?> DescribeInvoiceAsync(int invoiceId);
+
+        Task<PaymentSummary?> DescribePaymentAsync(int paymentId);
     }
+
+    public record InvoiceSummary(int InvoiceID, string InvoiceNumber, int ProjectID, string ProjectTitle, decimal Total);
+
+    public record PaymentSummary(InvoiceSummary Invoice, decimal Amount);
 }

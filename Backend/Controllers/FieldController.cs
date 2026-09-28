@@ -16,11 +16,18 @@ namespace Backend.Controllers
     public class FieldController : ControllerBase
     {
         private readonly IFieldService _service;
+        private readonly IProjectService _projects;
+        private readonly INotificationService _notifications;
 
-        public FieldController(IFieldService service)
+        public FieldController(IFieldService service, IProjectService projects, INotificationService notifications)
         {
             _service = service;
+            _projects = projects;
+            _notifications = notifications;
         }
+
+        private string GetUserName() =>
+            User.FindFirst("FullName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "";
 
         private int GetUserId()
         {
@@ -74,9 +81,18 @@ namespace Backend.Controllers
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> UpdateProgress(int projectId, [FromBody] FieldProgressDto dto)
         {
+            var before = await _projects.DescribePhaseAsync(dto.PhaseID);
             var phases = await _service.UpdateProgressAsync(GetUserId(), projectId, dto);
             if (phases == null)
                 return NotFound(new { message = "This site or phase is not assigned to you." });
+
+            var after = phases.FirstOrDefault(p => p.PhaseID == dto.PhaseID);
+            if (before != null && after != null && (before.Progress != after.Progress || before.Status != after.Status))
+                await _notifications.NotifyAdminsActivityAsync(
+                    "Project", "Site progress updated",
+                    $"{GetUserName()} set {after.Name} at {before.ProjectTitle} to {after.Progress}% ({after.Status}).",
+                    link: NotificationLinks.Project(before.ProjectID));
+
             return Ok(phases);
         }
 

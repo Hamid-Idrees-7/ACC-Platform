@@ -1,3 +1,4 @@
+using Backend.Alerts;
 using Backend.Auth;
 using Backend.Models.Entities;
 using Backend.Services;
@@ -55,16 +56,19 @@ namespace Backend.Demo
         private readonly DemoOptions _options;
         private readonly IMemoryCache _cache;
         private readonly ILogger<DemoManager> _logger;
+        private readonly AlertScheduler _alerts;
 
         private readonly SemaphoreSlim _lock = new(1, 1);
         private readonly SemaphoreSlim _signal = new(0, 1);
 
-        public DemoManager(DemoDbFactory factory, IOptions<DemoOptions> options, IMemoryCache cache, ILogger<DemoManager> logger)
+        public DemoManager(DemoDbFactory factory, IOptions<DemoOptions> options, IMemoryCache cache, ILogger<DemoManager> logger,
+            AlertScheduler alerts)
         {
             _factory = factory;
             _options = options.Value;
             _cache = cache;
             _logger = logger;
+            _alerts = alerts;
         }
 
         public bool Enabled => _options.Enabled;
@@ -368,6 +372,7 @@ namespace Backend.Demo
             string roleKey, ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
             var role = Roles[roleKey];
+            _alerts.Request(databaseName);
 
             await using var demo = _factory.CreateForDemo(databaseName);
             var user = await demo.Users.FirstOrDefaultAsync(u => u.Username == role.Username, ct);
@@ -415,16 +420,24 @@ namespace Backend.Demo
             };
             demo.LoginActivities.Add(signIn);
 
-            demo.Notifications.Add(new Notification
+            var muted = await demo.UserPreferences.AsNoTracking()
+                .Where(p => p.UserID == user.UserID)
+                .Select(p => p.MutedNotifications)
+                .FirstOrDefaultAsync(ct);
+
+            if (!NotificationCategories.IsMuted(muted, LoginNotification.Category))
             {
-                UserID = user.UserID,
-                Type = "Personal",
-                Category = LoginNotification.Category,
-                Title = LoginNotification.Title,
-                Message = LoginNotification.Message(now),
-                IsRead = false,
-                CreatedAt = now
-            });
+                demo.Notifications.Add(new Notification
+                {
+                    UserID = user.UserID,
+                    Type = "Personal",
+                    Category = LoginNotification.Category,
+                    Title = LoginNotification.Title,
+                    Message = LoginNotification.Message(now),
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
 
             await demo.SaveChangesAsync(ct);
 

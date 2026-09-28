@@ -38,6 +38,11 @@ namespace Backend.Models.Entities
 
         public bool IsRead { get; set; } = false;
 
+        public bool FromSelf { get; set; } = false;
+
+        [MaxLength(200)]
+        public string? Link { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

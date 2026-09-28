@@ -77,6 +77,12 @@ namespace Backend.Services
             return ToDto(inquiry);
         }
 
+        public async Task<string?> GetSenderNameAsync(int id)
+        {
+            var inquiry = await _repository.GetByIdAsync(id);
+            return inquiry?.Name;
+        }
+
         public async Task<bool> DeleteInquiryAsync(int id)
         {
             return await _repository.DeleteAsync(id);

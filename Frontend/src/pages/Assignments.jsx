@@ -8,6 +8,8 @@ import AssignmentFormModal from "../components/AssignmentFormModal";
 import { formatDate } from "../components/DatePicker";
 import { money } from "../utils/format";
 import "./Assignments.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 const initials = (name) => (name || "?").charAt(0).toUpperCase();
 const wageSuffix = (type) =>
@@ -69,6 +71,9 @@ function Assignments() {
 
   useEffect(() => { loadAssignments(); loadRefs(); }, []);
 
+  useLiveRefresh(["assignments"], () => loadAssignments({ quiet: true }));
+  useLiveRefresh(["employees", "projects"], () => loadRefs());
+
   const stats = useMemo(() => ({
     total: assignments.length,
     active: assignments.filter((a) => a.status === "Active").length,
@@ -85,6 +90,7 @@ function Assignments() {
     }
     return list;
   }, [assignments, statusFilter, projectFilter, search]);
+  useHighlight(loading ? null : `${filtered.length}:${search}:${projectFilter}:${statusFilter}`, () => { setSearch(""); setProjectFilter("All"); setStatusFilter("All"); });
 
   const handleSave = async (data) => {
     if (formModal.mode === "edit") {
@@ -196,7 +202,7 @@ function Assignments() {
           {filtered.map((a) => {
             const active = a.status === "Active";
             return (
-              <div key={a.assignmentID} className={`asn-card ${active ? "active" : "done"}`}>
+              <div key={a.assignmentID} data-highlight={a.assignmentID} className={`asn-card ${active ? "active" : "done"}`}>
                 <div className="asn-card-head">
                   <div className="asn-avatar">{initials(a.employeeName)}</div>
                   <div className="asn-card-who">

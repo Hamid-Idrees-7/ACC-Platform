@@ -25,6 +25,22 @@
     flex-shrink: 0;
 }
 .nt-clear:hover { background: var(--color-error-soft-hover); }
+.nt-head-actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.nt-settings {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+.nt-settings:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
 /* Tabs */
 .nt-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -99,7 +115,25 @@
 .nt-cat-employee { background: var(--color-info-soft); color: var(--color-info-strong); }
 .nt-cat-approval { background: var(--color-success-soft); color: var(--color-success); }
 .nt-cat-expense { background: var(--color-primary-soft); color: var(--color-primary-dark); }   
+.nt-item.nt-link { cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.nt-item.nt-link:hover { border-color: var(--color-primary-light); box-shadow: var(--shadow-sm); }
+.nt-item.nt-link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.nt-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+.nt-cat-project { background: var(--color-warning-soft); color: var(--color-warning-strong); }
+.nt-cat-assignment { background: var(--color-purple-soft); color: var(--color-purple-strong); }
+.nt-cat-material { background: var(--color-success-soft); color: var(--color-success-strong); }
 .nt-cat-general { background: var(--color-bg); color: var(--color-text-muted); }
+.nt-cat-billing { background: var(--color-success-soft); color: var(--color-success-strong); }
+.nt-cat-salary { background: var(--color-info-soft); color: var(--color-info-strong); }
+.nt-cat-message { background: var(--color-purple-soft); color: var(--color-purple-strong); }
 
 .nt-body { flex: 1; min-width: 0; }
 .nt-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 3px; }
@@ -200,7 +234,9 @@
 
 /* Phones: time goes under the title so the title keeps the full width */
 @media (max-width: 640px) {
-    .nt-head { gap: 12px; }
+    .nt-head { gap: 12px; flex-direction: column; }
+    .nt-head-actions { width: 100%; justify-content: flex-start; }
+    .nt-head-actions > * { flex: 1; justify-content: center; }
     .nt-item { padding: 14px; gap: 12px; }
     .nt-title-row { flex-direction: column; align-items: flex-start; gap: 2px; }
 }

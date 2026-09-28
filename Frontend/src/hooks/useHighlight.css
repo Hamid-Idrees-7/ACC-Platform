@@ -1,0 +1,17 @@
+.hl-flash {
+    animation: hlflash 2.6s ease;
+}
+
+@keyframes hlflash {
+    0%, 35% {
+        box-shadow: 0 0 0 3px var(--color-primary), 0 8px 24px rgba(246, 100, 53, 0.25);
+        background-color: var(--color-primary-soft);
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hl-flash { animation-duration: 0.01s; outline: 3px solid var(--color-primary); }
+}

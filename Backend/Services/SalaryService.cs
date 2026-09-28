@@ -198,6 +198,28 @@ namespace Backend.Services
             };
         }
 
+        public async Task<SalaryPaymentSummary?> DescribePaymentAsync(int paymentId)
+        {
+            var payment = await _salaryRepository.GetByIdAsync(paymentId);
+            if (payment == null) return null;
+            return new SalaryPaymentSummary(await EmployeeNameAsync(payment.EmployeeID), payment.Year, payment.Month, payment.PaidAmount);
+        }
+
+        public async Task<bool> IsLinePaidAsync(PaySalaryDto dto)
+        {
+            var payments = await _salaryRepository.GetForPeriodAsync(dto.Year, dto.Month);
+            return payments.Any(p => p.EmployeeID == dto.EmployeeID && p.SourceType == dto.SourceType && p.AssignmentID == dto.AssignmentID);
+        }
+
+        public async Task<string> EmployeeNameAsync(int employeeId)
+        {
+            var employee = await _employeeRepository.GetByIdAsync(employeeId);
+            return employee?.FullName ?? "an employee";
+        }
+
+        public static string PeriodLabel(int year, int month) =>
+            month is >= 1 and <= 12 ? $"{MonthNames[month]} {year}" : $"{year}";
+
         // Server-side calculation for one line, so an override can never fake the base figure.
         private async Task<decimal> ComputeCalculatedAsync(PaySalaryDto dto)
         {

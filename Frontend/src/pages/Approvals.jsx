@@ -4,6 +4,8 @@ import { usePermissions } from "../context/PermissionContext";
 import { approvalService } from "../services/approvalService";
 import { formatDate, formatTime } from "../utils/dates";
 import "./Approvals.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 // Full date with time, e.g. "23 September 2026, 2:20 PM" (follows Settings > Appearance).
 const formatDateTime = (value) => (value ? `${formatDate(value)}, ${formatTime(value)}` : "");
@@ -49,6 +51,8 @@ function Approvals() {
 
   useEffect(() => { load(); }, []);
 
+  useLiveRefresh(["approvals"], () => load({ quiet: true }));
+
   const counts = useMemo(() => ({
     pending: requests.filter((r) => r.status === "Pending").length,
     approved: requests.filter((r) => r.status === "Approved").length,
@@ -60,6 +64,7 @@ function Approvals() {
     if (filter === "All") return requests;
     return requests.filter((r) => r.status === filter);
   }, [requests, filter]);
+  useHighlight(loading ? null : `${filtered.length}:${filter}`, () => setFilter("All"));
 
   const openDetail = (req) => {
     setDetail(req);
@@ -152,7 +157,7 @@ function Approvals() {
       ) : (
         <div className="ap-list">
           {filtered.map((r) => (
-            <div key={r.pendingActionID} className="ap-card" onClick={() => openDetail(r)}>
+            <div key={r.pendingActionID} data-highlight={r.pendingActionID} className="ap-card" onClick={() => openDetail(r)}>
               <div className="ap-card-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </div>

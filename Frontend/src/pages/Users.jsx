@@ -8,6 +8,7 @@ import UserFormModal from "../components/UserFormModal";
 import UserSecurityModal from "../components/UserSecurityModal";
 import { useAuth } from "../context/AuthContext";
 import "./Users.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function Users() {
   const { user: currentUser, login, runDemoTransition } = useAuth();
@@ -59,6 +60,8 @@ function Users() {
   };
 
   useEffect(() => { loadUsers(); }, []);
+
+  useLiveRefresh(["users", "employees"], () => loadUsers({ quiet: true }));
 
   // Is this the currently logged-in user's own account?
   const isSelf = (u) => {

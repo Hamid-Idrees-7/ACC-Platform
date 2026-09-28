@@ -36,16 +36,37 @@ namespace Backend.Services
             var timeFormat = Pick(dto.TimeFormat, PreferenceOptions.TimeFormats);
             if (timeFormat == null) return (null, "Choose 12-hour or 24-hour time.");
 
+            var current = await _repository.GetAsync(userId);
+
             int? idleMinutes;
             if (dto.IdleMinutes == null)
             {
-                idleMinutes = (await _repository.GetAsync(userId))?.IdleMinutes;
+                idleMinutes = current?.IdleMinutes;
             }
             else
             {
                 if (!SecurityOptions.IdleChoices.Contains(dto.IdleMinutes.Value))
                     return (null, "Choose Off, 15, 30 or 60 minutes.");
                 idleMinutes = dto.IdleMinutes;
+            }
+
+            var sound = dto.NotificationSound ?? current?.NotificationSound;
+
+            string? muted;
+            if (dto.MutedCategories == null)
+            {
+                muted = current?.MutedNotifications;
+            }
+            else
+            {
+                var keys = new List<string>();
+                foreach (var category in dto.MutedCategories)
+                {
+                    var key = NotificationCategories.Canonical(category);
+                    if (key == null) return (null, $"\"{category}\" notifications can't be turned off.");
+                    if (!keys.Contains(key)) keys.Add(key);
+                }
+                muted = keys.Count == 0 ? null : string.Join(",", keys);
             }
 
             var preference = new UserPreference
@@ -56,6 +77,8 @@ namespace Backend.Services
                 DateFormat = dateFormat,
                 TimeFormat = timeFormat,
                 IdleMinutes = idleMinutes,
+                NotificationSound = sound,
+                MutedNotifications = muted,
                 UpdatedAt = DateTime.Now
             };
             await _repository.SaveAsync(preference);
@@ -76,7 +99,9 @@ namespace Backend.Services
             NumberFormat = PreferenceOptions.DefaultNumberFormat,
             DateFormat = PreferenceOptions.DefaultDateFormat,
             TimeFormat = PreferenceOptions.DefaultTimeFormat,
-            IdleMinutes = SecurityOptions.DefaultIdleMinutes
+            IdleMinutes = SecurityOptions.DefaultIdleMinutes,
+            NotificationSound = true,
+            MutedCategories = new List<string>()
         };
 
         private static PreferencesDto ToDto(UserPreference p) => new()
@@ -85,7 +110,9 @@ namespace Backend.Services
             NumberFormat = p.NumberFormat,
             DateFormat = p.DateFormat,
             TimeFormat = p.TimeFormat,
-            IdleMinutes = p.IdleMinutes ?? SecurityOptions.DefaultIdleMinutes
+            IdleMinutes = p.IdleMinutes ?? SecurityOptions.DefaultIdleMinutes,
+            NotificationSound = p.NotificationSound ?? true,
+            MutedCategories = NotificationCategories.Parse(p.MutedNotifications)
         };
     }
 }

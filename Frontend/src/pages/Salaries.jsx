@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { salaryService } from "../services/salaryService";
 import { money, moneyGrouped, amountInWords, currencySymbol } from "../utils/format";
 import "./Salaries.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
@@ -24,8 +25,12 @@ function Salaries() {
   const canPay = canManage;
 
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [params] = useSearchParams();
+  const askedYear = Number(params.get("year"));
+  const askedMonth = Number(params.get("month"));
+  const asked = askedYear >= 2000 && askedYear <= 2100 && askedMonth >= 1 && askedMonth <= 12;
+  const [year, setYear] = useState(asked ? askedYear : now.getFullYear());
+  const [month, setMonth] = useState(asked ? askedMonth : now.getMonth() + 1);
   const [statusFilter, setStatusFilter] = useState("all"); // all / paid / pending
   const [search, setSearch] = useState("");
 
@@ -40,13 +45,29 @@ function Salaries() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
+  const period = useRef("");
+
   const load = async () => {
     setLoading(true);
-    try { setData(await salaryService.getPeriod(year, month, 0)); }
+    const asked = `${year}-${month}`;
+    try {
+      const result = await salaryService.getPeriod(year, month, 0);
+      if (period.current === asked) setData(result);
+    }
     catch { showToast("Could not load payroll.", "error"); }
-    finally { setLoading(false); }
+    finally { if (period.current === asked) setLoading(false); }
   };
-  useEffect(() => { load(); }, [year, month]);
+  useEffect(() => { period.current = `${year}-${month}`; load(); }, [year, month]);
+
+  useLiveRefresh(["salaries", "attendance", "assignments", "employees", "projects"], async () => {
+    const asked = `${year}-${month}`;
+    try {
+      const result = await salaryService.getPeriod(year, month, 0);
+      if (period.current === asked) setData(result);
+    } catch {
+      return;
+    }
+  });
 
   const shiftMonth = (delta) => {
     let m = month + delta, y = year;

@@ -6,6 +6,7 @@ import { fieldService } from "../services/fieldService";
 import { formatQty, numberInWords } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./FieldView.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const prettyToday = () => formatDateShort(new Date());
 const fmtDate = (d) => formatDateShort(d);
@@ -46,19 +47,33 @@ function FieldView() {
 
   // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
   // page on screen, so it never jumps back to the top.
-  const loadSite = async ({ quiet = false } = {}) => {
+  const loadSite = async ({ quiet = false, silent = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
       setData(await fieldService.getMySite());
       setError(false);
     } catch {
-      if (quiet) showToast("Could not refresh. Please reload the page.", "error");
+      if (quiet && !silent) showToast("Could not refresh. Please reload the page.", "error");
       else setError(true);
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => { loadSite(); }, []);
+
+  useLiveRefresh(["assignments", "attendance", "projects", "material-requests", "calendar"], () => loadSite({ quiet: true, silent: true }));
+
+  const refreshOpenSite = async () => {
+    if (!active) return;
+    try {
+      const [ph, reqs] = await Promise.all([fieldService.getPhases(active.projectID), fieldService.getMyRequests()]);
+      setPhases(ph || []);
+      setMyRequests(reqs || []);
+    } catch {
+      return;
+    }
+  };
+  useLiveRefresh(["projects", "material-requests"], refreshOpenSite);
 
   const openSheet = async (project) => {
     setActive({ projectID: project.projectID, title: project.title });

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { permissionService } from "../services/permissionService";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const PermissionContext = createContext();
 
@@ -12,7 +13,7 @@ export function PermissionProvider({ children }) {
 
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
-  const loadPermissions = useCallback(async () => {
+  const loadPermissions = useCallback(async ({ quiet = false } = {}) => {
     if (!user) {
       setPermissions([]);
       setLoading(false);
@@ -23,7 +24,7 @@ export function PermissionProvider({ children }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!quiet) setLoading(true);
     const myId = user.userID ?? user.userId ?? user.id;
     // When a different person signs in (e.g. a demo role switch), never show the previous
     // person's access while the new permissions load. A simple reload keeps them visible.
@@ -34,13 +35,15 @@ export function PermissionProvider({ children }) {
       setPermissions(Array.isArray(data) ? data : []);
       loadedFor.current = identity;
     } catch {
-      setPermissions([]);
+      if (!quiet) setPermissions([]);
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => { loadPermissions(); }, [loadPermissions]);
+
+  useLiveRefresh(["permissions", "users"], () => loadPermissions({ quiet: true }));
 
   const can = useCallback((module, action) => {
     if (isAdmin) return true;

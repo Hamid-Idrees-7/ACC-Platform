@@ -6,6 +6,7 @@ import { userService } from "../services/userService";
 import { permissionService } from "../services/permissionService";
 import { ALL_MODULES } from "../config/moduleConfig";
 import "./ControlUnit.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function ControlUnit() {
   const { user: currentUser } = useAuth();
@@ -39,6 +40,19 @@ function ControlUnit() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useLiveRefresh(["users", "permissions"], async () => {
+    try {
+      const [userData, countData] = await Promise.all([userService.getAll(), permissionService.getCounts()]);
+      const myId = currentUser?.userID ?? currentUser?.userId;
+      const others = userData.filter((u) => u.userID !== myId && u.role?.toLowerCase() !== "admin");
+      others.sort((a, b) => b.userID - a.userID);
+      setUsers(others);
+      setCounts(countData || {});
+    } catch {
+      return;
+    }
+  });
 
   const initials = (name) => (name || "U").charAt(0).toUpperCase();
 

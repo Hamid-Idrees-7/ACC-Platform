@@ -1,4 +1,5 @@
 using Backend.Models.DTOs;
+using Backend.Models.Entities;
 
 namespace Backend.Services
 {
@@ -22,5 +23,6 @@ namespace Backend.Services
         public bool Success { get; set; }
         public string? Error { get; set; }
         public MaterialDto? Material { get; set; }
+        public MaterialTransaction? Transaction { get; set; }
     }
 }

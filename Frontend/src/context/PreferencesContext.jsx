@@ -12,7 +12,15 @@ import { DEFAULT_IDLE_MINUTES } from "../config/sessionConfig";
 
 const PreferencesContext = createContext();
 
-export const DEFAULT_PREFS = { theme: "light", numberFormat: "pk", dateFormat: "dmy-text", timeFormat: "12h", idleMinutes: DEFAULT_IDLE_MINUTES };
+export const DEFAULT_PREFS = {
+  theme: "light",
+  numberFormat: "pk",
+  dateFormat: "dmy-text",
+  timeFormat: "12h",
+  idleMinutes: DEFAULT_IDLE_MINUTES,
+  notificationSound: true,
+  mutedCategories: [],
+};
 
 // The last theme choice (light, dark or system), read by the tiny script in index.html.
 export const THEME_BOOT_KEY = "acc-theme";

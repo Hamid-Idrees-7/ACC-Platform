@@ -4,6 +4,8 @@ import { usePermissions } from "../context/PermissionContext";
 import { clientService } from "../services/clientService";
 import ClientFormModal from "../components/ClientFormModal";
 import "./Clients.css";
+import { useLiveRefresh } from "../hooks/useLive";
+import { useHighlight } from "../hooks/useHighlight";
 
 function Clients() {
   const { can } = usePermissions();
@@ -52,6 +54,8 @@ function Clients() {
 
   useEffect(() => { loadClients(); }, []);
 
+  useLiveRefresh(["clients"], () => loadClients({ quiet: true }));
+
   // Stats (now Total / Active / Inactive)
   const stats = useMemo(() => ({
     total: clients.length,
@@ -77,6 +81,7 @@ function Clients() {
     list.sort((a, b) => (a.status === "Inactive" ? 1 : 0) - (b.status === "Inactive" ? 1 : 0));
     return list;
   }, [clients, typeFilter, statusFilter, search]);
+  useHighlight(loading ? null : `${filtered.length}:${search}:${typeFilter}:${statusFilter}`, () => { setSearch(""); setTypeFilter("All"); setStatusFilter("All"); });
 
   // ---- Actions ----
   const handleSave = async (data) => {
@@ -198,6 +203,7 @@ function Clients() {
           {filtered.map((c) => (
             <div
               key={c.clientID}
+              data-highlight={c.clientID}
               className={`cl-card ${c.status === "Inactive" ? "inactive" : ""}`}
               onClick={() => setDetailClient(c)}
             >

@@ -289,6 +289,27 @@ namespace Backend.Services
             };
         }
 
+        public async Task<InvoiceSummary?> DescribeInvoiceAsync(int invoiceId)
+        {
+            var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
+            if (invoice == null) return null;
+
+            var ids = new List<int> { invoiceId };
+            var subtotal = (await _billingRepository.GetItemsByInvoiceIdsAsync(ids)).Sum(i => i.Amount);
+            var project = await _projectRepository.GetByIdAsync(invoice.ProjectID);
+            return new InvoiceSummary(invoice.InvoiceID, invoice.InvoiceNumber, invoice.ProjectID,
+                project?.Title ?? "a project", subtotal + invoice.TaxAmount);
+        }
+
+        public async Task<PaymentSummary?> DescribePaymentAsync(int paymentId)
+        {
+            var payment = await _billingRepository.GetPaymentByIdAsync(paymentId);
+            if (payment == null) return null;
+
+            var invoice = await DescribeInvoiceAsync(payment.InvoiceID);
+            return invoice == null ? null : new PaymentSummary(invoice, payment.Amount);
+        }
+
         // Helpers
 
         // Build line-item entities from the raw input; Amount is computed as Quantity x Rate.

@@ -80,16 +80,14 @@ namespace Backend.Services
             // Notify the requester that their request was sent
             await _notificationService.NotifyPersonalAsync(
                 requestedByUserId, "Approval", "Request sent",
-                $"You sent a request to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.");
+                $"You sent a request to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.",
+                link: NotificationLinks.ForModule(action.Module, action.TargetID));
 
-            // Notify admins of the new request (audit) and ping any non-admin manager who can
-            // resolve approvals (personal, so it reaches their notification bell).
+            // Ping the admins and every manager who can resolve approvals (their bell).
             var newMsg = $"{requestedByName} requested to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.";
-            await _notificationService.NotifyAdminsActivityAsync(
-                "Approval", "New approval request", newMsg);
             await _notificationService.NotifyPermissionHoldersAsync(
                 "Approvals", "Manage", "Approval", "New approval request", newMsg,
-                excludeUserId: requestedByUserId);
+                excludeUserId: requestedByUserId, link: NotificationLinks.Approval(action.PendingActionID));
 
             return true;
         }
@@ -127,14 +125,28 @@ namespace Backend.Services
             await _notificationService.NotifyPersonalAsync(
                 action.RequestedByUserID, "Approval", $"Request {verb}",
                 $"Your request to {action.Action.ToLower()} {action.Module.TrimEnd('s').ToLower()}: {action.TargetName} was {verb}.",
-                action.Reason);
+                action.Reason,
+                status == "Approved" ? null : NotificationLinks.ForModule(action.Module, action.TargetID));
 
-            // Record who resolved it in the admin audit feed (skip the actor's own copy).
+            // Admin audit feed. An approved request is recorded as the change itself, for every
+            // admin; a rejection only for the other admins.
             var who = string.IsNullOrWhiteSpace(resolverName) ? "A reviewer" : resolverName;
-            await _notificationService.NotifyAdminsActivityAsync(
-                "Approval", $"Approval request {verb}",
-                $"{who} {verb} {action.RequestedByName}'s request to {action.Action.ToLower()} {action.Module.TrimEnd('s').ToLower()}: {action.TargetName}.",
-                excludeUserId: resolverUserId);
+            var item = action.Module.TrimEnd('s').ToLower();
+            if (status == "Approved")
+            {
+                var category = ModuleCategory(action.Module);
+                await _notificationService.NotifyAdminsActivityAsync(
+                    category, $"{category} deleted",
+                    $"{action.RequestedByName} deleted {item}: {action.TargetName} (approved by {who}).",
+                    includeActingUser: true);
+            }
+            else
+            {
+                await _notificationService.NotifyAdminsActivityAsync(
+                    "Approval", "Approval request rejected",
+                    $"{who} rejected {action.RequestedByName}'s request to {action.Action.ToLower()} {item}: {action.TargetName}.",
+                    excludeUserId: resolverUserId, link: NotificationLinks.Approval(action.PendingActionID));
+            }
 
             return (true, null);
         }
@@ -175,6 +187,17 @@ namespace Backend.Services
                     return gone;
             }
         }
+
+        private static string ModuleCategory(string module) => module switch
+        {
+            "Clients" => NotificationCategories.Client,
+            "Employees" => NotificationCategories.Employee,
+            "Materials" => NotificationCategories.Material,
+            "Projects" => NotificationCategories.Project,
+            "Assignments" => NotificationCategories.Assignment,
+            "Expenses" => NotificationCategories.Expense,
+            _ => NotificationCategories.Approval
+        };
 
         public async Task<bool> DeleteAsync(int id)
         {

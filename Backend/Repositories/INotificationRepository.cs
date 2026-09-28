@@ -6,6 +6,7 @@ namespace Backend.Repositories
     {
         Task<List<Notification>> GetByUserAsync(int userId, string type);
         Task<int> GetUnreadCountAsync(int userId);
+        Task<int> GetUnreadAlertCountAsync(int userId);
         Task AddAsync(Notification notification);
         Task<bool> MarkAsReadAsync(int id, int userId);
         Task MarkAllReadAsync(int userId, string type);

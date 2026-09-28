@@ -60,14 +60,11 @@ namespace Backend.Services
             var mapped = await MapManyAsync(new List<MaterialRequest> { request });
             var m = mapped[0];
 
-            // Tell the admins a new field request is waiting for them (audit feed) and ping any
-            // non-admin manager who can act on it (personal, so it hits their bell).
+            // Ping the admins and every manager who can act on it (their bell).
             var newMsg = $"{m.RequestedByName} requested {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} for {m.ProjectTitle}.";
-            await _notificationService.NotifyAdminsActivityAsync(
-                "Material Requests", "New material request", newMsg);
             await _notificationService.NotifyPermissionHoldersAsync(
                 "MaterialRequests", "Manage", "Material Requests", "New material request", newMsg,
-                excludeUserId: userId);
+                excludeUserId: userId, link: NotificationLinks.MaterialRequest(request.RequestID));
 
             return m;
         }
@@ -119,14 +116,15 @@ namespace Backend.Services
                 request.RequestedByUserID,
                 "Material Requests",
                 "Request approved",
-                $"Your request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}) was approved and issued to the site.");
+                $"Your request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}) was approved and issued to the site.",
+                link: NotificationLinks.MyRequests);
 
-            // Record who resolved it in the admin audit feed (skip the actor's own copy).
+            // Admin audit feed: the stock that went to the site, for every admin.
             var approver = await _userRepository.GetByIdAsync(adminUserId);
             await _notificationService.NotifyAdminsActivityAsync(
-                "Material Requests", "Material request approved",
-                $"{approver?.FullName ?? "A reviewer"} approved {m.RequestedByName}'s request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}).",
-                excludeUserId: adminUserId);
+                "Material Requests", "Stock issued to site",
+                $"{m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} issued to {m.ProjectTitle} for {m.RequestedByName}'s request (approved by {approver?.FullName ?? "a reviewer"}).",
+                includeActingUser: true, link: NotificationLinks.MaterialHistory(request.MaterialID));
 
             return (true, null);
         }
@@ -153,14 +151,14 @@ namespace Backend.Services
                 "Material Requests",
                 "Request rejected",
                 $"Your request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}) was rejected.",
-                reason: request.ResolveNote);
+                reason: request.ResolveNote, link: NotificationLinks.MyRequests);
 
             // Record who resolved it in the admin audit feed (skip the actor's own copy).
             var rejecter = await _userRepository.GetByIdAsync(adminUserId);
             await _notificationService.NotifyAdminsActivityAsync(
                 "Material Requests", "Material request rejected",
                 $"{rejecter?.FullName ?? "A reviewer"} rejected {m.RequestedByName}'s request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}).",
-                excludeUserId: adminUserId);
+                excludeUserId: adminUserId, link: NotificationLinks.MaterialRequest(request.RequestID));
 
             return (true, null);
         }

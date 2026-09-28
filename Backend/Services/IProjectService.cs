@@ -14,7 +14,10 @@ namespace Backend.Services
 
         Task<ProjectPhaseDto?> AddPhaseAsync(int projectId, CreatePhaseDto dto);
         Task<ProjectPhaseDto?> UpdatePhaseAsync(int phaseId, UpdatePhaseDto dto);
+        Task<PhaseSummary?> DescribePhaseAsync(int phaseId);
         Task<bool> DeletePhaseAsync(int phaseId);
         Task ReorderPhasesAsync(int projectId, List<int> phaseIds);
     }
+
+    public record PhaseSummary(int ProjectID, string ProjectTitle, string PhaseName, int Progress, string Status);
 }

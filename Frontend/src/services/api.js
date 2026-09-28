@@ -2,10 +2,7 @@ import axios from "axios";
 import { DEMO_ENDED_EVENT } from "../config/demoConfig";
 import { SESSION_ENDED_EVENT, RENEW_BEFORE_MS } from "../config/sessionConfig";
 import { tokenExpiresAt } from "../utils/token";
-
-// The base URL of our backend API (from Visual Studio)
-// Note: use YOUR backend's https port here
-const API_BASE_URL = "https://localhost:7116/api";
+import { API_BASE_URL } from "../config/apiConfig";
 
 // Create a pre-configured axios instance for all API calls
 const api = axios.create({

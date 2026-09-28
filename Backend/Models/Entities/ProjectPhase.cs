@@ -27,5 +27,7 @@ namespace Backend.Models.Entities
         public int Progress { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? UpdatedAt { get; set; }
     }
 }

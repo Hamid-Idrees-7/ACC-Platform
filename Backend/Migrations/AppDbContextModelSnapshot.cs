@@ -22,6 +22,100 @@ namespace Backend.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Backend.Models.Entities.Alert", b =>
+                {
+                    b.Property<int>("AlertID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AlertID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<int?>("ProjectID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("AlertID");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Open'");
+
+                    b.HasIndex("UserID");
+
+                    b.HasIndex("Status", "ResolvedAt");
+
+                    b.ToTable("Alerts");
+                });
+
+            modelBuilder.Entity("Backend.Models.Entities.AlertRule", b =>
+                {
+                    b.Property<string>("Type")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Threshold")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Type");
+
+                    b.ToTable("AlertRules");
+                });
+
             modelBuilder.Entity("Backend.Models.Entities.Assignment", b =>
                 {
                     b.Property<int>("AssignmentID")
@@ -770,8 +864,15 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("FromSelf")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Message")
                         .IsRequired()
@@ -1006,6 +1107,9 @@ namespace Backend.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("PhaseID");
 
                     b.HasIndex("ProjectID");
@@ -1181,6 +1285,13 @@ namespace Backend.Migrations
                     b.Property<int?>("IdleMinutes")
                         .HasColumnType("int");
 
+                    b.Property<string>("MutedNotifications")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool?>("NotificationSound")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NumberFormat")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -1202,6 +1313,14 @@ namespace Backend.Migrations
                     b.HasKey("UserID");
 
                     b.ToTable("UserPreferences");
+                });
+
+            modelBuilder.Entity("Backend.Models.Entities.Alert", b =>
+                {
+                    b.HasOne("Backend.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Backend.Models.Entities.Attendance", b =>

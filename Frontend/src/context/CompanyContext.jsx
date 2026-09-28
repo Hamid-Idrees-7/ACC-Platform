@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext";
 import { companyService } from "../services/companyService";
 import { calendarService } from "../services/calendarService";
 import { setCurrency } from "../utils/format";
+import { useLiveRefresh } from "../hooks/useLive";
 
 // Settings > Company and Settings > Calendar: the company's name, currency, default tax,
 // weekly off days and holidays, read by every signed-in page.
@@ -111,6 +112,8 @@ export function CompanyProvider({ children }) {
   }, [identity]);
 
   useEffect(() => { load(); }, [load]);
+
+  useLiveRefresh(["company", "calendar"], load);
 
   // After the admin saves Settings > Company or changes Settings > Calendar.
   const applySaved = useCallback((saved) => update(identity, { company: { ...DEFAULT_COMPANY, ...saved } }), [update, identity]);

@@ -37,6 +37,11 @@ namespace Backend.Models.Entities
         // Null means the default (SecurityOptions.DefaultIdleMinutes).
         public int? IdleMinutes { get; set; }
 
+        public bool? NotificationSound { get; set; }
+
+        [MaxLength(300)]
+        public string? MutedNotifications { get; set; }
+
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 

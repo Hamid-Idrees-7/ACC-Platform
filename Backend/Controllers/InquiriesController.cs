@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Backend.Auth;
 using Backend.Demo;
 using Backend.Models.DTOs;
@@ -12,11 +13,16 @@ namespace Backend.Controllers
     public class InquiriesController : ControllerBase
     {
         private readonly IInquiryService _service;
+        private readonly INotificationService _notifications;
 
-        public InquiriesController(IInquiryService service)
+        public InquiriesController(IInquiryService service, INotificationService notifications)
         {
             _service = service;
+            _notifications = notifications;
         }
+
+        private string GetUserName() =>
+            User.FindFirst("FullName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "";
 
         // PUBLIC - the website contact form posts here (no login needed).
         // Always saved to the real database, even if the visitor is also exploring the demo.
@@ -28,6 +34,15 @@ namespace Backend.Controllers
             var (success, message) = await _service.SubmitInquiryAsync(dto);
             if (!success)
                 return BadRequest(new { message });
+
+            if (string.IsNullOrWhiteSpace(dto.Website))
+            {
+                var about = string.IsNullOrWhiteSpace(dto.Service) ? "" : $" about {dto.Service.Trim()}";
+                await _notifications.NotifyPermissionHoldersAsync(
+                    "Messages", "View", NotificationCategories.Message, "New website message",
+                    $"{dto.Name.Trim()} sent a message from the website{about}.",
+                    link: NotificationLinks.Messages);
+            }
 
             return Ok(new { message });
         }
@@ -69,8 +84,15 @@ namespace Backend.Controllers
         [RequirePermission("Messages", "Delete")]
         public async Task<IActionResult> Delete(int id)
         {
+            var sender = await _service.GetSenderNameAsync(id);
             var deleted = await _service.DeleteInquiryAsync(id);
             if (!deleted) return NotFound();
+
+            await _notifications.NotifyAdminsActivityAsync(
+                NotificationCategories.Message, "Website message deleted",
+                $"{GetUserName()} deleted the website message from {sender ?? "a visitor"}.",
+                link: NotificationLinks.Messages);
+
             return Ok(new { message = "Inquiry deleted." });
         }
 
@@ -80,7 +102,15 @@ namespace Backend.Controllers
         [RequirePermission("Messages", "Delete")]
         public async Task<IActionResult> DeleteAll()
         {
+            var count = (await _service.GetAllInquiriesAsync()).Count;
             await _service.DeleteAllInquiriesAsync();
+
+            if (count > 0)
+                await _notifications.NotifyAdminsActivityAsync(
+                    NotificationCategories.Message, "Website messages deleted",
+                    $"{GetUserName()} deleted all website messages ({count}).",
+                    link: NotificationLinks.Messages);
+
             return Ok(new { message = "All inquiries deleted." });
         }
     }

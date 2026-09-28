@@ -4,6 +4,7 @@ import { usePermissions } from "../context/PermissionContext";
 import { projectExpenseService } from "../services/projectExpenseService";
 import { money, amountInWords, currencySymbol } from "../utils/format";
 import "./ProjectExpenses.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 // Example text per category, so the description field shows what fits.
 const HINTS = {
@@ -88,6 +89,8 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
     load();
    
   }, [projectId, canView]);
+
+  useLiveRefresh(["expenses", "billing"], () => { if (canView) load(); });
 
   const afterChange = async () => {
     await load();

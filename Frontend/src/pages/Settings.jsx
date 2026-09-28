@@ -8,14 +8,16 @@ import AppearanceSettings from "../components/AppearanceSettings";
 import CompanySettings from "../components/CompanySettings";
 import CalendarSettings from "../components/CalendarSettings";
 import SecuritySettings from "../components/SecuritySettings";
+import NotificationSettings from "../components/NotificationSettings";
+import AlertRules from "../components/AlertRules";
 import PasswordStrength from "../components/PasswordStrength";
 import Toast, { useToast } from "../components/Toast";
 import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
 import { passwordError } from "../utils/password";
 import "./Settings.css";
 
-const SETTINGS_TABS = ["profile", "account", "security", "appearance", "company", "calendar"];
-const ADMIN_TABS = ["company", "calendar"];
+const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "company", "calendar"];
+const ADMIN_TABS = ["alerts", "company", "calendar"];
 const BIO_MAX = 300;
 
 // Same rules as the server. Each returns { field: message }.
@@ -284,6 +286,8 @@ function Settings() {
     { key: "profile", label: "Profile Management", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { key: "account", label: "Account Management", icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
     { key: "security", label: "Security", icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></> },
+    { key: "notifications", label: "Notifications", icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></> },
+    ...(isAdmin ? [{ key: "alerts", label: "Alert rules", icon: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></> }] : []),
     { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
     ...(isAdmin ? [{ key: "company", label: "Company", icon: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><line x1="9" y1="9" x2="9" y2="9.01" /><line x1="9" y1="12" x2="9" y2="12.01" /><line x1="9" y1="15" x2="9" y2="15.01" /><line x1="9" y1="18" x2="9" y2="18.01" /></> }] : []),
     ...(isAdmin ? [{ key: "calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></> }] : []),
@@ -463,6 +467,26 @@ function Settings() {
                 <p>Automatic sign-out, the devices you are signed in on, and your sign-in history</p>
               </div>
               <SecuritySettings />
+            </div>
+          )}
+
+          {tab === "notifications" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Notifications</h3>
+                <p>Choose what reaches your bell, and whether new ones play a sound</p>
+              </div>
+              <NotificationSettings />
+            </div>
+          )}
+
+          {tab === "alerts" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Alert rules</h3>
+                <p>Choose which problems the system watches for, and when it should warn</p>
+              </div>
+              <AlertRules />
             </div>
           )}
 

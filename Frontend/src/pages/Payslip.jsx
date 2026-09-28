@@ -7,6 +7,7 @@ import { formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
 import Toast, { useToast } from "../components/Toast";
 import "./Payslip.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const rateLabel = (l) =>
   l.sourceType === "Monthly" ? `${money(l.rate)}` : l.sourceType === "Contract" ? `${money(l.rate)}` : `${money(l.rate)}`;
@@ -35,6 +36,14 @@ function Payslip() {
       }
     })();
   }, [employeeId, year, month]);
+
+  useLiveRefresh(["salaries", "attendance", "employees", "company"], async () => {
+    try {
+      setSlip(await salaryService.getPayslip(employeeId, year, month));
+    } catch {
+      return;
+    }
+  });
 
   if (loading) {
     return <DashboardLayout title="Salary Payslip"><div className="psl-loading"><div className="psl-spinner" /></div></DashboardLayout>;

@@ -7,6 +7,7 @@ import { formatDate } from "../components/DatePicker";
 import { money, formatQty, amountInWords } from "../utils/format";
 import ProjectExpenses from "../components/ProjectExpenses";
 import "./ProjectDetail.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const PHASE_STATUSES = ["Pending", "In Progress", "Completed"];
@@ -76,6 +77,8 @@ function ProjectDetail() {
       // keep what is on screen; the next full load will retry
     }
   };
+
+  useLiveRefresh(["projects", "assignments", "expenses", "materials", "billing", "attendance", "clients"], refreshQuietly);
 
   const cancelled = project?.status === "Cancelled";
   const locked = cancelled || !canManage;

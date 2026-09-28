@@ -11,6 +11,7 @@
         public string Message { get; set; } = string.Empty;
         public string? Reason { get; set; }
         public bool IsRead { get; set; }
+        public string? Link { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

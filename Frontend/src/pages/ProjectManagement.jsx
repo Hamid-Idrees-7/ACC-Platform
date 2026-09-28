@@ -8,6 +8,7 @@ import ProjectFormModal from "../components/ProjectFormModal";
 import { formatDate } from "../components/DatePicker";
 import { moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./ProjectManagement.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const slug = (s) => (s || "").toLowerCase().replace(/\s+/g, "");
@@ -67,6 +68,9 @@ function ProjectManagement() {
   };
 
   useEffect(() => { loadProjects(); loadClients(); }, []);
+
+  useLiveRefresh(["projects", "assignments", "expenses", "billing"], () => loadProjects({ quiet: true }));
+  useLiveRefresh(["clients"], () => loadClients());
 
   const stats = useMemo(() => ({
     total: projects.length,

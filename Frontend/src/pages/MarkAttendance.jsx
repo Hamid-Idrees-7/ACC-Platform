@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { useCompany, offDayOf } from "../context/CompanyContext";
@@ -8,6 +8,7 @@ import DatePicker from "../components/DatePicker";
 import { formatDayMonth, formatDateShort } from "../utils/dates";
 import { moneyCompact } from "../utils/format";
 import "./MarkAttendance.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
@@ -27,7 +28,9 @@ function MarkAttendance() {
   const { calendar } = useCompany();
   const hasOffDays = (calendar.weeklyOffDays || []).length > 0 || (calendar.holidays || []).length > 0;
 
-  const [date, setDate] = useState(todayISO());
+  const [params] = useSearchParams();
+  const askedDate = params.get("date");
+  const [date, setDate] = useState(/^\d{4}-\d{2}-\d{2}$/.test(askedDate || "") && askedDate <= todayISO() ? askedDate : todayISO());
   const [sheet, setSheet] = useState(null);
   const [marks, setMarks] = useState({});
   const [expanded, setExpanded] = useState({});
@@ -59,6 +62,17 @@ function MarkAttendance() {
   };
 
   useEffect(() => { load(date); }, [id, date]);
+
+  const dirty = !!sheet && JSON.stringify(marks) !== JSON.stringify(marksFromSheet(sheet));
+  useLiveRefresh(["attendance", "assignments", "calendar"], async () => {
+    try {
+      const data = await attendanceService.getSheet(id, date);
+      setSheet(data);
+      setMarks(marksFromSheet(data));
+    } catch {
+      return;
+    }
+  }, { paused: dirty || saving });
 
   const isToday = date === todayISO();
   const isFuture = date > todayISO();

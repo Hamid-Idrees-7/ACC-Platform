@@ -318,9 +318,18 @@ namespace Backend.Services
 
             phase.Status = string.IsNullOrWhiteSpace(dto.Status) ? phase.Status : dto.Status.Trim();
             phase.Progress = Math.Clamp(dto.Progress, 0, 100);
+            phase.UpdatedAt = DateTime.Now;
 
             await _repository.UpdatePhaseAsync(phase);
             return PhaseDto(phase);
+        }
+
+        public async Task<PhaseSummary?> DescribePhaseAsync(int phaseId)
+        {
+            var phase = await _repository.GetPhaseByIdAsync(phaseId);
+            if (phase == null) return null;
+            var project = await _repository.GetByIdAsync(phase.ProjectID);
+            return new PhaseSummary(phase.ProjectID, project?.Title ?? "a project", phase.Name, phase.Progress, phase.Status);
         }
 
         public async Task<bool> DeletePhaseAsync(int phaseId)

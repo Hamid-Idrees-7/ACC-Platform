@@ -6,6 +6,7 @@ import { materialService } from "../services/materialService";
 import { formatQty, money } from "../utils/format";
 import { formatDateTime } from "../utils/dates";
 import "./MaterialHistory.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function MaterialHistory() {
   const { id } = useParams();
@@ -42,6 +43,8 @@ function MaterialHistory() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useLiveRefresh(["materials", "material-requests"], () => load({ quiet: true }));
 
   const handleCancel = async (txId) => {
     try {

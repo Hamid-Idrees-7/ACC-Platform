@@ -4,6 +4,7 @@ import { usePermissions } from "../context/PermissionContext";
 import { inquiryService } from "../services/inquiryService";
 import { formatDateTime } from "../utils/dates";
 import "./Queries.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function Queries() {
   const { can } = usePermissions();
@@ -37,6 +38,14 @@ function Queries() {
   useEffect(() => {
     loadInquiries();
   }, []);
+
+  useLiveRefresh(["messages"], async () => {
+    try {
+      setInquiries(await inquiryService.getAll());
+    } catch {
+      return;
+    }
+  });
 
   const openMessage = async (inquiry) => {
     setSelected(inquiry);

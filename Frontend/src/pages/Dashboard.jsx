@@ -13,6 +13,7 @@ import { materialRequestService } from "../services/materialRequestService";
 import { moneyShort, amountInWords } from "../utils/format";
 import { useCompany } from "../context/CompanyContext";
 import "./Dashboard.css";
+import { useLiveRefresh } from "../hooks/useLive";
 
 function Dashboard() {
   const { user } = useAuth();
@@ -37,6 +38,9 @@ function Dashboard() {
 
   const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals || showMatRequests;
 
+  const [liveTick, setLiveTick] = useState(0);
+  useLiveRefresh(["messages", "approvals", "material-requests", "users", "employees", "projects", "billing"], () => setLiveTick((t) => t + 1));
+
   useEffect(() => {
     if (!showMessages) { setLoadingQueries(false); return; }
     const load = async () => {
@@ -50,7 +54,7 @@ function Dashboard() {
       }
     };
     load();
-  }, [showMessages]);
+  }, [showMessages, liveTick]);
 
   // Load pending approval count (Admin only)
   useEffect(() => {
@@ -64,7 +68,7 @@ function Dashboard() {
       }
     };
     loadCount();
-  }, [showApprovals]);
+  }, [showApprovals, liveTick]);
 
   // Load pending material-request count
   useEffect(() => {
@@ -76,7 +80,7 @@ function Dashboard() {
         // silent
       }
     })();
-  }, [showMatRequests]);
+  }, [showMatRequests, liveTick]);
 
   // Load the top stat cards (Admin only). Active users/employees/projects + total revenue
   // (money actually received from clients). Each source is loaded independently so one
@@ -100,7 +104,7 @@ function Dashboard() {
       });
     };
     load();
-  }, [isAdmin]);
+  }, [isAdmin, liveTick]);
 
   const stats = [
     { label: "Active Users", value: metrics.loaded ? String(metrics.users) : "—", icon: "users" },
