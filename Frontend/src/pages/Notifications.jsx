@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
@@ -6,8 +6,13 @@ import { notificationService } from "../services/notificationService";
 import { formatDateTime } from "../utils/dates";
 import { useLiveNotifications } from "../hooks/useLive";
 import "./Notifications.css";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
-// Icon + colour per category
+// Icon and colour for each category
 const categoryStyle = (cat) => {
   const map = {
     Login: { icon: "login", cls: "nt-cat-login" },
@@ -72,7 +77,7 @@ function Notifications() {
       const data = await notificationService.getMine(type);
       if (shownTab.current !== type) return;
       setItems(data);
-      // Mark all as read on view (only personal counts toward the bell)
+      // Opening the tab marks all as read (only personal ones count toward the bell).
       if (type === "Personal" && data.some((n) => !n.isRead)) {
         if (quiet) await new Promise((resolve) => setTimeout(resolve, 1500));
         await notificationService.markAllRead("Personal");
@@ -86,7 +91,7 @@ function Notifications() {
     }
   };
 
-  useEffect(() => { shownTab.current = tab; load(tab); }, [tab]);
+  useLoader(() => { shownTab.current = tab; load(tab); }, tab);
 
   useLiveNotifications(({ types, resync }) => {
     if (resync || !types || types.includes(tab)) load(tab, { quiet: true });
@@ -117,6 +122,8 @@ function Notifications() {
       showToast("Could not clear notifications.", "error");
     }
   };
+
+  const paging = usePagination(items, { resetKey: tab });
 
   return (
     <DashboardLayout title="Notifications">
@@ -150,7 +157,7 @@ function Notifications() {
       {error && <div className="nt-error">{error}</div>}
 
       {loading ? (
-        <div className="nt-empty"><div className="nt-spinner" /><p>Loading...</p></div>
+        <SkeletonRows count={6} />
       ) : items.length === 0 ? (
         <div className="nt-empty">
           <div className="nt-empty-icon">
@@ -160,45 +167,48 @@ function Notifications() {
           <p>{tab === "Personal" ? "Your notifications will appear here." : "What other users do will appear here."}</p>
         </div>
       ) : (
-        <div className="nt-list">
-          {items.map((n) => {
-            const style = categoryStyle(n.category);
-            return (
-              <div
-                key={n.notificationID}
-                className={`nt-item ${!n.isRead && tab === "Personal" ? "unread" : ""} ${n.link ? "nt-link" : ""}`}
-                role={n.link ? "link" : undefined}
-                tabIndex={n.link ? 0 : undefined}
-                onClick={n.link ? () => open(n) : undefined}
-                onKeyDown={n.link ? (e) => { if (e.key === "Enter") open(n); } : undefined}
-              >
-                <div className={`nt-icon ${style.cls}`}><CatIcon name={style.icon} /></div>
-                <div className="nt-body">
-                  <div className="nt-title-row">
-                    <strong>{n.title}</strong>
-                    <span className="nt-time">{formatDateTime(n.createdAt)}</span>
+        <>
+          <div className="nt-list">
+            {paging.pageItems.map((n) => {
+              const style = categoryStyle(n.category);
+              return (
+                <div
+                  key={n.notificationID}
+                  className={`nt-item ${!n.isRead && tab === "Personal" ? "unread" : ""} ${n.link ? "nt-link" : ""}`}
+                  role={n.link ? "link" : undefined}
+                  tabIndex={n.link ? 0 : undefined}
+                  onClick={n.link ? () => open(n) : undefined}
+                  onKeyDown={n.link ? (e) => { if (e.key === "Enter") open(n); } : undefined}
+                >
+                  <div className={`nt-icon ${style.cls}`}><CatIcon name={style.icon} /></div>
+                  <div className="nt-body">
+                    <div className="nt-title-row">
+                      <strong>{n.title}</strong>
+                      <span className="nt-time">{formatDateTime(n.createdAt)}</span>
+                    </div>
+                    <p className="nt-message">{n.message}</p>
+                    {n.reason && <p className="nt-reason">Reason: {n.reason}</p>}
+                    {n.link && (
+                      <span className="nt-open">
+                        Open
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                      </span>
+                    )}
                   </div>
-                  <p className="nt-message">{n.message}</p>
-                  {n.reason && <p className="nt-reason">Reason: {n.reason}</p>}
-                  {n.link && (
-                    <span className="nt-open">
-                      Open
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
-                    </span>
-                  )}
+                  <button className="nt-delete" onClick={(e) => { e.stopPropagation(); handleDelete(n.notificationID); }} onKeyDown={(e) => e.stopPropagation()} aria-label="Delete">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
                 </div>
-                <button className="nt-delete" onClick={(e) => { e.stopPropagation(); handleDelete(n.notificationID); }} onKeyDown={(e) => e.stopPropagation()} aria-label="Delete">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <Pagination {...paging} label="notifications" />
+        </>
       )}
 
       {/* Confirm delete all */}
       {confirmDeleteAll && (
-        <div className="nt-overlay" onClick={(e) => e.target.classList.contains("nt-overlay") && setConfirmDeleteAll(false)}>
+        <ModalOverlay className="nt-overlay" onClose={() => setConfirmDeleteAll(false)}>
           <div className="nt-confirm">
             <div className="nt-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -206,11 +216,11 @@ function Notifications() {
             <h3>Clear all notifications?</h3>
             <p>All {tab === "Personal" ? "your" : "team activity"} notifications will be permanently removed.</p>
             <div className="nt-confirm-actions">
-              <button className="nt-confirm-cancel" onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
+              <button className="nt-confirm-cancel" data-close onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
               <button className="nt-confirm-delete" onClick={handleDeleteAll}>Clear All</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`nt-toast nt-toast-${toast.type}`}>{toast.text}</div>}

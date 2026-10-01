@@ -1,8 +1,8 @@
 namespace Backend.Models.DTOs
 {
-    // Payload for creating (or, with an InvoiceID via the controller route, editing) an invoice.
-    // The invoice number, per-item Amount, subtotal and total are all computed on the server —
-    // the client only sends the raw inputs.
+    // Sent to create an invoice, or to edit one when the route has an InvoiceID.
+    // The server works out the invoice number, each line's Amount, the subtotal and the total;
+    // the client sends only the raw inputs.
     public class CreateInvoiceDto
     {
         public int ProjectID { get; set; }

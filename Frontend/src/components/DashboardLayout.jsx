@@ -12,6 +12,9 @@ import { ALERT_SEEN_KEY, ALERT_LIVE_MODULES } from "../config/alertConfig";
 import { playNotificationSound, unlockNotificationSound } from "../utils/notificationSound";
 import { onLive, isLiveConnected } from "../services/live";
 import { useLiveRefresh } from "../hooks/useLive";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { hasUnsavedChanges } from "../hooks/useUnsavedChanges";
+import ModalOverlay from "./ModalOverlay";
 import DemoBar from "./DemoBar";
 import "./DashboardLayout.css";
 
@@ -34,10 +37,10 @@ const writeBaseline = (value, key = ALERT_BASELINE_KEY) => {
   }
 };
 
-// Sidebar structure. Each item can declare how its visibility is decided:
-//  - always: everyone sees it
-//  - adminOnly: only Admin
-//  - module: shown if the user has View permission for that module
+// Sidebar sections. Each item's "show" says who sees it:
+//   always: everyone
+//   adminOnly: only Admin
+//   module: Admin, or anyone with View permission for that module
 const navSections = [
   {
     title: "Main",
@@ -105,9 +108,11 @@ function DashboardLayout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [openAlerts, setOpenAlerts] = useState(0);
+  const [leaveTo, setLeaveTo] = useState(null);
   const { user, logout, signOut, login, demoTransition, runDemoTransition } = useAuth();
   const { canView, isAdmin } = usePermissions();
   useDashboardTheme();
+  usePageTitle(title);
   const { prefs } = usePreferences();
   const soundOn = prefs.notificationSound !== false;
   const soundRef = useRef(soundOn);
@@ -147,9 +152,9 @@ function DashboardLayout({ title, children }) {
     try {
       await runDemoTransition(roleKey, "Switching to", async () => {
         const data = await demoService.switchRole(roleKey);
-        // Change the user and the page in ONE render. Otherwise the current page (e.g.
-        // Notifications) would briefly open as the new user and could mark their
-        // brand-new notifications as read.
+        // Change the user and the page in one render. Otherwise the current page (eg
+        // Notifications) would briefly open as the new user and could mark their new
+        // notifications as read.
         startTransition(() => {
           login(data);
           navigate("/dashboard");
@@ -157,13 +162,13 @@ function DashboardLayout({ title, children }) {
       });
     } catch (err) {
       if (err.response?.status === 401) return;   // session over: handled by the ended event
-      throw new Error(err.response?.data?.message || `Couldn't switch to ${getDemoRole(roleKey).label}.`);
+      throw new Error(err.response?.data?.message || `Couldn't switch to ${getDemoRole(roleKey).label}.`, { cause: err });
     }
   };
 
   const who = user ? `${user.userID}:${user.username}` : null;
 
-  // Load the unread notification count for the bell / sidebar badge
+  // Unread count for the bell and the sidebar badge (plays a sound when new alerts arrive).
   useEffect(() => {
     const loadCount = async () => {
       try {
@@ -173,12 +178,12 @@ function DashboardLayout({ title, children }) {
         writeBaseline({ who, alerts });
         setUnreadCount(count);
       } catch {
-        // silent
+        // the badge keeps its last count
       }
     };
     loadCount();
 
-    // Refresh the badge immediately when notifications are marked read
+    // Refresh the badge as soon as notifications are marked read.
     const onUpdate = () => loadCount();
     window.addEventListener("notifications-updated", onUpdate);
     const offLive = onLive("notifications", onUpdate);
@@ -233,9 +238,12 @@ function DashboardLayout({ title, children }) {
 
   useLiveRefresh(ALERT_LIVE_MODULES, () => window.dispatchEvent(new Event("alerts-updated")), { delay: 250 });
 
-  useEffect(() => {
+  // The mobile menu closes when the page changes.
+  const [menuPath, setMenuPath] = useState(location.pathname);
+  if (menuPath !== location.pathname) {
+    setMenuPath(location.pathname);
     setSidebarOpen(false);
-  }, [location.pathname]);
+  }
 
   // The mobile menu closes with the Escape key too.
   useEffect(() => {
@@ -245,7 +253,18 @@ function DashboardLayout({ title, children }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [sidebarOpen]);
 
-  const handleLogout = () => {
+  const leaveOrAsk = (action) => {
+    setSidebarOpen(false);
+    if (hasUnsavedChanges()) {
+      setLeaveTo(() => action);
+      return;
+    }
+    action();
+  };
+
+  const handleLogout = () => leaveOrAsk(logoutNow);
+
+  const logoutNow = () => {
     // A demo visitor logging out also frees their demo seat.
     if (demo) {
       endDemo(DEMO_EXIT_NOTE);
@@ -262,11 +281,13 @@ function DashboardLayout({ title, children }) {
   };
 
   const go = (path) => {
-    setSidebarOpen(false);
-    navigate(path);
+    if (path === location.pathname) {
+      setSidebarOpen(false);
+      return;
+    }
+    leaveOrAsk(() => navigate(path));
   };
 
-  // Decide if a nav item should be shown for this user
   const canShow = (item) => {
     if (item.show === "always") return true;
     if (item.show === "adminOnly") return isAdmin;
@@ -274,7 +295,7 @@ function DashboardLayout({ title, children }) {
     return false;
   };
 
-  // Build visible sections (drop empty ones)
+  // Sections with nothing to show are dropped.
   const visibleSections = navSections
     .map((section) => ({ ...section, items: section.items.filter(canShow) }))
     .filter((section) => section.items.length > 0);
@@ -288,7 +309,7 @@ function DashboardLayout({ title, children }) {
     <div className="dash-layout">
       {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} />}
 
-      {/* SIDEBAR */}
+      {/* Sidebar */}
       <aside className={`dash-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="dash-logo">
           <span className="dash-logo-mark">ACC</span>
@@ -317,7 +338,7 @@ function DashboardLayout({ title, children }) {
                   {item.id === "alerts" && openAlerts > 0 && <span className="dash-nav-dot" aria-label="Open alerts" />}
                 </button>
               ))}
-              {/* Logout sits inside the last section - no separate gap */}
+              {/* Logout sits inside the last section, with no gap of its own */}
               {idx === visibleSections.length - 1 && (
                 <button className="dash-nav-item dash-nav-logout" onClick={handleLogout}>
                   <span className="dash-nav-icon"><Icon name="logout" /></span>
@@ -329,7 +350,7 @@ function DashboardLayout({ title, children }) {
         </nav>
       </aside>
 
-      {/* MAIN */}
+      {/* Main */}
       <div className="dash-main">
         {demo && (
           <DemoBar
@@ -355,7 +376,7 @@ function DashboardLayout({ title, children }) {
             <button
               type="button"
               className={`dash-alerts ${openAlerts > 0 ? "has-open" : ""} ${isActive("/dashboard/alerts") ? "active" : ""}`}
-              onClick={() => navigate("/dashboard/alerts")}
+              onClick={() => go("/dashboard/alerts")}
               aria-label={openAlerts > 0 ? `Alerts: ${openAlerts} open` : "Alerts: none open"}
               title={openAlerts > 0 ? `${openAlerts} open alert${openAlerts === 1 ? "" : "s"}` : "No open alerts"}
             >
@@ -363,13 +384,13 @@ function DashboardLayout({ title, children }) {
               <span className="dash-alerts-label">Alerts</span>
               {openAlerts > 0 && <span className="dash-alerts-dot" aria-hidden="true" />}
             </button>
-            <button className="dash-bell" onClick={() => navigate("/dashboard/notifications")}>
+            <button className="dash-bell" onClick={() => go("/dashboard/notifications")}>
               <Icon name="bell" />
               {unreadCount > 0 && <span className="dash-bell-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </button>
 
             <div className="dash-profile">
-              <button className="dash-profile-btn" onClick={() => navigate("/dashboard/profile")} title="View profile">
+              <button className="dash-profile-btn" onClick={() => go("/dashboard/profile")} title="View profile">
                 {photo ? (
                   <img src={photo} alt="" className="dash-avatar-img" />
                 ) : (
@@ -388,6 +409,19 @@ function DashboardLayout({ title, children }) {
         <main className={`dash-content ${demoTransition?.phase === "out" ? "dash-content-enter" : ""}`}>
           {children}
         </main>
+
+        {leaveTo && (
+          <ModalOverlay className="dash-leave-overlay" onClose={() => setLeaveTo(null)} label="Unsaved changes">
+            <div className="mdo-confirm">
+              <h3>Leave without saving?</h3>
+              <p>You have changes on this page that are not saved yet. If you leave now, they will be lost.</p>
+              <div className="mdo-confirm-actions">
+                <button type="button" className="mdo-keep" data-close onClick={() => setLeaveTo(null)} autoFocus>Stay on this page</button>
+                <button type="button" className="mdo-discard" onClick={() => { const action = leaveTo; setLeaveTo(null); action(); }}>Leave</button>
+              </div>
+            </div>
+          </ModalOverlay>
+        )}
       </div>
     </div>
   );

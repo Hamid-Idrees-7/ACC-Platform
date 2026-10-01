@@ -1,10 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { inquiryService } from "../services/inquiryService";
 import { formatDateTime } from "../utils/dates";
 import "./Queries.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { formatPhone } from "../utils/format";
+import { useLoader } from "../hooks/useLoader";
 
 function Queries() {
   const { can } = usePermissions();
@@ -28,16 +34,14 @@ function Queries() {
     try {
       const data = await inquiryService.getAll();
       setInquiries(data);
-    } catch (err) {
+    } catch {
       setError("Could not load messages. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadInquiries();
-  }, []);
+  useLoader(() => loadInquiries());
 
   useLiveRefresh(["messages"], async () => {
     try {
@@ -49,7 +53,6 @@ function Queries() {
 
   const openMessage = async (inquiry) => {
     setSelected(inquiry);
-    // Mark as read if unread
     if (!inquiry.isRead) {
       try {
         await inquiryService.markAsRead(inquiry.inquiryID);
@@ -57,7 +60,7 @@ function Queries() {
           prev.map((i) => (i.inquiryID === inquiry.inquiryID ? { ...i, isRead: true } : i))
         );
       } catch {
-        // silent - not critical
+        // not critical, ignore
       }
     }
   };
@@ -88,6 +91,8 @@ function Queries() {
 
   const unreadCount = inquiries.filter((i) => !i.isRead).length;
 
+  const paging = usePagination(inquiries);
+
   return (
     <DashboardLayout title="Queries">
       <div className="q-header">
@@ -106,10 +111,7 @@ function Queries() {
       {error && <div className="q-error">{error}</div>}
 
       {loading ? (
-        <div className="q-empty">
-          <div className="q-spinner" />
-          <p>Loading messages...</p>
-        </div>
+        <SkeletonRows count={5} />
       ) : inquiries.length === 0 ? (
         <div className="q-empty">
           <div className="q-empty-icon">
@@ -119,47 +121,50 @@ function Queries() {
           <p>Messages from your website contact form will appear here.</p>
         </div>
       ) : (
-        <div className="q-list">
-          {inquiries.map((inq) => (
-            <div
-              key={inq.inquiryID}
-              className={`q-card ${!inq.isRead ? "unread" : ""}`}
-              onClick={() => openMessage(inq)}
-            >
-              <div className="q-card-avatar">{inq.name.charAt(0).toUpperCase()}</div>
-              <div className="q-card-body">
-                <div className="q-card-top">
-                  <span className="q-card-name">
-                    {inq.name}
-                    {!inq.isRead && <span className="q-unread-dot" />}
-                  </span>
-                  <span className="q-card-time">{formatDateTime(inq.createdAt)}</span>
+        <>
+          <div className="q-list">
+            {paging.pageItems.map((inq) => (
+              <div
+                key={inq.inquiryID}
+                className={`q-card ${!inq.isRead ? "unread" : ""}`}
+                onClick={() => openMessage(inq)}
+              >
+                <div className="q-card-avatar">{inq.name.charAt(0).toUpperCase()}</div>
+                <div className="q-card-body">
+                  <div className="q-card-top">
+                    <span className="q-card-name">
+                      {inq.name}
+                      {!inq.isRead && <span className="q-unread-dot" />}
+                    </span>
+                    <span className="q-card-time">{formatDateTime(inq.createdAt)}</span>
+                  </div>
+                  <div className="q-card-meta">
+                    <span className="q-card-phone">{formatPhone(inq.phone)}</span>
+                    {inq.service && <span className="q-card-service">{inq.service}</span>}
+                  </div>
+                  <p className="q-card-preview">{inq.message}</p>
                 </div>
-                <div className="q-card-meta">
-                  <span className="q-card-phone">{inq.phone}</span>
-                  {inq.service && <span className="q-card-service">{inq.service}</span>}
-                </div>
-                <p className="q-card-preview">{inq.message}</p>
+                {canDelete && (
+                  <button
+                    className="q-card-delete"
+                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(inq.inquiryID); }}
+                    aria-label="Delete"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                )}
               </div>
-              {canDelete && (
-                <button
-                  className="q-card-delete"
-                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(inq.inquiryID); }}
-                  aria-label="Delete"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination {...paging} label="messages" />
+        </>
       )}
 
       {/* Message detail modal */}
       {selected && (
-        <div className="q-modal-overlay" onClick={(e) => e.target.classList.contains("q-modal-overlay") && setSelected(null)}>
+        <ModalOverlay className="q-modal-overlay" onClose={() => setSelected(null)}>
           <div className="q-modal">
-            <button className="q-modal-close" onClick={() => setSelected(null)} aria-label="Close">
+            <button className="q-modal-close" data-close onClick={() => setSelected(null)} aria-label="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
 
@@ -174,7 +179,7 @@ function Queries() {
             <div className="q-modal-details">
               <div className="q-detail-row">
                 <span className="q-detail-label">Phone</span>
-                <span className="q-detail-value">{selected.phone}</span>
+                <span className="q-detail-value">{formatPhone(selected.phone)}</span>
               </div>
               {selected.email && (
                 <div className="q-detail-row">
@@ -204,7 +209,7 @@ function Queries() {
               </div>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete toast (bottom-right, red) */}
@@ -212,7 +217,7 @@ function Queries() {
 
       {/* Confirm delete modal */}
       {confirmDelete !== null && (
-        <div className="q-modal-overlay" onClick={(e) => e.target.classList.contains("q-modal-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="q-modal-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="q-confirm">
             <div className="q-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -220,7 +225,7 @@ function Queries() {
             <h3>{confirmDelete === "all" ? "Clear all messages?" : "Delete this message?"}</h3>
             <p>{confirmDelete === "all" ? "This will permanently delete all customer messages." : "This message will be permanently deleted."} This cannot be undone.</p>
             <div className="q-confirm-actions">
-              <button className="q-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="q-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button
                 className="q-confirm-delete"
                 onClick={() => confirmDelete === "all" ? handleDeleteAll() : handleDelete(confirmDelete)}
@@ -229,7 +234,7 @@ function Queries() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </DashboardLayout>
   );

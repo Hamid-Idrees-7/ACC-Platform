@@ -1,8 +1,7 @@
 namespace Backend.Models.Entities
 {
-    // The fixed list of project expense categories. A fixed list keeps reports clean
-    // (no tax, taxes, tax fee duplicates); anything else goes under other
-    // with the detail written in the description.
+    // Fixed list of project expense categories. A fixed list keeps reports clean (no "tax",
+    // "taxes", "tax fee" duplicates). Anything else goes under Other, with the detail in the description.
     public static class ExpenseCategories
     {
         public const string Other = "Other";

@@ -178,7 +178,7 @@ namespace Backend.Controllers
             return Ok(result.Material);
         }
 
-        // DELETE: /api/materials/5 (or request approval if required)
+        // DELETE: /api/materials/5  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Materials", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -187,11 +187,11 @@ namespace Backend.Controllers
             if (material == null)
                 return NotFound(new { message = "Material not found" });
 
-            // Protect history: a material issued to projects can't be deleted.
+            // A material already issued to projects can't be deleted (it is part of their history).
             if (await _service.HasIssuesAsync(id))
                 return BadRequest(new { message = "This material has been issued to projects. Cancel its issues from the History page first, or set it Inactive." });
 
-            // Non-admins may need approval before a delete actually runs
+            // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Materials", "Delete"))
             {
                 var created = await _approvalService.CreateAsync(
@@ -210,7 +210,6 @@ namespace Backend.Controllers
                 return Ok(new { requiresApproval = true, message = $"Request to delete \"{material.Name}\" sent to administration for approval." });
             }
 
-            // Otherwise delete directly
             var deleted = await _service.DeleteMaterialAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Material not found" });

@@ -42,7 +42,7 @@ export const formatDate = (value, fallback = "") => {
   return d ? render(d, MONTHS) : fallback;
 };
 
-// Compact date for lists and tables, e.g. "26 Sep 2026".
+// Compact date for lists and tables, eg "26 Sep 2026".
 export const formatDateShort = (value, fallback = "") => {
   const d = toDate(value);
   return d ? render(d, SHORT) : fallback;
@@ -76,7 +76,7 @@ export const formatDateTime = (value, fallback = "") => {
   return d ? `${render(d, SHORT)}, ${formatTime(d)}` : fallback;
 };
 
-// Month and year for period pickers, e.g. "September 2026".
+// Month and year for period pickers, eg "September 2026".
 export const formatMonthYear = (year, monthIndex) => `${MONTHS[monthIndex]} ${year}`;
 
 // Today as YYYY-MM-DD in local time (what the date inputs use).

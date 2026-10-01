@@ -6,9 +6,7 @@ namespace Backend.Demo
     // Fills a brand-new visitor database with the demo company, Anonymous Construction Co.
     // Everything here is fictional sample data. Dates are always relative to today, so the
     // demo looks current no matter when it is opened.
-    //
-    // Current contents: the three demo logins and their access. Business data (clients,
-    // employees, materials, projects, attendance, payroll, billing) is added module by module.
+    // For now it adds only the three demo logins and their access.
     public static class DemoSeeder
     {
         public const string AdminUsername = "demo.admin";
@@ -77,7 +75,7 @@ namespace Backend.Demo
             list.Add(ApprovalNeeded(userId, now, "Assignments", "Delete"));
             list.AddRange(Allow(userId, now, "Attendance", "View", "Mark"));
 
-            // Approves / rejects the Site Engineer's material requests (Admin can too)
+            // Approves or rejects the Site Engineer's material requests (Admin can too)
             list.AddRange(Allow(userId, now, "MaterialRequests", "View", "Manage"));
 
             // View only

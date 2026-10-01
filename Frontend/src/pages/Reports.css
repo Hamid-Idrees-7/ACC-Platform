@@ -1,4 +1,4 @@
-/* REPORTS — company-wide analytics */
+/* Reports: company-wide analytics */
 
 /* Top bar: tabs + print */
 .rep-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
@@ -81,8 +81,6 @@
 .rep-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 20px; text-align: center; }
 .rep-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .rep-empty p { color: var(--color-text-muted); font-size: 14px; max-width: 420px; }
-.rep-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: repspin 0.8s linear infinite; margin-bottom: 14px; }
-@keyframes repspin { to { transform: rotate(360deg); } }
 
 @media (max-width: 1100px) {
     .rep-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }

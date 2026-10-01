@@ -1,6 +1,5 @@
-/* SETTINGS PAGE */
+/* Settings page */
 
-.st-loading { display: flex; align-items: center; justify-content: center; padding: 80px; }
 .st-spinner {
     width: 40px; height: 40px;
     border: 3px solid var(--color-border);
@@ -252,7 +251,7 @@
 
 /* Coming soon */
 
-/* GOLDEN CARD (username - sensitive action) */
+/* Gold card (changing the username is a sensitive action) */
 /* Decorative gold theme, intentional one-off */
 .st-gold-card {
     position: relative;
@@ -311,7 +310,7 @@
     :root[data-theme="dark"] .st-gold-lock { color: #d4a017; }
 }
 
-/* GOLDEN MODAL (re-auth) */
+/* Gold modal (re-auth) */
 .st-modal-overlay {
     position: fixed;
     inset: 0;

@@ -12,6 +12,14 @@ namespace Backend.Auth
         // after it, the user signs in again.
         public static readonly TimeSpan MaxSessionLength = TimeSpan.FromHours(12);
 
+        // With "Keep me signed in" the session lasts this long from the sign-in.
+        public static readonly TimeSpan KeepSignedInLength = TimeSpan.FromDays(30);
+
+        // Forgot password: how long an email link works, and the shortest gap between
+        // two emails for the same account.
+        public static readonly TimeSpan ResetLinkLifetime = TimeSpan.FromMinutes(30);
+        public static readonly TimeSpan ResetEmailGap = TimeSpan.FromMinutes(2);
+
         // "Last active" is written at most this often, not on every request.
         public static readonly TimeSpan LastSeenInterval = TimeSpan.FromMinutes(1);
 
@@ -26,6 +34,9 @@ namespace Backend.Auth
 
         // Rate limit on the sign-in endpoint, per IP address, across all usernames.
         public const string LoginRateLimitPolicy = "login";
+
+        // Rate limit on the forgot / reset password endpoints, per IP address.
+        public const string PasswordResetRateLimitPolicy = "password-reset";
     }
 
     // Marks an endpoint that works even when the caller's session has already ended

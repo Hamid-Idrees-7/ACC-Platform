@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Field View — a site engineer scoped workspace. Base route: /api/field
-    // The service scopes everything to the caller's own assigned projects, so even a
-    // crafted request for another project is refused (404)
+    // Field View: the site engineer's own workspace. Base route: /api/field
+    // The service limits everything to the caller's assigned projects, so even a crafted
+    // request for another project gets a 404.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -35,7 +35,7 @@ namespace Backend.Controllers
             return int.TryParse(idClaim, out var id) ? id : 0;
         }
 
-        // GET /api/field/my-site — the engineer's own projects + todays attendance
+        // GET: /api/field/my-site  = the engineer's projects and today's attendance
         [HttpGet("my-site")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> MySite()
@@ -43,7 +43,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetMySiteAsync(GetUserId()));
         }
 
-        // GET /api/field/sheet/5?date=2026-09-25 — attendance sheet for my project
+        // GET: /api/field/sheet/5?date=2026-09-25  = attendance sheet for my project
         [HttpGet("sheet/{projectId}")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> Sheet(int projectId, [FromQuery] DateTime? date)
@@ -54,7 +54,7 @@ namespace Backend.Controllers
             return Ok(sheet);
         }
 
-        // POST /api/field/attendance/5 — mark attendance for my project
+        // POST: /api/field/attendance/5  = mark attendance for my project
         [HttpPost("attendance/{projectId}")]
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> MarkAttendance(int projectId, [FromBody] MarkAttendanceDto dto)
@@ -65,7 +65,7 @@ namespace Backend.Controllers
             return Ok(sheet);
         }
 
-        // GET /api/field/phases/5 — the phases of my own project
+        // GET: /api/field/phases/5  = the phases of my project
         [HttpGet("phases/{projectId}")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> Phases(int projectId)
@@ -76,7 +76,7 @@ namespace Backend.Controllers
             return Ok(phases);
         }
 
-        // POST /api/field/progress/5 — update a phase's progress on my own project
+        // POST: /api/field/progress/5  = update a phase's progress on my project
         [HttpPost("progress/{projectId}")]
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> UpdateProgress(int projectId, [FromBody] FieldProgressDto dto)
@@ -96,7 +96,7 @@ namespace Backend.Controllers
             return Ok(phases);
         }
 
-        // GET /api/field/request-options/5 — materials + phases to build a request
+        // GET: /api/field/request-options/5  = materials and phases for a new request
         [HttpGet("request-options/{projectId}")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> RequestOptions(int projectId)
@@ -107,7 +107,7 @@ namespace Backend.Controllers
             return Ok(options);
         }
 
-        // POST /api/field/material-request/5 — raise a material request for my site
+        // POST: /api/field/material-request/5  = raise a material request for my site
         [HttpPost("material-request/{projectId}")]
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> CreateRequest(int projectId, [FromBody] CreateMaterialRequestDto dto)
@@ -118,7 +118,7 @@ namespace Backend.Controllers
             return Ok(created);
         }
 
-        // GET /api/field/my-requests — my own material requests + their status
+        // GET: /api/field/my-requests  = my material requests and their status
         [HttpGet("my-requests")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> MyRequests()
@@ -126,7 +126,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetMyRequestsAsync(GetUserId()));
         }
 
-        // GET /api/field/site-info/5 — non-financial details of my site
+        // GET: /api/field/site-info/5  = details of my site, without money figures
         [HttpGet("site-info/{projectId}")]
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> SiteInfo(int projectId)
@@ -137,7 +137,7 @@ namespace Backend.Controllers
             return Ok(info);
         }
 
-        // DELETE /api/field/material-request/5 — cancel my own pending request
+        // DELETE: /api/field/material-request/5  = cancel my own pending request
         [HttpDelete("material-request/{id}")]
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> DeleteRequest(int id)

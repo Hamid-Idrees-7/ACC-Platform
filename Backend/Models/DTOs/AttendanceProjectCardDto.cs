@@ -1,6 +1,6 @@
 namespace Backend.Models.DTOs
 {
-    // One card on the Attendance list page. Projects are grouped by Status on the client.
+    // One card on the Attendance list page. Projects are grouped by status on the client.
     public class AttendanceProjectCardDto
     {
         public int ProjectID { get; set; }

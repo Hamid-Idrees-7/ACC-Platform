@@ -2,9 +2,8 @@ import axios from "axios";
 import { DEMO_ENDED_EVENT } from "../config/demoConfig";
 import { SESSION_ENDED_EVENT, RENEW_BEFORE_MS } from "../config/sessionConfig";
 import { tokenExpiresAt } from "../utils/token";
-import { API_BASE_URL } from "../config/apiConfig";
+import { API_BASE_URL, SERVER_UNREACHABLE_EVENT } from "../config/apiConfig";
 
-// Create a pre-configured axios instance for all API calls
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -23,8 +22,9 @@ const readUser = () => {
 // Demo visitors carry a demo token that ends with the demo (never renewed).
 const isDemoVisitor = () => !!readUser()?.demo;
 
-// Sign-in, sign-out and renewal never renew the token or trigger the signed-out handling.
-const isAuthCall = (url) => /\/auth\/(login|logout|refresh)$/.test(url || "");
+// Sign-in, sign-out, renewal and password reset never renew the token or trigger the
+// signed-out handling.
+const isAuthCall = (url) => /\/auth\/(login|logout|refresh|forgot-password|reset-password(\/check)?)$/.test(url || "");
 
 // Renews the token of the current session while the user keeps working. Only one renewal
 // runs at a time; every request waiting for it then uses the new token.
@@ -34,7 +34,7 @@ const renewToken = (token) => {
     renewing = axios
       .post(`${API_BASE_URL}/auth/refresh`, null, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        // Only if nobody signed out or in meanwhile
+        // Only if nobody signed in or out in the meantime.
         if (res.data?.token && localStorage.getItem("token") === token) {
           localStorage.setItem("token", res.data.token);
         }
@@ -49,7 +49,7 @@ const renewToken = (token) => {
   return renewing;
 };
 
-// Before every request, attach the JWT token (if the user is logged in). A token that
+// Attach the JWT to every request when the user is signed in. A token that
 // expires within 30 minutes is renewed first.
 api.interceptors.request.use(async (config) => {
   let token = localStorage.getItem("token");
@@ -74,6 +74,9 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (!error.response && error.code !== "ERR_CANCELED") {
+      window.dispatchEvent(new Event(SERVER_UNREACHABLE_EVENT));
+    }
     if (error.response?.status === 401 && !isAuthCall(error.config?.url)) {
       if (error.response.data?.code === "demo_expired" || isDemoVisitor()) {
         window.dispatchEvent(new Event(DEMO_ENDED_EVENT));

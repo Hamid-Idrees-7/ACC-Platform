@@ -27,15 +27,6 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<MaterialRequest>> GetByProjectIdsAsync(List<int> projectIds)
-        {
-            if (projectIds.Count == 0) return new List<MaterialRequest>();
-            return await _context.MaterialRequests
-                .Where(r => projectIds.Contains(r.ProjectID))
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
-        }
-
         public async Task<List<MaterialRequest>> GetByUserAsync(int userId)
         {
             return await _context.MaterialRequests

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Models.DTOs
 {
-    // Incoming data when adding or editing a project expense.
+    // Sent when adding or editing a project expense.
     // The project comes from the route, never from the body.
     public class SaveProjectExpenseDto
     {
@@ -70,7 +70,7 @@ namespace Backend.Models.DTOs
         public List<PhaseOptionDto> Phases { get; set; } = new();
     }
 
-    // A recoverable expense that has not been billed yet — offered in the invoice form.
+    // A recoverable expense that has not been billed yet, offered in the invoice form.
     public class PendingReimbursementDto
     {
         public int ExpenseID { get; set; }

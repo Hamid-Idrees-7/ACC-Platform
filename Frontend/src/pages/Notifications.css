@@ -1,4 +1,4 @@
-/* NOTIFICATIONS PAGE */
+/* Notifications page */
 .nt-head {
     display: flex;
     align-items: flex-start;
@@ -76,15 +76,6 @@
 .nt-empty-icon svg { width: 34px; height: 34px; }
 .nt-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .nt-empty p { color: var(--color-text-muted); font-size: 14px; }
-.nt-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: ntspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes ntspin { to { transform: rotate(360deg); } }
 
 /* List */
 .nt-list { display: flex; flex-direction: column; gap: 10px; }

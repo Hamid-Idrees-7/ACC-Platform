@@ -25,7 +25,6 @@ namespace Backend.Controllers
             _sessions = sessions;
         }
 
-        // Helper: get the logged-in user's ID from the JWT token
         private int GetUserId()
         {
             var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -36,7 +35,7 @@ namespace Backend.Controllers
         private int? GetLoginId() =>
             int.TryParse(User.FindFirstValue(SessionClaims.LoginId), out var id) ? id : null;
 
-        // GET my profile
+        // GET: /api/profile  = my profile
         [HttpGet]
         public async Task<IActionResult> GetProfile()
         {
@@ -45,7 +44,7 @@ namespace Backend.Controllers
             return Ok(profile);
         }
 
-        // UPDATE my profile
+        // PUT: /api/profile  = update my profile
         [HttpPut]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
@@ -57,7 +56,7 @@ namespace Backend.Controllers
         // Demo logins are shared by the role switcher, so their sign-in details stay fixed.
         private bool IsDemoAccount() => User.HasClaim(c => c.Type == DemoClaims.SessionId);
 
-        // CHANGE username
+        // PUT: /api/profile/username  = change my username
         [HttpPut("username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto dto)
         {
@@ -82,7 +81,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Verified" });
         }
 
-        // CHANGE password
+        // PUT: /api/profile/password  = change my password
         [HttpPut("password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
@@ -94,7 +93,7 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
-        // UPDATE profile picture
+        // PUT: /api/profile/picture  = update my profile picture
         [HttpPut("picture")]
         public async Task<IActionResult> UpdatePicture([FromBody] UpdatePictureDto dto)
         {
@@ -103,14 +102,14 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
-        // GET my sessions and sign-in history (Settings > Security)
+        // GET: /api/profile/security  = my sessions and sign-in history (Settings > Security)
         [HttpGet("security")]
         public async Task<IActionResult> GetSecurity()
         {
             return Ok(await _sessions.GetOverviewAsync(GetUserId(), GetLoginId()));
         }
 
-        // Sign out one of my other devices
+        // POST: /api/profile/sessions/5/sign-out  = sign out one of my other devices
         [HttpPost("sessions/{id:int}/sign-out")]
         public async Task<IActionResult> SignOutSession(int id)
         {
@@ -124,7 +123,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Signed out of that device." });
         }
 
-        // Sign out of every device except this one
+        // POST: /api/profile/sessions/sign-out-others  = sign out of every device except this one
         [HttpPost("sessions/sign-out-others")]
         public async Task<IActionResult> SignOutOthers()
         {
@@ -138,14 +137,14 @@ namespace Backend.Controllers
             });
         }
 
-        // GET my display settings (theme, number, date and time format)
+        // GET: /api/profile/preferences  = my display settings (theme, number, date and time format)
         [HttpGet("preferences")]
         public async Task<IActionResult> GetPreferences()
         {
             return Ok(await _preferenceService.GetAsync(GetUserId()));
         }
 
-        // SAVE my display settings
+        // PUT: /api/profile/preferences  = save my display settings
         [HttpPut("preferences")]
         public async Task<IActionResult> SavePreferences([FromBody] PreferencesDto dto)
         {

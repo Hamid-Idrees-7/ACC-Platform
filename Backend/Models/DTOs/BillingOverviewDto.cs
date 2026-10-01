@@ -1,6 +1,6 @@
 namespace Backend.Models.DTOs
 {
-    // The Billing & Invoices list page: top stats + a card per project.
+    // The Billing & Invoices list page: top stats and a card per project.
     public class BillingOverviewDto
     {
         public int TotalProjects { get; set; }
@@ -8,7 +8,7 @@ namespace Backend.Models.DTOs
         public int PaidCount { get; set; }
         public decimal PaidAmount { get; set; }
         public int UnpaidCount { get; set; }
-        public decimal UnpaidAmount { get; set; }   // outstanding on unpaid/partial invoices
+        public decimal UnpaidAmount { get; set; }   // still owed on unpaid and partly paid invoices
         public int OverdueCount { get; set; }
         public decimal OverdueAmount { get; set; }
         public List<BillingProjectCardDto> Projects { get; set; } = new();
@@ -28,6 +28,6 @@ namespace Backend.Models.DTOs
         public int OverdueCount { get; set; }
         public decimal Billed { get; set; }         // total invoiced
         public decimal Received { get; set; }
-        public decimal Outstanding { get; set; }    // billed - received
+        public decimal Outstanding { get; set; }    // billed minus received
     }
 }

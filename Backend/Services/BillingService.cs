@@ -26,7 +26,7 @@ namespace Backend.Services
             _companyService = companyService;
         }
 
-        // Overview (list page) 
+        // Overview (list page)
         public async Task<BillingOverviewDto> GetOverviewAsync()
         {
             var projects = await _projectRepository.GetAllAsync();
@@ -104,7 +104,7 @@ namespace Backend.Services
             return overview;
         }
 
-        // Project detail 
+        // Project detail page
         public async Task<ProjectBillingDto?> GetProjectBillingAsync(int projectId)
         {
             var project = await _projectRepository.GetByIdAsync(projectId);
@@ -175,7 +175,6 @@ namespace Backend.Services
             };
         }
 
-        // Create 
         public async Task<(int? InvoiceId, string? Error)> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
             var project = await _projectRepository.GetByIdAsync(dto.ProjectID);
@@ -201,7 +200,6 @@ namespace Backend.Services
             return (await _billingRepository.AddInvoiceAsync(invoice, items!), null);
         }
 
-        // Update
         public async Task<(bool Found, string? Error)> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto)
         {
             var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
@@ -227,7 +225,6 @@ namespace Backend.Services
             return await _billingRepository.DeleteInvoiceAsync(invoiceId);
         }
 
-        // Payments 
         public async Task<bool> RecordPaymentAsync(RecordPaymentDto dto)
         {
             var invoice = await _billingRepository.GetInvoiceByIdAsync(dto.InvoiceID);
@@ -250,7 +247,6 @@ namespace Backend.Services
             return await _billingRepository.DeletePaymentAsync(paymentId);
         }
 
-        // Printable invoice
         public async Task<InvoicePrintDto?> GetInvoicePrintAsync(int invoiceId)
         {
             var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
@@ -312,7 +308,7 @@ namespace Backend.Services
 
         // Helpers
 
-        // Build line-item entities from the raw input; Amount is computed as Quantity x Rate.
+        // Builds the line items from the input; Amount = Quantity x Rate.
         // A line that bills an expense is checked (same project, recoverable, not billed on
         // another invoice, not repeated) and fixed to quantity 1 at the expense amount.
         // currentInvoiceId is the invoice being edited (null when creating a new one).
@@ -414,8 +410,8 @@ namespace Backend.Services
             };
         }
 
-        // Status is derived, never stored: Paid if nothing due; Overdue if a balance is past due date;
-        // Partial if some money is in; otherwise Unpaid.
+        // Status is worked out, never stored: Paid if nothing is due, Overdue if a balance is past
+        // the due date, Partial if some money is in, otherwise Unpaid.
         private static string DeriveStatus(decimal total, decimal paid, decimal due, DateTime? dueDate)
         {
             if (total > 0 && due <= 0) return "Paid";

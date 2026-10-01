@@ -60,14 +60,5 @@ namespace Backend.Repositories
         {
             return await _context.Assignments.AnyAsync(a => a.EmployeeID == employeeId);
         }
-
-        // contract wages are a fixed, known cost the moment they're agreed, so
-        // they roll up into a project's labour cost right away.
-        public async Task<decimal> GetContractLabourForProjectAsync(int projectId)
-        {
-            return await _context.Assignments
-                .Where(a => a.ProjectID == projectId && a.WageType == "Contract")
-                .SumAsync(a => (decimal?)a.WageAmount) ?? 0m;
-        }
     }
 }

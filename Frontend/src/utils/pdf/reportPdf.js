@@ -1,4 +1,4 @@
-// Reports pdf: the open report tab (Financial, Projects, Materials or Workforce) with its
+// Report PDF: the open report tab (Financial, Projects, Materials or Workforce) with its
 // figures, the charts as they are drawn on screen (kept as vector graphics) and its tables.
 
 import { formatDateTime } from "../dates";
@@ -47,7 +47,7 @@ export async function waitForCharts(root, maxMs = 5000) {
 export function captureCharts(root) {
   if (!root) return [];
   return [...root.querySelectorAll(".rep-chart-card")].map((card) => {
-    // The chart itself (legend icons are small svgs of the same class, so pick the main one)
+    // The chart itself (legend icons are small SVGs with the same class, so pick the main one)
     const svgEl = card.querySelector(".recharts-wrapper > svg.recharts-surface");
     const legend = [...card.querySelectorAll(".recharts-legend-item")].map((item) => {
       const shape = item.querySelector("svg path, svg line, svg rect");

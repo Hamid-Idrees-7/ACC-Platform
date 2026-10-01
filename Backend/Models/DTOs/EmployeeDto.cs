@@ -1,6 +1,5 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // Used when sending employee data out to the frontend
     public class EmployeeDto
     {
         public int EmployeeID { get; set; }

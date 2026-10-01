@@ -1,4 +1,4 @@
-/* QUERIES PAGE */
+/* Queries page */
 
 .q-header {
     display: flex;
@@ -64,17 +64,6 @@
 .q-empty-icon svg { width: 34px; height: 34px; }
 .q-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .q-empty p { color: var(--color-text-subtle); font-size: 14px; }
-
-.q-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: qspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes qspin { to { transform: rotate(360deg); } }
 
 /* List */
 .q-list {

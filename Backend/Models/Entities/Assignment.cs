@@ -14,12 +14,12 @@ namespace Backend.Models.Entities
         [Required]
         public int ProjectID { get; set; }
 
-        // Snapshot of the employee's role/designation for this assignment
+        // Snapshot of the employee's designation for this assignment
         [Required]
         [MaxLength(50)]
         public string Role { get; set; } = string.Empty;
 
-        // Daily, Monthly, Contract
+        // Daily, Monthly or Contract
         [Required]
         [MaxLength(20)]
         public string WageType { get; set; } = "Daily";
@@ -30,7 +30,7 @@ namespace Backend.Models.Entities
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
-        // active or completed
+        // Active or Completed
         [Required]
         [MaxLength(20)]
         public string Status { get; set; } = "Active";

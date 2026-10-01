@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // A site engineer's request for material on their project. It sits Pending until an
-    // admin/store approves it (which issues the stock) or rejects it. The engineer can
-    // never issue stock directly — this request→approval step protects the inventory.
+    // A site engineer's request for material on their project. It stays pending until an admin
+    // or store user approves it (which issues the stock) or rejects it. Engineers can never issue
+    // stock directly; this approval step protects the inventory.
     public class MaterialRequest
     {
         [Key]

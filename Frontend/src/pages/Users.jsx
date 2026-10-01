@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, startTransition } from "react";
+import { useState, useMemo, useCallback, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
@@ -9,12 +9,18 @@ import UserSecurityModal from "../components/UserSecurityModal";
 import { useAuth } from "../context/AuthContext";
 import "./Users.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonCards } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { formatPhone, digitsMatch } from "../utils/format";
+import { useLoader } from "../hooks/useLoader";
 
 function Users() {
   const { user: currentUser, login, runDemoTransition } = useAuth();
   const navigate = useNavigate();
 
-  // Live demo only: the visitor can see the system exactly as any user in their demo
+  // Live demo only: the visitor can see the system exactly as any user in their demo.
   const inDemo = !!currentUser?.demo;
 
   // Live demo: the three built-in demo logins are locked (username, password, role, status),
@@ -24,26 +30,22 @@ function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
 
-  // Modals
   const [formModal, setFormModal] = useState(null);
   const [detailUser, setDetailUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [securityUser, setSecurityUser] = useState(null);
 
-  // Toast
   const [toast, setToast] = useState(null);
   const showToast = (text, type = "success") => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadUsers = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
@@ -59,16 +61,15 @@ function Users() {
     }
   };
 
-  useEffect(() => { loadUsers(); }, []);
+  useLoader(() => loadUsers());
 
   useLiveRefresh(["users", "employees"], () => loadUsers({ quiet: true }));
 
-  // Is this the currently logged-in user's own account?
-  const isSelf = (u) => {
+  const isSelf = useCallback((u) => {
     if (!currentUser || !u) return false;
     const myId = currentUser.userID ?? currentUser.userId;
     return u.userID === myId;
-  };
+  }, [currentUser]);
 
   const stats = useMemo(() => ({
     total: users.length,
@@ -93,20 +94,22 @@ function Users() {
         u.username?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
         u.role?.toLowerCase().includes(q) ||
-        u.phone?.includes(q)
+        u.phone?.includes(q) ||
+        digitsMatch(u.phone, q) ||
+        digitsMatch(u.secondaryPhone, q)
       );
     }
     list.sort((a, b) => {
-      // Your own account is always pinned to the top
+      // Your own account first
       if (isSelf(a)) return -1;
       if (isSelf(b)) return 1;
-      // Then inactive users sink to the bottom
+      // Then inactive users last
       return (a.isActive ? 0 : 1) - (b.isActive ? 0 : 1);
     });
     return list;
-  }, [users, statusFilter, roleFilter, search]);
+  }, [users, statusFilter, roleFilter, search, isSelf]);
+  const paging = usePagination(filtered, { resetKey: `${search}|${statusFilter}|${roleFilter}` });
 
-  // ---- Actions ----
   const handleSave = async (data) => {
     if (formModal.mode === "edit") {
       await userService.update(formModal.data.userID, data);
@@ -225,7 +228,7 @@ function Users() {
 
       {/* Cards grid */}
       {loading ? (
-        <div className="us-empty"><div className="us-spinner" /><p>Loading users...</p></div>
+        <SkeletonCards count={6} />
       ) : filtered.length === 0 ? (
         <div className="us-empty">
           <div className="us-empty-icon">
@@ -235,46 +238,49 @@ function Users() {
           <p>{users.length === 0 ? "Add your first user to get started." : "Try adjusting your search or filters."}</p>
         </div>
       ) : (
-        <div className="us-grid">
-          {filtered.map((u) => (
-            <div
-              key={u.userID}
-              className={`us-card ${!u.isActive ? "inactive" : ""}`}
-              onClick={() => setDetailUser(u)}
-            >
-              {!isSelf(u) && !isLockedDemoLogin(u) && (
-                <button
-                  className="us-card-edit"
-                  onClick={(e) => { e.stopPropagation(); setFormModal({ mode: "edit", data: u }); }}
-                  aria-label="Edit"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                </button>
-              )}
-                            <div className="us-card-avatar">
-                {u.profilePicture ? <img src={u.profilePicture} alt="" /> : initials(u.fullName)}
-              </div>
-              <h4 className="us-card-name">{u.fullName}</h4>
-              <div className="us-card-badges">
-                <span className={`us-badge us-badge-role ${isSelf(u) ? "us-badge-gold" : ""}`}>{u.role}</span>
-                {!u.isActive && <span className="us-badge us-badge-inactive">Inactive</span>}
-              </div>
-              <div className="us-card-info">
-                <div className="us-card-info-row">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
-                  {u.email}
+        <>
+          <div className="us-grid">
+            {paging.pageItems.map((u) => (
+              <div
+                key={u.userID}
+                className={`us-card ${!u.isActive ? "inactive" : ""}`}
+                onClick={() => setDetailUser(u)}
+              >
+                {!isSelf(u) && !isLockedDemoLogin(u) && (
+                  <button
+                    className="us-card-edit"
+                    onClick={(e) => { e.stopPropagation(); setFormModal({ mode: "edit", data: u }); }}
+                    aria-label="Edit"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  </button>
+                )}
+                              <div className="us-card-avatar">
+                  {u.profilePicture ? <img src={u.profilePicture} alt="" /> : initials(u.fullName)}
                 </div>
-                <div className="us-card-info-row">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2" /></svg>
-                  @{u.username}
+                <h4 className="us-card-name">{u.fullName}</h4>
+                <div className="us-card-badges">
+                  <span className={`us-badge us-badge-role ${isSelf(u) ? "us-badge-gold" : ""}`}>{u.role}</span>
+                  {!u.isActive && <span className="us-badge us-badge-inactive">Inactive</span>}
+                </div>
+                <div className="us-card-info">
+                  <div className="us-card-info-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                    {u.email}
+                  </div>
+                  <div className="us-card-info-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2" /></svg>
+                    @{u.username}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination {...paging} label="users" />
+        </>
       )}
 
-      {/* Add/Edit form modal */}
+      {/* Add/edit modal */}
       {formModal && (
         <UserFormModal
           mode={formModal.mode}
@@ -287,9 +293,9 @@ function Users() {
 
       {/* Detail modal */}
       {detailUser && (
-        <div className="us-detail-overlay" onClick={(e) => e.target.classList.contains("us-detail-overlay") && setDetailUser(null)}>
+        <ModalOverlay className="us-detail-overlay" onClose={() => setDetailUser(null)}>
           <div className="us-detail">
-            <button className="us-detail-close" onClick={() => setDetailUser(null)} aria-label="Close">
+            <button className="us-detail-close" data-close onClick={() => setDetailUser(null)} aria-label="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
 
@@ -307,11 +313,11 @@ function Users() {
             <div className="us-detail-info">
               <div className="us-detail-row"><span>Username</span><strong>@{detailUser.username}</strong></div>
               <div className="us-detail-row"><span>Email</span><strong>{detailUser.email}</strong></div>
-              {detailUser.phone && <div className="us-detail-row"><span>Phone</span><strong>{detailUser.phone}</strong></div>}
-              {detailUser.secondaryPhone && <div className="us-detail-row"><span>Secondary</span><strong>{detailUser.secondaryPhone}</strong></div>}
+              {detailUser.phone && <div className="us-detail-row"><span>Phone</span><strong>{formatPhone(detailUser.phone)}</strong></div>}
+              {detailUser.secondaryPhone && <div className="us-detail-row"><span>Secondary</span><strong>{formatPhone(detailUser.secondaryPhone)}</strong></div>}
             </div>
 
-            {/* Your own account has no actions here - managed securely from Settings */}
+            {/* No actions for your own account here: it is managed from Settings */}
             {/* Live demo: see the system through this user's eyes */}
             {inDemo && !isSelf(detailUser) && detailUser.isActive && (
               <button className="us-view-as" onClick={() => handleViewAs(detailUser)}>
@@ -363,7 +369,7 @@ function Users() {
               </div>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Sign-in activity of one user */}
@@ -371,7 +377,7 @@ function Users() {
 
       {/* Delete confirm */}
       {confirmDelete && (
-        <div className="us-detail-overlay" onClick={(e) => e.target.classList.contains("us-detail-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="us-detail-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="us-confirm">
             <div className="us-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -379,14 +385,13 @@ function Users() {
             <h3>Delete this user?</h3>
             <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
             <div className="us-confirm-actions">
-              <button className="us-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="us-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="us-confirm-delete" onClick={() => handleDelete(confirmDelete.userID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Toast */}
       {toast && <div className={`us-toast us-toast-${toast.type}`}>{toast.text}</div>}
     </DashboardLayout>
   );

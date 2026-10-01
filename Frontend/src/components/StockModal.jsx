@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatQty, money, amountInWords, currencySymbol } from "../utils/format";
 import { projectService } from "../services/projectService";
 import "./StockModal.css";
+import ModalOverlay from "./ModalOverlay";
 
 function StockModal({ mode, material, projects = [], onClose, onSave }) {
   const isIssue = mode === "issue";
@@ -74,14 +75,14 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
   };
 
   return (
-    <div className="stm-overlay" onClick={(e) => e.target.classList.contains("stm-overlay") && onClose()}>
+    <ModalOverlay className="stm-overlay" onClose={onClose}>
       <div className={`stm-modal ${isIssue ? "issue" : "restock"}`}>
         <div className="stm-head">
           <div>
             <h3>{isIssue ? "Issue Stock" : "Restock"}</h3>
             <p>{material.name}</p>
           </div>
-          <button className="stm-close" onClick={onClose} aria-label="Close">
+          <button className="stm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -155,13 +156,13 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
         </div>
 
         <div className="stm-actions">
-          <button className="stm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="stm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className={`stm-save ${isIssue ? "issue" : "restock"}`} onClick={handleSubmit} disabled={saving || notEnough}>
             {saving ? "Saving..." : isIssue ? "Issue Stock" : "Restock"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

@@ -1,4 +1,4 @@
-/* MATERIAL TRANSACTION HISTORY PAGE */
+/* Material transaction history page */
 
 .mhist-back {
     border: none;
@@ -154,16 +154,7 @@
     padding: 60px 20px;
     color: var(--color-text-muted);
 }
-.mhist-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: mhistspin 0.8s linear infinite;
-}
-@keyframes mhistspin { to { transform: rotate(360deg); } }
+
 .mhist-error {
     background: var(--color-error-soft);
     color: var(--color-error);

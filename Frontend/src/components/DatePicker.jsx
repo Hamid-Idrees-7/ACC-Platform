@@ -5,11 +5,7 @@ import "./DatePicker.css";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-// Kept so pages that import formatDate from here keep working; the format follows
-// the user's date setting (see utils/dates.js).
-export { formatDate };
-
-// A pretty custom date picker. value/onChange use ISO date strings (YYYY-MM-DD).
+// Custom date picker. value and onChange use ISO date strings (YYYY-MM-DD).
 // id and invalid are optional: a form can jump to the picker and mark it red.
 function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true, id, invalid = false }) {
   const [open, setOpen] = useState(false);
@@ -36,8 +32,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
     d && d.getDate() === day && d.getMonth() === viewMonth && d.getFullYear() === viewYear;
 
   const pickDay = (day) => {
-    const picked = new Date(viewYear, viewMonth, day);
-    // Build ISO string (local, no timezone shift)
+    // Local date, so there is no timezone shift.
     const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     onChange(iso);
     setOpen(false);
@@ -56,8 +51,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  // Decide whether the calendar opens downward or upward based on available space.
-  // Prevents the popup from spilling below a modal and forcing the user to scroll.
+  // Open upward when there isn't room below, so the popup never spills out of a modal.
   const toggleOpen = () => {
     if (!open && ref.current) {
       const rect = ref.current.getBoundingClientRect();

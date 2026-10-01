@@ -17,5 +17,12 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Each context file also exports its hook (useAuth and so on), and Toast its useToast.
+      'react-refresh/only-export-components': ['error', {
+        allowConstantExport: true,
+        allowExportNames: ['useAuth', 'useCompany', 'usePermissions', 'usePreferences', 'useDashboardTheme', 'useToast'],
+      }],
+    },
   },
 ])

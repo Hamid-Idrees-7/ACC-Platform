@@ -15,7 +15,7 @@ namespace Backend.Models.DTOs
         public decimal Budget { get; set; }          // the agreed client price
         public decimal TotalInvoiced { get; set; }    // sum of invoice totals
         public decimal Received { get; set; }         // sum of payments
-        public decimal Outstanding { get; set; }      // invoiced - received
+        public decimal Outstanding { get; set; }      // invoiced minus received
         public decimal PercentInvoiced { get; set; }  // contractInvoiced / budget * 100
 
         // TotalInvoiced split in two: work billed against the budget, and expenses billed back
@@ -23,15 +23,15 @@ namespace Backend.Models.DTOs
         public decimal ContractInvoiced { get; set; }
         public decimal ReimbursementInvoiced { get; set; }
 
-        // Recoverable expenses not billed yet — offered as quick-fill lines in the invoice form.
+        // Recoverable expenses not billed yet, offered as quick-fill lines in the invoice form.
         public List<PendingReimbursementDto> PendingReimbursements { get; set; } = new();
 
         public List<InvoiceDto> Invoices { get; set; } = new();
         public List<PhaseOptionDto> Phases { get; set; } = new();
     }
 
-    // A full invoice with its line items and payments. Money fields are computed
-    // server-side (Subtotal = sum of item amounts, Total = Subtotal + Tax, etc)
+    // A full invoice with its line items and payments. The server works out the money
+    // fields (Subtotal is the sum of item amounts, Total is Subtotal plus Tax, and so on).
     public class InvoiceDto
     {
         public int InvoiceID { get; set; }

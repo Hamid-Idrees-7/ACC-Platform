@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Backend.Auth
 {
-    // Checks that the logged-in user has permission for a specific module + action.
-    // Admin always passes. Otherwise the permission must be explicitly allowed.
+    // Checks that the signed-in user has permission for a module and action.
+    // Admin always passes. Everyone else needs that permission set to allowed.
     public class RequirePermissionAttribute : Attribute, IAsyncActionFilter
     {
         private readonly string _module;
@@ -22,7 +22,6 @@ namespace Backend.Auth
         {
             var user = context.HttpContext.User;
 
-            // Get the user's ID and role from the JWT token
             var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = user.FindFirst(ClaimTypes.Role)?.Value
                        ?? user.FindFirst("role")?.Value;
@@ -33,14 +32,12 @@ namespace Backend.Auth
                 return;
             }
 
-            // Admin always has full access
             if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
             {
                 await next();
                 return;
             }
 
-            // Otherwise, check the permission from the database
             var permissionService = context.HttpContext.RequestServices
                 .GetService(typeof(IPermissionService)) as IPermissionService;
 
@@ -53,7 +50,7 @@ namespace Backend.Auth
             var allowed = await permissionService.HasPermissionAsync(userId, _module, _action);
             if (!allowed)
             {
-                // 403 - logged in, but not allowed this action
+                // 403: signed in, but not allowed to do this
                 context.Result = new ObjectResult(new { message = "You don't have permission for this action." })
                 {
                     StatusCode = 403

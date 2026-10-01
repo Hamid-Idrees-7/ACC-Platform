@@ -89,8 +89,8 @@ namespace Backend.Services
             return await _repository.DeleteAsync(id);
         }
 
-        // True if this material has ever been issued to a project — such a
-        // material must be deactivated, not deleted, to protect project history.
+        // True if this material was ever issued to a project. It must then be deactivated,
+        // not deleted, to keep project history.
         public async Task<bool> HasIssuesAsync(int id)
         {
             var transactions = await _repository.GetTransactionsAsync(id);

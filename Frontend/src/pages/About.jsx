@@ -3,8 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { AccLogo } from "./Home";
 import "./Home.css";
 import "./About.css";
+import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
+import LazyBackground from "../components/LazyBackground";
 
 function About() {
+  usePageTitle("About us", SITE_NAME);
+  usePageDescription("How Anonymous Construction Co. started in Lahore in 2010, and the engineers and architect behind every project.");
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
@@ -54,7 +58,7 @@ function About() {
 
   return (
     <div className="acc-site">
-      {/* NAVBAR */}
+      {/* Navbar */}
       <header className={`navbar ${scrolled ? "scrolled" : ""}`}>
         <div className="navbar-container">
           <AccLogo onClick={() => goToSection("home")} />
@@ -78,7 +82,7 @@ function About() {
       </header>
 
       <main>
-        {/* PAGE HERO */}
+        {/* Page hero */}
         <section className="about-hero">
           <div className="about-hero-overlay" />
           <div className="about-hero-content">
@@ -88,15 +92,15 @@ function About() {
           </div>
         </section>
 
-        {/* OUR STORY */}
+        {/* Our story */}
         <section className="about-story-section">
           <div className="about-story-grid">
-            <div className="about-story-visual reveal" style={{ backgroundImage: "url('/images/founder-story.jpg')" }}>
+            <LazyBackground className="about-story-visual reveal" src="/images/founder-story.webp">
               <div className="about-story-badge">
                 <span className="about-story-badge-year">Est. 2010</span>
                 <span className="about-story-badge-text">Lahore, Pakistan</span>
               </div>
-            </div>
+            </LazyBackground>
             <div className="about-story-content reveal">
               <span className="section-tag">How It Started</span>
               <h2>A Vision Built on Trust</h2>
@@ -122,7 +126,7 @@ function About() {
           </div>
         </section>
 
-        {/* MISSION & VISION */}
+        {/* Mission and vision */}
         <section className="about-mv-section">
           <div className="about-mv-grid">
             <div className="about-mv-card reveal">
@@ -142,7 +146,7 @@ function About() {
           </div>
         </section>
 
-        {/* TEAM */}
+        {/* Team */}
         <section className="about-team-section">
           <div className="section-header reveal">
             <span className="section-tag">Meet the Team</span>
@@ -150,9 +154,9 @@ function About() {
             <p className="section-subtitle">Skilled professionals who bring every project to life</p>
           </div>
 
-          {/* Founder - featured, bigger */}
+          {/* Founder: a bigger featured card */}
           <div className="team-founder reveal">
-            <div className="team-founder-photo" style={{ backgroundImage: "url('/images/hamid.jpg')" }}></div>
+            <LazyBackground className="team-founder-photo" src="/images/hamid.webp" />
             <div className="team-founder-info">
               <span className="team-founder-tag">Founder</span>
               <h3>Hamid Idrees</h3>
@@ -165,10 +169,10 @@ function About() {
             </div>
           </div>
 
-          {/* Civil engineers - two cards */}
+          {/* Two civil engineer cards */}
           <div className="team-grid team-grid-two">
             <div className="team-card reveal">
-              <div className="team-card-photo" style={{ backgroundImage: "url('/images/hassan.jpg')" }}></div>
+              <LazyBackground className="team-card-photo" src="/images/hassan.webp" />
               <div className="team-card-info">
                 <h4>Hassan</h4>
                 <p className="team-role">Civil Engineer</p>
@@ -176,7 +180,7 @@ function About() {
               </div>
             </div>
             <div className="team-card reveal">
-              <div className="team-card-photo" style={{ backgroundImage: "url('/images/bilal.jpg')" }}></div>
+              <LazyBackground className="team-card-photo" src="/images/bilal.webp" />
               <div className="team-card-info">
                 <h4>Bilal</h4>
                 <p className="team-role">Civil Engineer</p>
@@ -185,9 +189,9 @@ function About() {
             </div>
           </div>
 
-          {/* Architect - special wide card */}
+          {/* Architect: a wide card */}
           <div className="team-architect reveal">
-            <div className="team-architect-photo" style={{ backgroundImage: "url('/images/faseeha.jpg')" }}></div>
+            <LazyBackground className="team-architect-photo" src="/images/faseeha.webp" />
             <div className="team-architect-info">
               <span className="team-architect-tag">Lead Architect</span>
               <h3>Faseeha</h3>
@@ -207,7 +211,7 @@ function About() {
           </div>
         </section>
 
-        {/* TIMELINE */}
+        {/* Timeline */}
         <section className="about-timeline-section">
           <div className="section-header reveal">
             <span className="section-tag">Our Journey</span>
@@ -222,7 +226,7 @@ function About() {
               { year: "2016", title: "Going Commercial", text: "Expanded into commercial construction — offices, plazas, and business centers across Punjab." },
               { year: "2019", title: "Infrastructure Projects", text: "Took on our first large-scale infrastructure work, including road and underpass projects." },
               { year: "2022", title: "100+ Projects", text: "Crossed the milestone of 100 completed projects, with a growing team of skilled professionals." },
-              { year: "2026", title: "Building the Future", text: "Now a full-scale construction firm, embracing modern technology and an integrated management system." },
+              { year: "Present", title: "Building the Future", text: "Now a full-scale construction firm, embracing modern technology and an integrated management system." },
             ].map((m, i) => (
               <div className={`timeline-item reveal ${i % 2 === 0 ? "left" : "right"}`} key={i}>
                 <div className="timeline-content">
@@ -236,7 +240,7 @@ function About() {
           </div>
         </section>
 
-        {/* CERTIFICATIONS */}
+        {/* Certifications */}
         <section className="about-certs-section">
           <div className="section-header reveal">
             <span className="section-tag">Credentials</span>
@@ -262,7 +266,7 @@ function About() {
           </div>
         </section>
 
-        {/* TESTIMONIALS */}
+        {/* Testimonials */}
         <section className="about-testimonials-section">
           <div className="section-header reveal">
             <span className="section-tag">Client Voices</span>
@@ -327,7 +331,7 @@ function About() {
           </div>
         </section>
 
-        {/* STATS */}
+        {/* Stats */}
         <section className="about-stats-section">
           <div className="about-stats-grid">
             {[
@@ -344,7 +348,7 @@ function About() {
           </div>
         </section>
 
-        {/* CTA */}
+        {/* Call to action */}
         <section className="about-cta-section">
           <div className="about-cta-content reveal">
             <h2>Let's Build Something Together</h2>
@@ -356,7 +360,7 @@ function About() {
           </div>
         </section>
 
-        {/* FOOTER */}
+        {/* Footer */}
         <footer className="footer">
           <div className="footer-grid">
             <div className="footer-brand">

@@ -3,8 +3,10 @@ import { employeeService } from "../services/employeeService";
 import { passwordError } from "../utils/password";
 import PasswordStrength from "./PasswordStrength";
 import "./UserFormModal.css";
+import ModalOverlay from "./ModalOverlay";
+import { formatPhone, typePhone, typed } from "../utils/format";
 
-// Validation helpers
+// Pakistani phone: 11 digits starting with 0 (+92 counts as 0).
 const isValidPhone = (phone) => {
   const raw = phone.trim().replace(/[\s-]/g, "");
   const normalized = raw.startsWith("+92") ? "0" + raw.slice(3) : raw;
@@ -17,8 +19,20 @@ const emptyForm = {
   role: "", phone: "", secondaryPhone: "", employeeID: "",
 };
 
+// The form filled in with the user being edited.
+const formFrom = (data) => ({
+  fullName: data.fullName || "",
+  username: data.username || "",
+  password: "",
+  email: data.email || "",
+  role: data.role || "",
+  phone: formatPhone(data.phone) || "",
+  secondaryPhone: formatPhone(data.secondaryPhone) || "",
+  employeeID: data.employeeID ? String(data.employeeID) : "",
+});
+
 function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave }) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => (mode === "edit" && initialData ? formFrom(initialData) : emptyForm));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -32,25 +46,11 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
         const data = await employeeService.getAll();
         setEmployees(data);
       } catch {
-        // silent — the dropdown just stays empty
+        // the dropdown just stays empty
       }
     })();
   }, []);
 
-  useEffect(() => {
-    if (mode === "edit" && initialData) {
-      setForm({
-        fullName: initialData.fullName || "",
-        username: initialData.username || "",
-        password: "",
-        email: initialData.email || "",
-        role: initialData.role || "",
-        phone: initialData.phone || "",
-        secondaryPhone: initialData.secondaryPhone || "",
-        employeeID: initialData.employeeID ? String(initialData.employeeID) : "",
-      });
-    }
-  }, [mode, initialData]);
 
   const setField = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -111,14 +111,14 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
   };
 
   return (
-    <div className="ufm-overlay" onClick={(e) => e.target.classList.contains("ufm-overlay") && onClose()}>
+    <ModalOverlay className="ufm-overlay" onClose={onClose}>
       <div className="ufm-modal">
         <div className="ufm-head">
           <div>
             <h3>{mode === "edit" ? "Edit User" : "Add New User"}</h3>
             <p>{mode === "edit" ? "Update this user's account details" : "Create a login account for a staff member"}</p>
           </div>
-          <button className="ufm-close" onClick={onClose} aria-label="Close">
+          <button className="ufm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -171,12 +171,12 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
             </div>
             <div className="ufm-field">
               <label>Phone</label>
-              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", e.target.value)} className={errors.phone ? "err" : ""} placeholder="Optional" autoComplete="new-user-field" />
+              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", typed(e, typePhone))} className={errors.phone ? "err" : ""} placeholder="Optional" autoComplete="new-user-field" />
               {errors.phone ? <span className="ufm-err">{errors.phone}</span> : <span className="ufm-hint">11 digits (optional)</span>}
             </div>
             <div className="ufm-field ufm-field-full">
               <label>Secondary Phone</label>
-              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", e.target.value)} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-user-field" />
+              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", typed(e, typePhone))} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-user-field" />
               {errors.secondaryPhone && <span className="ufm-err">{errors.secondaryPhone}</span>}
             </div>
             <div className="ufm-field ufm-field-full">
@@ -195,13 +195,13 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
         </div>
 
         <div className="ufm-actions">
-          <button className="ufm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="ufm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="ufm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Add User"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

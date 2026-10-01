@@ -5,6 +5,9 @@ import { billingService } from "../services/billingService";
 import { money, moneyShort, moneyGrouped, amountInWords } from "../utils/format";
 import "./Billing.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonPage } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
 
 function Billing() {
   const navigate = useNavigate();
@@ -56,6 +59,7 @@ function Billing() {
       `${p.title} ${p.clientName} ${p.location} ${p.projectType}`.toLowerCase().includes(q)
     );
   }, [data, search]);
+  const paging = usePagination(visible, { resetKey: search });
 
   const openProject = (p) => navigate(`/dashboard/billing/project/${p.projectID}`);
 
@@ -70,7 +74,7 @@ function Billing() {
   return (
     <DashboardLayout title="Billing & Invoices">
       {loading ? (
-        <div className="bil-empty"><div className="bil-spinner" /><p>Loading billing...</p></div>
+        <SkeletonPage stats={4} rows={6} />
       ) : error ? (
         <div className="bil-empty"><h3>Could not load billing</h3><p>Please check the backend is running and try again.</p></div>
       ) : (
@@ -131,63 +135,66 @@ function Billing() {
           {visible.length === 0 ? (
             <div className="bil-empty"><h3>No projects found</h3><p>Create a project first, then bill your client here against its budget.</p></div>
           ) : (
-            <div className="bil-grid">
-              {visible.map((p) => {
-                const st = projectStatus(p);
-                const pct = p.budget > 0 ? Math.min(100, Math.round((p.billed / p.budget) * 100)) : 0;
-                return (
-                  <button key={p.projectID} className={`bil-card ${st}`} onClick={() => openProject(p)}>
-                    <div className="bil-card-head">
-                      <div className="bil-card-title">
-                        <h3>{p.title}</h3>
-                        <span className="bil-client">{p.clientName}</span>
+            <>
+              <div className="bil-grid">
+                {paging.pageItems.map((p) => {
+                  const st = projectStatus(p);
+                  const pct = p.budget > 0 ? Math.min(100, Math.round((p.billed / p.budget) * 100)) : 0;
+                  return (
+                    <button key={p.projectID} className={`bil-card ${st}`} onClick={() => openProject(p)}>
+                      <div className="bil-card-head">
+                        <div className="bil-card-title">
+                          <h3>{p.title}</h3>
+                          <span className="bil-client">{p.clientName}</span>
+                        </div>
+                        {p.overdueCount > 0
+                          ? <span className="bil-badge overdue">{p.overdueCount} OVERDUE</span>
+                          : p.invoiceCount === 0
+                            ? <span className="bil-badge unpaid">NO INVOICES</span>
+                            : p.outstanding <= 0
+                              ? <span className="bil-badge paid">CLEARED</span>
+                              : <span className="bil-badge partial">{p.invoiceCount} INVOICE{p.invoiceCount === 1 ? "" : "S"}</span>}
                       </div>
-                      {p.overdueCount > 0
-                        ? <span className="bil-badge overdue">{p.overdueCount} OVERDUE</span>
-                        : p.invoiceCount === 0
-                          ? <span className="bil-badge unpaid">NO INVOICES</span>
-                          : p.outstanding <= 0
-                            ? <span className="bil-badge paid">CLEARED</span>
-                            : <span className="bil-badge partial">{p.invoiceCount} INVOICE{p.invoiceCount === 1 ? "" : "S"}</span>}
-                    </div>
 
-                    <div className="bil-meta">
-                      {p.location && (
-                        <span className="bil-meta-item">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                          {p.location}
-                        </span>
-                      )}
-                      {p.projectType && <span className="bil-meta-item">{p.projectType}</span>}
-                    </div>
+                      <div className="bil-meta">
+                        {p.location && (
+                          <span className="bil-meta-item">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            {p.location}
+                          </span>
+                        )}
+                        {p.projectType && <span className="bil-meta-item">{p.projectType}</span>}
+                      </div>
 
-                    {/* Billed-of-budget progress */}
-                    <div className="bil-progress">
-                      <div className="bil-progress-top">
-                        <span>Billed of Budget</span>
-                        <span className="bil-progress-pct">{pct}%</span>
+                      {/* Progress: billed out of budget */}
+                      <div className="bil-progress">
+                        <div className="bil-progress-top">
+                          <span>Billed of Budget</span>
+                          <span className="bil-progress-pct">{pct}%</span>
+                        </div>
+                        <div className="bil-bar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? "full" : ""} /></div>
+                        <div className="bil-progress-sub">
+                          <span>{money(p.billed)}</span>
+                          <span>of {money(p.budget)}</span>
+                        </div>
                       </div>
-                      <div className="bil-bar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? "full" : ""} /></div>
-                      <div className="bil-progress-sub">
-                        <span>{money(p.billed)}</span>
-                        <span>of {money(p.budget)}</span>
-                      </div>
-                    </div>
 
-                    <div className="bil-figs">
-                      <div className="bil-fig">
-                        <span className="bil-fig-lbl">Received</span>
-                        <span className="bil-fig-val green">{money(p.received)}</span>
+                      <div className="bil-figs">
+                        <div className="bil-fig">
+                          <span className="bil-fig-lbl">Received</span>
+                          <span className="bil-fig-val green">{money(p.received)}</span>
+                        </div>
+                        <div className="bil-fig">
+                          <span className="bil-fig-lbl">Remaining</span>
+                          <span className={`bil-fig-val ${p.outstanding > 0 ? "amber" : ""}`}>{money(p.outstanding)}</span>
+                        </div>
                       </div>
-                      <div className="bil-fig">
-                        <span className="bil-fig-lbl">Remaining</span>
-                        <span className={`bil-fig-val ${p.outstanding > 0 ? "amber" : ""}`}>{money(p.outstanding)}</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <Pagination {...paging} label="projects" />
+            </>
           )}
         </>
       )}

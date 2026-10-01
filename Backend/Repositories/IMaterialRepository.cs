@@ -19,7 +19,7 @@ namespace Backend.Repositories
         Task UpdateTransactionAsync(MaterialTransaction transaction);
     }
 
-    // Aggregated numbers derived from a material's ledger.
+    // Totals worked out from a material's ledger.
     public class MaterialStats
     {
         public decimal Stock { get; set; }

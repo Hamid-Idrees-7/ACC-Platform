@@ -17,7 +17,7 @@ namespace Backend.Services
         Task<StockResult> CancelTransactionAsync(int transactionId);
     }
 
-    // Outcome of a restock/issue: either the updated material, or a reason it failed.
+    // Result of a restock or issue: the updated material, or the reason it failed.
     public class StockResult
     {
         public bool Success { get; set; }

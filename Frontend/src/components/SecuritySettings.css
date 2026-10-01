@@ -64,17 +64,6 @@
 .scs-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
 .scs-btn-outline:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
-.scs-state { display: flex; justify-content: center; padding: 30px 0; }
-.scs-spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: scsspin 0.8s linear infinite;
-}
-@keyframes scsspin { to { transform: rotate(360deg); } }
-
 .scs-error {
     display: flex;
     align-items: center;

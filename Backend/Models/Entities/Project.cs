@@ -36,7 +36,7 @@ namespace Backend.Models.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal Budget { get; set; }
 
-        // In Progress, On Hold, Completed, Cancelled New projects start In Progress
+        // In Progress, On Hold, Completed or Cancelled. New projects start In Progress.
         [Required]
         [MaxLength(20)]
         public string Status { get; set; } = "In Progress";

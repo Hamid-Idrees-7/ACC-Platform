@@ -108,7 +108,7 @@ namespace Backend.Models.Entities
                 .Where(d => WeekDays.Contains(d))
                 .ToList();
 
-        // Code -> symbol shown before amounts, and the word used in "amount in words"
+        // Currency code to the symbol shown before amounts and the word used in "amount in words"
         public static readonly Dictionary<string, (string Symbol, string Word)> Currencies = new()
         {
             ["PKR"] = ("Rs.", "rupees"),

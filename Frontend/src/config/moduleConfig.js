@@ -1,5 +1,5 @@
-// Central config for Control Unit: which modules exist and what actions each has.
-// As new modules are built, add them here to expose them in Control Unit.
+// The modules Control Unit lists and the actions each one has. Add a new module here to
+// show it in Control Unit.
 
 export const MODULE_GROUPS = [
   {
@@ -10,7 +10,7 @@ export const MODULE_GROUPS = [
       { key: "Employees", label: "Employees", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
       { key: "Materials", label: "Materials", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
       { key: "Projects", label: "Projects", actions: ["View", "Add", "Edit", "Manage", "Delete"], approvalActions: ["Delete"] },
-      // One-off project costs (plot, transfer, taxes, possession) Shown inside a projects page.
+      // One-off project costs (plot, transfer, taxes, possession), shown on a project's page.
       { key: "Expenses", label: "Project Expenses", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
       { key: "Assignments", label: "Assignments", actions: ["View", "Add", "Edit", "Delete"], approvalActions: ["Delete"] },
       { key: "Attendance", label: "Attendance", actions: ["View", "Mark"], approvalActions: [] },
@@ -22,24 +22,25 @@ export const MODULE_GROUPS = [
   {
     group: "Field Access",
     modules: [
-      // Site-engineer scoped view. Scoping (own site only) is automatic from the user's
-      // linked employee. Manage covers everything they do on their own site
-      // (mark attendance, update progress, request material).
+      // Site engineer view, limited to their own site (taken from the linked employee).
+      // Manage covers everything they do there (mark attendance, update progress,
+      // request material).
       { key: "Field", label: "Field View", actions: ["View", "Manage"], approvalActions: [] },
     ],
   },
   {
     group: "Workspace",
     modules: [
-      // Messages and Approvals delete directly - no approval workflow (it would be circular)
+      // Messages and Approvals delete directly, with no approval step (it would be circular).
       { key: "Messages", label: "Messages", actions: ["View", "Delete"], approvalActions: [] },
       { key: "Approvals", label: "Approvals", actions: ["View", "Manage", "Delete"], approvalActions: [] },
-      // Reviewing site-engineer material requests. Kept separate from Materials so an
-      // engineer who raises requests can never approve/reject their own. Manage = approve+issue / reject.
+      // Reviewing site engineers' material requests. Separate from Materials so an engineer
+      // who raises requests can never approve or reject their own. Manage means approve and
+      // issue, or reject.
       { key: "MaterialRequests", label: "Material Requests", actions: ["View", "Manage"], approvalActions: [] },
     ],
   },
 ];
 
-// Flat list of all modules (handy for lookups)
+// All modules in one flat list, for lookups.
 export const ALL_MODULES = MODULE_GROUPS.flatMap((g) => g.modules);

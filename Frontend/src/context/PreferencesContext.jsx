@@ -12,7 +12,7 @@ import { DEFAULT_IDLE_MINUTES } from "../config/sessionConfig";
 
 const PreferencesContext = createContext();
 
-export const DEFAULT_PREFS = {
+const DEFAULT_PREFS = {
   theme: "light",
   numberFormat: "pk",
   dateFormat: "dmy-text",
@@ -83,8 +83,11 @@ export function PreferencesProvider({ children }) {
   // Number and date helpers read module settings; keep them in step before children render.
   applyFormats(prefs);
 
+  // The latest settings, for the server fetch below (it finishes after an await).
   const prefsRef = useRef(prefs);
-  prefsRef.current = prefs;
+  useEffect(() => {
+    prefsRef.current = prefs;
+  });
 
   // Only touches the settings if they still belong to the same person.
   const setFor = (id, change) => setState((s) => (s.identity === id ? { ...s, ...change } : s));
@@ -139,7 +142,6 @@ export function PreferencesProvider({ children }) {
       });
       throw err;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs, user, identity]);
 
   const resolvedTheme = prefs.theme === "system" ? (systemDark ? "dark" : "light") : prefs.theme;

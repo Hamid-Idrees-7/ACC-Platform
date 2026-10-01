@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
@@ -6,6 +6,8 @@ import { permissionService } from "../services/permissionService";
 import { MODULE_GROUPS } from "../config/moduleConfig";
 import "./ManageAccess.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonPage } from "../components/Skeleton";
+import { useLoader } from "../hooks/useLoader";
 
 function ManageAccess() {
   const { userId } = useParams();
@@ -39,7 +41,7 @@ function ManageAccess() {
     }
   };
 
-  useEffect(() => { load(); }, [userId]);
+  useLoader(() => load(), userId);
 
   useLiveRefresh(["permissions", "users"], async () => {
     try {
@@ -57,7 +59,7 @@ function ManageAccess() {
 
   const getPerm = (module, action) => perms[key(module, action)] || { allowed: false, approval: false };
 
-  // Save one permission to the backend (instant)
+  // Saves one permission to the backend straight away.
   const savePerm = async (module, action, allowed, approval) => {
     setSaving(true);
     try {
@@ -75,7 +77,6 @@ function ManageAccess() {
     }
   };
 
-  // Toggle a single action
   const toggleAction = (module, action) => {
     const current = getPerm(module, action);
     const newAllowed = !current.allowed;
@@ -84,7 +85,6 @@ function ManageAccess() {
     savePerm(module, action, newAllowed, newApproval);
   };
 
-  // Toggle the approval-needed checkbox for an action
   const toggleApproval = (module, action) => {
     const current = getPerm(module, action);
     if (!current.allowed) return; // approval only matters when action is allowed
@@ -93,15 +93,13 @@ function ManageAccess() {
     savePerm(module, action, current.allowed, newApproval);
   };
 
-  // The module master toggle IS "View" (access to the module). Turning it on grants
-  // View; the specific actions below are then enabled one by one. Turning it off clears
-  // View AND every action — so an action can never stay on without View (no back-door).
+  // The module master toggle is View (access to the module). Turning it on grants
+  // View only; each action below is then turned on by itself. Turning it off clears
+  // View and every action, so no action can stay on without View.
   const toggleModule = (mod) => {
     const turnOn = !isModuleOn(mod);
     const updates = {};
     mod.actions.forEach((a) => {
-      // On = grant View only (a clean slate); other actions are enabled individually.
-      // Off = clear everything.
       const allowed = turnOn && a === "View";
       updates[key(mod.key, a)] = { allowed, approval: false };
       savePerm(mod.key, a, allowed, false);
@@ -116,7 +114,7 @@ function ManageAccess() {
   if (loading) {
     return (
       <DashboardLayout title="Manage Access">
-        <div className="ma-empty"><div className="ma-spinner" /></div>
+        <SkeletonPage stats={0} rows={8} />
       </DashboardLayout>
     );
   }

@@ -9,7 +9,7 @@ namespace Backend.Models.DTOs
         public string TimeFormat { get; set; } = string.Empty;
 
         // Minutes without activity before automatic sign-out: 0 (off), 15, 30 or 60.
-        // Left out when saving = keep the current value.
+        // Left out when saving: the current value stays.
         public int? IdleMinutes { get; set; }
 
         public bool? NotificationSound { get; set; }

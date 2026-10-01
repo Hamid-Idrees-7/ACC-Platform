@@ -104,3 +104,66 @@ export const numberInWords = (n) => {
 
 // Amount spelled out with the company currency, eg "20 lac 42 thousand 93 rupees".
 export const amountInWords = (n) => `${numberInWords(n)} ${currency.word}`;
+
+// CNIC shown as 35202-1234567-1. Anything that isn't 13 digits is shown as saved.
+export const formatCnic = (value) => {
+  if (!value) return value;
+  const d = String(value).replace(/\D/g, "");
+  return d.length === 13 ? `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}` : value;
+};
+
+// Mobile numbers shown as 0300-1234567 (or +92 300 1234567). Landlines stay as saved.
+export const formatPhone = (value) => {
+  if (!value) return value;
+  const raw = String(value).trim();
+  const d = raw.replace(/\D/g, "");
+  if (/^03\d{9}$/.test(d) && !raw.startsWith("+")) return `${d.slice(0, 4)}-${d.slice(4)}`;
+  if (/^923\d{9}$/.test(d)) return `+92 ${d.slice(2, 5)} ${d.slice(5)}`;
+  return raw;
+};
+
+// Formatting while typing: dashes go in as the digits are entered.
+export const typeCnic = (value) => {
+  const d = value.replace(/\D/g, "").slice(0, 13);
+  if (d.length <= 5) return d;
+  if (d.length <= 12) return `${d.slice(0, 5)}-${d.slice(5)}`;
+  return `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12)}`;
+};
+
+// Only a mobile number starting with 03 gets the dash. +92 and landlines are left alone.
+export const typePhone = (value) => {
+  if (!/^03[\d\s-]*$/.test(value)) return value;
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  return d.length <= 4 ? d : `${d.slice(0, 4)}-${d.slice(4)}`;
+};
+
+// onChange helper for the two above. Keeps the cursor after the same digit,
+// so editing in the middle of the number doesn't throw it to the end.
+export const typed = (event, format) => {
+  const input = event.target;
+  const raw = input.value;
+  const next = format(raw);
+  const caret = input.selectionStart;
+  if (next !== raw && caret != null && caret < raw.length) {
+    const digitsBefore = raw.slice(0, caret).replace(/\D/g, "").length;
+    let pos = 0;
+    for (let seen = 0; pos < next.length && seen < digitsBefore; pos++) {
+      if (/\d/.test(next[pos])) seen++;
+    }
+    requestAnimationFrame(() => input.setSelectionRange(pos, pos));
+  }
+  return next;
+};
+
+// Search that also finds numbers typed with or without dashes and spaces,
+// and +92 numbers when searched with a leading 0.
+const localDigits = (text) => {
+  const t = String(text || "").trim();
+  const d = t.replace(/\D/g, "");
+  return t.startsWith("+92") || (d.length === 12 && d.startsWith("92")) ? `0${d.slice(2)}` : d;
+};
+
+export const digitsMatch = (value, query) => {
+  const q = localDigits(query);
+  return q.length >= 3 && localDigits(value).includes(q);
+};

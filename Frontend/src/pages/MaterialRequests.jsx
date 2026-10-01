@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { materialRequestService } from "../services/materialRequestService";
 import { formatQty } from "../utils/format";
@@ -6,6 +6,11 @@ import { formatDateShort } from "../utils/dates";
 import "./MaterialRequests.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
 const FILTERS = ["Pending", "Approved", "Rejected", "All"];
 
@@ -15,14 +20,13 @@ function MaterialRequests() {
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState("Pending");
   const [busy, setBusy] = useState(null);        // requestID being resolved
-  const [rejectModal, setRejectModal] = useState(null); // request
+  const [rejectModal, setRejectModal] = useState(null); // the request being rejected
   const [rejectNote, setRejectNote] = useState("");
   const [toast, setToast] = useState(null);
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 3200); };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
@@ -35,7 +39,7 @@ function MaterialRequests() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); }, []);
+  useLoader(() => load());
 
   useLiveRefresh(["material-requests"], () => load({ quiet: true }));
 
@@ -50,7 +54,8 @@ function MaterialRequests() {
     if (filter === "All") return requests;
     return requests.filter((r) => r.status === filter);
   }, [requests, filter]);
-  useHighlight(loading ? null : `${visible.length}:${filter}`, () => setFilter("All"));
+  const paging = usePagination(visible, { resetKey: filter, getId: (r) => r.requestID });
+  useHighlight(loading ? null : `${visible.length}:${paging.page}:${filter}`, () => setFilter("All"));
 
   const approve = async (r) => {
     setBusy(r.requestID);
@@ -83,7 +88,7 @@ function MaterialRequests() {
   return (
     <DashboardLayout title="Material Requests">
       {loading ? (
-        <div className="mrq-empty"><div className="mrq-spinner" /><p>Loading requests...</p></div>
+        <SkeletonRows count={5} />
       ) : error ? (
         <div className="mrq-empty"><h3>Could not load</h3><p>You may not have access, or the backend is down.</p></div>
       ) : (
@@ -102,61 +107,64 @@ function MaterialRequests() {
               <p>{filter === "Pending" ? "No pending material requests from the field." : `No ${filter.toLowerCase()} requests.`}</p>
             </div>
           ) : (
-            <div className="mrq-list">
-              {visible.map((r) => {
-                const short = r.status === "Pending" && r.quantity > r.availableStock;
-                return (
-                  <div key={r.requestID} data-highlight={r.requestID} className={`mrq-card ${r.status.toLowerCase()}`}>
-                    <div className="mrq-main">
-                      <div className="mrq-head">
-                        <span className="mrq-mat">{formatQty(r.quantity)} {r.unit} · {r.materialName}</span>
-                        <span className={`mrq-status ${r.status.toLowerCase()}`}>{r.status}</span>
+            <>
+              <div className="mrq-list">
+                {paging.pageItems.map((r) => {
+                  const short = r.status === "Pending" && r.quantity > r.availableStock;
+                  return (
+                    <div key={r.requestID} data-highlight={r.requestID} className={`mrq-card ${r.status.toLowerCase()}`}>
+                      <div className="mrq-main">
+                        <div className="mrq-head">
+                          <span className="mrq-mat">{formatQty(r.quantity)} {r.unit} · {r.materialName}</span>
+                          <span className={`mrq-status ${r.status.toLowerCase()}`}>{r.status}</span>
+                        </div>
+                        <div className="mrq-meta">
+                          <span><strong>{r.projectTitle}</strong>{r.phaseName ? ` · ${r.phaseName}` : ""}</span>
+                          <span>by {r.requestedByName}</span>
+                          <span>{formatDateShort(r.createdAt)}</span>
+                        </div>
+                        {r.note && <div className="mrq-note">"{r.note}"</div>}
+                        {r.status === "Pending" && (
+                          <div className={`mrq-stock ${short ? "short" : "ok"}`}>
+                            In stock: {formatQty(r.availableStock)} {r.unit}{short ? " — not enough to fulfil" : ""}
+                          </div>
+                        )}
+                        {r.status === "Rejected" && r.resolveNote && <div className="mrq-reject">Reason: {r.resolveNote}</div>}
                       </div>
-                      <div className="mrq-meta">
-                        <span><strong>{r.projectTitle}</strong>{r.phaseName ? ` · ${r.phaseName}` : ""}</span>
-                        <span>by {r.requestedByName}</span>
-                        <span>{formatDateShort(r.createdAt)}</span>
-                      </div>
-                      {r.note && <div className="mrq-note">"{r.note}"</div>}
+
                       {r.status === "Pending" && (
-                        <div className={`mrq-stock ${short ? "short" : "ok"}`}>
-                          In stock: {formatQty(r.availableStock)} {r.unit}{short ? " — not enough to fulfil" : ""}
+                        <div className="mrq-actions">
+                          <button className="mrq-approve" onClick={() => approve(r)} disabled={busy === r.requestID}>
+                            {busy === r.requestID ? "..." : "Approve & Issue"}
+                          </button>
+                          <button className="mrq-reject-btn" onClick={() => { setRejectModal(r); setRejectNote(""); }} disabled={busy === r.requestID}>
+                            Reject
+                          </button>
                         </div>
                       )}
-                      {r.status === "Rejected" && r.resolveNote && <div className="mrq-reject">Reason: {r.resolveNote}</div>}
                     </div>
-
-                    {r.status === "Pending" && (
-                      <div className="mrq-actions">
-                        <button className="mrq-approve" onClick={() => approve(r)} disabled={busy === r.requestID}>
-                          {busy === r.requestID ? "..." : "Approve & Issue"}
-                        </button>
-                        <button className="mrq-reject-btn" onClick={() => { setRejectModal(r); setRejectNote(""); }} disabled={busy === r.requestID}>
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              <Pagination {...paging} label="requests" />
+            </>
           )}
         </>
       )}
 
       {rejectModal && (
-        <div className="mrq-overlay" onClick={(e) => e.target.classList.contains("mrq-overlay") && setRejectModal(null)}>
+        <ModalOverlay className="mrq-overlay" onClose={() => setRejectModal(null)}>
           <div className="mrq-modal">
             <h3>Reject request?</h3>
             <p className="mrq-modal-sub">{formatQty(rejectModal.quantity)} {rejectModal.unit} of {rejectModal.materialName} for {rejectModal.projectTitle}.</p>
             <label className="mrq-label">Reason (optional)</label>
             <input type="text" maxLength={255} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. order from central store instead" autoFocus />
             <div className="mrq-modal-actions">
-              <button className="mrq-modal-cancel" onClick={() => setRejectModal(null)} disabled={busy}>Cancel</button>
+              <button className="mrq-modal-cancel" data-close onClick={() => setRejectModal(null)} disabled={busy}>Cancel</button>
               <button className="mrq-modal-danger" onClick={doReject} disabled={busy}>{busy ? "..." : "Reject"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`mrq-toast mrq-toast-${toast.type}`}>{toast.text}</div>}

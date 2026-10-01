@@ -15,8 +15,8 @@ namespace Backend.Models.DTOs
         public string? STRN { get; set; }
 
         public string CurrencyCode { get; set; } = string.Empty;
-        public string CurrencySymbol { get; set; } = string.Empty;   // Rs.
-        public string CurrencyWord { get; set; } = string.Empty;     // rupees
+        public string CurrencySymbol { get; set; } = string.Empty;   // eg Rs.
+        public string CurrencyWord { get; set; } = string.Empty;     // eg rupees
 
         public string? InvoiceTerms { get; set; }
         public string? BankName { get; set; }
@@ -45,7 +45,7 @@ namespace Backend.Models.DTOs
     {
         public string? CompanyName { get; set; }
         public string? Tagline { get; set; }
-        public string? Logo { get; set; }          // data URL, or null / empty to remove
+        public string? Logo { get; set; }          // data URL, or null or empty to remove it
         public string? Address { get; set; }
         public string? City { get; set; }
         public string? Phone { get; set; }

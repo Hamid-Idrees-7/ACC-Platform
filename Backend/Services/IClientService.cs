@@ -3,7 +3,6 @@ using Backend.Models.Entities;
 
 namespace Backend.Services
 {
-    // Contract for client business logic.
     public interface IClientService
     {
         Task<IEnumerable<Client>> GetAllClientsAsync();

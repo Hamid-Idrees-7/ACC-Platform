@@ -7,7 +7,7 @@ export const companyService = {
     return response.data;
   },
 
-  // Save them (Admin only)
+  // Admin only
   save: async (data) => {
     const response = await api.put("/company", data);
     return response.data;

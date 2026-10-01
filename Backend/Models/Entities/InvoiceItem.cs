@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // One billed line on an invoice. Amount = Quantity x Rate. Optionally tied to a
-    // project phase (milestone billing) — but the amount is the client price, not cost.
+    // One billed line on an invoice. Amount = Quantity x Rate. It can be tied to a project
+    // phase (milestone billing), but the amount is still the client price, not the cost.
     public class InvoiceItem
     {
         [Key]

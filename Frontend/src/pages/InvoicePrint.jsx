@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { billingService } from "../services/billingService";
-import { money, formatQty, amountInWords } from "../utils/format";
+import { money, formatQty, amountInWords, formatPhone } from "../utils/format";
 import { formatDateShort, formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
 import Toast, { useToast } from "../components/Toast";
 import "./InvoicePrint.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonPage } from "../components/Skeleton";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -40,7 +41,7 @@ function InvoicePrint() {
   });
 
   if (loading) {
-    return <DashboardLayout title="Invoice"><div className="ivp-loading"><div className="ivp-spinner" /></div></DashboardLayout>;
+    return <DashboardLayout title="Invoice"><SkeletonPage stats={0} rows={8} /></DashboardLayout>;
   }
   if (!inv) {
     return (
@@ -92,7 +93,6 @@ function InvoicePrint() {
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
       <div className="ivp-doc-scroll">
         <div className="ivp-doc theme-paper" id="ivp-print-area">
-          {/* Header */}
           <div className="ivp-head">
             <DocLetterhead company={company} />
             <div className="ivp-inv-meta">
@@ -104,12 +104,12 @@ function InvoicePrint() {
 
           <div className="ivp-rule" />
 
-          {/* Bill-to + dates */}
+          {/* Bill to and dates */}
           <div className="ivp-parties">
             <div className="ivp-billto">
               <span className="ivp-lbl">BILL TO</span>
               <strong>{inv.clientName}</strong>
-              {inv.clientPhone && <div>{inv.clientPhone}</div>}
+              {inv.clientPhone && <div>{formatPhone(inv.clientPhone)}</div>}
               {inv.clientAddress && <div>{inv.clientAddress}</div>}
             </div>
             <div className="ivp-project">
@@ -158,7 +158,6 @@ function InvoicePrint() {
             </div>
           </div>
 
-          {/* Payments */}
           {inv.payments && inv.payments.length > 0 && (
             <div className="ivp-pay-history">
               <span className="ivp-lbl">PAYMENT HISTORY</span>

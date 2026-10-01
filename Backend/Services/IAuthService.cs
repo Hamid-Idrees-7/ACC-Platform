@@ -3,7 +3,7 @@ using Backend.Models.DTOs;
 
 namespace Backend.Services
 {
-    // Contract for authentication (register, sign in, renew, sign out)
+    // Authentication: register, sign in, renew the token and sign out.
     public interface IAuthService
     {
         // Register a new user (admin only); returns the new user's ID, or an error message

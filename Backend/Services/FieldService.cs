@@ -31,8 +31,8 @@ namespace Backend.Services
             _materialRequestService = materialRequestService;
         }
 
-        // The project IDs this user is allowed to touch = the projects their linked
-        // employee is assigned to. The single source of truth for scoping.
+        // The projects this user may work on: the ones their linked employee is assigned to.
+        // All scoping in this service goes through here.
         private async Task<List<int>> GetMyProjectIdsAsync(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
@@ -98,7 +98,7 @@ namespace Backend.Services
         public async Task<AttendanceSheetDto?> GetSheetAsync(int userId, int projectId, DateTime date)
         {
             var myProjectIds = await GetMyProjectIdsAsync(userId);
-            if (!myProjectIds.Contains(projectId)) return null;   // not your site — refused
+            if (!myProjectIds.Contains(projectId)) return null;   // not their site
 
             return await _attendanceService.GetSheetAsync(projectId, date);
         }
@@ -106,7 +106,7 @@ namespace Backend.Services
         public async Task<AttendanceSheetDto?> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto)
         {
             var myProjectIds = await GetMyProjectIdsAsync(userId);
-            if (!myProjectIds.Contains(projectId)) return null;   // not your site — refused
+            if (!myProjectIds.Contains(projectId)) return null;   // not their site
 
             return await _attendanceService.SaveAsync(projectId, dto);
         }
@@ -128,7 +128,7 @@ namespace Backend.Services
             var detail = await _projectService.GetProjectDetailAsync(projectId);
             if (detail == null) return null;
 
-            // The phase must belong to THIS project — an engineer can't touch another site's phase.
+            // The phase must belong to this project, so an engineer can't touch another site's phase.
             var phase = detail.Phases.FirstOrDefault(p => p.PhaseID == dto.PhaseID);
             if (phase == null) return null;
 
@@ -161,12 +161,11 @@ namespace Backend.Services
             if (!myProjectIds.Contains(projectId))
                 return (null, "This site is not assigned to you.");
 
-            // Quantity must be a positive number.
             if (dto.Quantity <= 0)
                 return (null, "Enter a quantity greater than zero.");
 
-            // The material must exist and be Active — a crafted request can't smuggle in a
-            // deleted / inactive / non-existent material.
+            // The material must exist and be Active, so a crafted request can't slip in a
+            // deleted, inactive or made-up material.
             var materials = await _materialService.GetAllMaterialsAsync();
             var material = materials.FirstOrDefault(m => m.MaterialID == dto.MaterialID);
             if (material == null)
@@ -174,7 +173,7 @@ namespace Backend.Services
             if (!string.Equals(material.Status, "Active", StringComparison.OrdinalIgnoreCase))
                 return (null, "That material isn't available for requests.");
 
-            // If a phase was chosen, it must belong to THIS project (not another site's phase).
+            // A chosen phase must belong to this project, not to another site.
             if (dto.PhaseID.HasValue)
             {
                 var detail = await _projectService.GetProjectDetailAsync(projectId);
@@ -200,7 +199,7 @@ namespace Backend.Services
             var detail = await _projectService.GetProjectDetailAsync(projectId);
             if (detail == null) return null;
 
-            // NOTE: financials (budget/cost/profit) are deliberately never returned to the field.
+            // Money figures (budget, cost, profit) are never sent to the field, on purpose.
             return new FieldSiteInfoDto
             {
                 ProjectID = detail.ProjectID,

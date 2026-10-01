@@ -19,7 +19,7 @@ export const isPhone = (v) => {
 export const isWebsite = (v) =>
   /^(https?:\/\/)?([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(\/\S*)?$/i.test(v.trim());
 
-// A persons or places name: starts with a letter; letters, spaces, dots, apostrophes, dashes.
+// A person's or place's name: starts with a letter, then letters, spaces, dots, apostrophes, dashes.
 export const isName = (v) => /^\p{L}[\p{L}\s.'-]*$/u.test(v.trim());
 
 export const hasLetter = (v) => /\p{L}/u.test(v);

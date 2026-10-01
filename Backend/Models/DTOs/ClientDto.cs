@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when creating or updating a client (data coming IN from the user).
+    // Sent when creating or updating a client.
     public class ClientDto
     {
         [Required]

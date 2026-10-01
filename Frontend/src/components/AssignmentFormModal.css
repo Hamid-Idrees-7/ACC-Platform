@@ -66,18 +66,18 @@
     font-size: 14px;
 }
 
-/* Overlap notice - one worker already active elsewhere */
+/* Overlap notice: a worker is already active elsewhere */
 .afm-overlap {
     margin: 16px 28px 0;
     padding: 12px 16px;
     background: var(--color-warning-soft);
-    border: 1px solid var(--color-warning-border);   /* soft notice */
+    border: 1px solid var(--color-warning-border);
     border-radius: var(--radius-md);
     font-size: 13px;
-    color: var(--color-warning-strong);   /* amber-800 */
+    color: var(--color-warning-strong);
     line-height: 1.5;
 }
-.afm-overlap strong { color: var(--color-warning-strong); }   /* amber-800, */
+.afm-overlap strong { color: var(--color-warning-strong); }
 .afm-overlap ul { margin: 6px 0 6px 18px; }
 .afm-overlap li { margin-bottom: 2px; }
 .afm-overlap span { display: block; margin-top: 4px; color: var(--color-text-muted); font-style: italic; }

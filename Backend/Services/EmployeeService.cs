@@ -75,14 +75,13 @@ namespace Backend.Services
             return await _repository.DeleteAsync(id);
         }
 
-        // True if the employee has ever been assigned to a project. Such a record
-        // is referenced by assignment history and must not be deleted outright.
+        // True if the employee was ever assigned to a project. Assignment history points
+        // to them, so they can't be deleted outright.
         public async Task<bool> HasAssignmentsAsync(int id)
         {
             return await _assignmentRepository.AnyForEmployeeAsync(id);
         }
 
-        // Convert entity to DTO
         private EmployeeDto ToDto(Employee e)
         {
             return new EmployeeDto

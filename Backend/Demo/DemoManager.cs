@@ -74,7 +74,7 @@ namespace Backend.Demo
         public bool Enabled => _options.Enabled;
         public int SessionMinutes => _options.SessionMinutes;
 
-        // status
+        // Status
 
         public async Task<(bool Enabled, bool Available)> GetStatusAsync(CancellationToken ct)
         {
@@ -85,7 +85,7 @@ namespace Backend.Demo
             return (true, inUse < _options.MaxVisitors);
         }
 
-        // start / switch / end
+        // Start, switch and end
 
         public async Task<DemoResult> StartAsync(string role, ClientInfo client, CancellationToken ct)
         {
@@ -119,7 +119,7 @@ namespace Backend.Demo
                 buildNow = session == null;
                 if (session == null)
                 {
-                    // The ready pool is empty (e.g. just after start-up): build one for this visitor now.
+                    // The ready pool is empty (eg just after start-up): build one for this visitor now.
                     session = new DemoSession
                     {
                         DatabaseName = DemoDbFactory.NewDatabaseName(),
@@ -179,7 +179,7 @@ namespace Backend.Demo
             return await LoadRoleAsync(sessionId, databaseName, expiresAt, roleKey, client, null, CancellationToken.None);
         }
 
-        // Switch to another demo role inside the SAME visitor database. The clock keeps running.
+        // Switch to another demo role inside the same visitor database. The clock keeps running.
         // previousLoginId: the sign-in being replaced (it ends as "RoleSwitched").
         public async Task<DemoResult> SwitchAsync(int sessionId, string databaseName, string role,
             ClientInfo client, int? previousLoginId, CancellationToken ct)
@@ -274,9 +274,9 @@ namespace Backend.Demo
                    snapshot.ExpiresAt > DateTime.UtcNow;
         }
 
-        // maintenance
+        // Maintenance
 
-        // Wake the background service early (e.g. a seat was just taken or freed).
+        // Wake the background service early (eg a seat was just taken or freed).
         public void RequestMaintenance()
         {
             try
@@ -352,7 +352,7 @@ namespace Backend.Demo
             await RefillPoolAsync(ct);
         }
 
-        // helpers
+        // Helpers
 
         private DateTime Activate(DemoSession session, DateTime nowUtc)
         {
@@ -594,7 +594,7 @@ namespace Backend.Demo
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Left as Ended + not dropped, so the next maintenance run tries again.
+                // Left as Ended and not dropped, so the next maintenance run tries again.
                 _logger.LogWarning(ex, "Could not drop demo database {Database}; will retry.", databaseName);
             }
         }

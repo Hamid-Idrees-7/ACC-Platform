@@ -676,6 +676,9 @@ namespace Backend.Migrations
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
 
+                    b.Property<bool>("KeepSignedIn")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("datetime2");
 
@@ -899,6 +902,45 @@ namespace Backend.Migrations
                     b.HasKey("NotificationID");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Backend.Models.Entities.PasswordReset", b =>
+                {
+                    b.Property<int>("PasswordResetID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PasswordResetID"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RequestedFromIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PasswordResetID");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserID", "CreatedAt");
+
+                    b.ToTable("PasswordResets");
                 });
 
             modelBuilder.Entity("Backend.Models.Entities.PendingAction", b =>
@@ -1359,6 +1401,15 @@ namespace Backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Material");
+                });
+
+            modelBuilder.Entity("Backend.Models.Entities.PasswordReset", b =>
+                {
+                    b.HasOne("Backend.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Backend.Models.Entities.ProjectExpense", b =>

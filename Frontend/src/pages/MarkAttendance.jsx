@@ -1,21 +1,25 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
-import { useCompany, offDayOf } from "../context/CompanyContext";
+import { useCompany } from "../context/CompanyContext";
+import { offDayOf } from "../config/companyConfig";
 import { attendanceService } from "../services/attendanceService";
 import DatePicker from "../components/DatePicker";
 import { formatDayMonth, formatDateShort } from "../utils/dates";
 import { moneyCompact } from "../utils/format";
 import "./MarkAttendance.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { SkeletonPage } from "../components/Skeleton";
+import { useLoader } from "../hooks/useLoader";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
 const toISO = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
 const todayISO = () => toISO(new Date());
 
-// Compact money for wage tags: 75000 -> 75.0K, 120000 -> 1.20 Lac (or 120.0K)
+// Compact money for wage tags: 75000 is 75.0K, 120000 is 1.20 Lac (or 120.0K)
 const money = (n) => moneyCompact(n);
 const wageLabel = (w) => (w.wageType === "Monthly" ? `${money(w.wageAmount)}/mo` : w.wageType === "Contract" ? `${money(w.wageAmount)} contract` : `${money(w.wageAmount)}/day`);
 
@@ -61,9 +65,10 @@ function MarkAttendance() {
     }
   };
 
-  useEffect(() => { load(date); }, [id, date]);
+  useLoader(() => load(date), `${id}|${date}`);
 
   const dirty = !!sheet && JSON.stringify(marks) !== JSON.stringify(marksFromSheet(sheet));
+  useUnsavedChanges(dirty);
   useLiveRefresh(["attendance", "assignments", "calendar"], async () => {
     try {
       const data = await attendanceService.getSheet(id, date);
@@ -204,7 +209,7 @@ function MarkAttendance() {
   if (loading && !sheet) {
     return (
       <DashboardLayout title="Mark Attendance">
-        <div className="mka-loading"><div className="mka-spinner" /><p>Loading...</p></div>
+        <SkeletonPage stats={3} rows={6} />
       </DashboardLayout>
     );
   }

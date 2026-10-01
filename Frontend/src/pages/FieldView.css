@@ -1,4 +1,4 @@
-/* FIELD VIEW — site engineers scoped workspace (mobile-first) */
+/* Field view: the site engineer's own workspace (mobile first) */
 
 .fv-hello { margin-bottom: 20px; }
 .fv-hello h2 { font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--color-text); }
@@ -67,7 +67,7 @@
 .fv-readonly { background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 13px; padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: 14px; }
 .fv-offday { background: var(--color-info-soft); color: var(--color-text); font-size: 13px; padding: 10px 14px; border-radius: var(--radius-md); margin-bottom: 14px; }
 
-/* Tabs (Attendance | Progress) */
+/* Site tabs */
 .fv-tabs { display: flex; gap: 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 5px; margin-bottom: 18px; width: fit-content; }
 .fv-tab { padding: 9px 22px; border: none; border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; }
 .fv-tab:hover { color: var(--color-text); }

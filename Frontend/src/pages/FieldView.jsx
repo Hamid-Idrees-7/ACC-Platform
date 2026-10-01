@@ -1,12 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
-import { useCompany, offDayOf } from "../context/CompanyContext";
+import { useCompany } from "../context/CompanyContext";
+import { offDayOf } from "../config/companyConfig";
 import { fieldService } from "../services/fieldService";
 import { formatQty, numberInWords } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./FieldView.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "../components/ModalOverlay";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { SkeletonPage } from "../components/Skeleton";
+import { useLoader } from "../hooks/useLoader";
 
 const prettyToday = () => formatDateShort(new Date());
 const fmtDate = (d) => formatDateShort(d);
@@ -14,6 +19,19 @@ const fmtDate = (d) => formatDateShort(d);
 const todayISO = () => {
   const t = new Date();
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+};
+
+const marksFromSheet = (sheet) => {
+  const saved = {};
+  [...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])].forEach((w) => {
+    if (w.status) saved[w.assignmentID] = w.status;
+  });
+  return saved;
+};
+
+const sameMarks = (a, b) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].every((k) => (a[k] || null) === (b[k] || null));
 };
 
 function FieldView() {
@@ -45,8 +63,7 @@ function FieldView() {
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadSite = async ({ quiet = false, silent = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
@@ -59,7 +76,7 @@ function FieldView() {
       setLoading(false);
     }
   };
-  useEffect(() => { loadSite(); }, []);
+  useLoader(() => loadSite());
 
   useLiveRefresh(["assignments", "attendance", "projects", "material-requests", "calendar"], () => loadSite({ quiet: true, silent: true }));
 
@@ -108,6 +125,9 @@ function FieldView() {
 
   const backToList = () => { setActive(null); setSheet(null); setSiteInfo(null); setPhases([]); setMarks({}); setSiteTab("overview"); };
 
+  const marksDirty = !!sheet && sameMarks(marks, marksFromSheet(sheet)) === false;
+  useUnsavedChanges(marksDirty);
+
   const setMark = (assignmentID, status) => {
     setMarks((m) => ({ ...m, [assignmentID]: m[assignmentID] === status ? undefined : status }));
   };
@@ -138,7 +158,7 @@ function FieldView() {
       const updated = await fieldService.updateProgress(active.projectID, phaseID, value);
       setPhases(updated || []);
       showToast("Progress updated.");
-      loadSite({ quiet: true });   // refresh the site cards overall progress
+      loadSite({ quiet: true });   // refresh the overall progress on the site cards
     } catch {
       showToast("Could not update progress.", "error");
     } finally {
@@ -196,7 +216,7 @@ function FieldView() {
     }
   };
 
-  //  Not a field user (e.g. an admin without a linked employee) 
+  // Not a field user (eg an admin with no linked employee)
   const notFieldUser = data && data.isFieldUser === false;
 
   const renderWorkerRow = (w) => {
@@ -234,7 +254,7 @@ function FieldView() {
   return (
     <DashboardLayout title="Field View — My Site">
       {loading ? (
-        <div className="fv-empty"><div className="fv-spinner" /><p>Loading your site...</p></div>
+        <SkeletonPage stats={3} rows={4} />
       ) : error ? (
         <div className="fv-empty"><h3>Could not load</h3><p>Please check the backend is running and try again.</p></div>
       ) : notFieldUser ? (
@@ -247,7 +267,7 @@ function FieldView() {
         </div>
       ) : active ? (
 
-        /*  Attendance sheet for one site  */
+        /* Attendance sheet for one site */
         <div className="fv-sheet-wrap">
           <button className="fv-back" onClick={backToList}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
@@ -417,7 +437,7 @@ function FieldView() {
         </div>
       ) : (
         
-        /*  My Sites list  */
+        /* My sites list */
         <>
           <div className="fv-hello">
             <h2>Here's your work, {data.employeeName?.split(" ")[0] || "Engineer"}</h2>
@@ -470,7 +490,7 @@ function FieldView() {
       )}
 
       {reqModal && (
-        <div className="fv-overlay" onClick={(e) => e.target.classList.contains("fv-overlay") && setReqModal(false)}>
+        <ModalOverlay className="fv-overlay" onClose={() => setReqModal(false)}>
           <div className="fv-modal">
             <h3>Request Material</h3>
             <p className="fv-modal-sub">This goes to the office for approval before stock is issued.</p>
@@ -504,13 +524,13 @@ function FieldView() {
                 <input type="text" maxLength={255} value={reqForm.note} onChange={(e) => setReqForm((f) => ({ ...f, note: e.target.value }))} placeholder="Your message" />
 
                 <div className="fv-modal-actions">
-                  <button className="fv-modal-cancel" onClick={() => setReqModal(false)} disabled={reqBusy}>Cancel</button>
+                  <button className="fv-modal-cancel" data-close onClick={() => setReqModal(false)} disabled={reqBusy}>Cancel</button>
                   <button className="fv-modal-ok" onClick={submitRequest} disabled={reqBusy}>{reqBusy ? "Sending..." : "Send Request"}</button>
                 </div>
               </>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`fv-toast fv-toast-${toast.type}`}>{toast.text}</div>}

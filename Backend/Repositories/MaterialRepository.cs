@@ -104,8 +104,8 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
-        // Active (non-cancelled) "Issue" transactions for one project, with the
-        // material loaded (name/unit) for the phase-by-phase cost breakdown.
+        // Active (not cancelled) Issue transactions for one project, with the material
+        // (name, unit) loaded for the phase-by-phase cost breakdown.
         public async Task<List<MaterialTransaction>> GetIssuesByProjectAsync(int projectId)
         {
             return await _context.MaterialTransactions

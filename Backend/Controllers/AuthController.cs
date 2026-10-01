@@ -9,21 +9,23 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend.Controllers
 {
-    // API endpoints for authentication. Base route: /api/auth
+    // Sign-in, sessions and password reset. Base route: /api/auth
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IPasswordResetService _passwordReset;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IPasswordResetService passwordReset)
         {
             _authService = authService;
+            _passwordReset = passwordReset;
         }
 
-        // POST: /api/auth/register   create a new user
-        // Admin only: there is no public sign-up. Accounts (and their roles) are created by an
-        // administrator, so nobody can register themselves with an elevated role.
+        // POST: /api/auth/register  = create a new user
+        // Admin only: there is no public sign-up. An admin creates every account and its role,
+        // so nobody can register themselves with a higher role.
         [HttpPost("register")]
         [Authorize]
         [AdminOnly]
@@ -36,9 +38,9 @@ namespace Backend.Controllers
             return Ok(new { message = "User created.", userID = userId });
         }
 
-        // POST: /api/auth/login   log in and get a token
+        // POST: /api/auth/login  = sign in and get a token
         // Always checks the real accounts, even if the browser still holds a demo token.
-        // Limited per IP address as well (on top of the per-username pause in AuthService).
+        // Also rate limited per IP address, on top of the per-username pause in AuthService.
         [HttpPost("login")]
         [UseMainDatabase]
         [EnableRateLimiting(SecurityOptions.LoginRateLimitPolicy)]
@@ -51,7 +53,7 @@ namespace Backend.Controllers
             return Ok(result.Data);
         }
 
-        // POST: /api/auth/refresh   a fresh token for the same session (the user is still working)
+        // POST: /api/auth/refresh  = a new token for the same session while the user keeps working
         // Demo tokens end with the demo and are never renewed.
         [HttpPost("refresh")]
         [Authorize]
@@ -70,7 +72,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // POST: /api/auth/logout   end this session on the server. Always answers OK, even when
+        // POST: /api/auth/logout  = end this session on the server. Always answers OK, even when
         // the session had already ended, so signing out never fails.
         [HttpPost("logout")]
         [AllowAnonymous]
@@ -81,6 +83,56 @@ namespace Backend.Controllers
                 await _authService.LogoutAsync(userId, loginId, dto?.Reason == "idle");
 
             return Ok(new { message = "Signed out." });
+        }
+
+        // POST: /api/auth/forgot-password  = email a reset link
+        // The answer is the same whether the account exists or not.
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        [SkipSessionCheck]
+        [UseMainDatabase]
+        [EnableRateLimiting(SecurityOptions.PasswordResetRateLimitPolicy)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Login))
+                return BadRequest(new { message = "Enter your username or email." });
+
+            await _passwordReset.RequestAsync(dto.Login, ClientInfo.From(HttpContext));
+            return Ok(new
+            {
+                message = "If that account exists, we've emailed it a reset link. " +
+                          $"It works for {SecurityOptions.ResetLinkLifetime.TotalMinutes:0} minutes. Check your spam folder too."
+            });
+        }
+
+        // POST: /api/auth/reset-password/check  = is the email link still valid?
+        [HttpPost("reset-password/check")]
+        [AllowAnonymous]
+        [SkipSessionCheck]
+        [UseMainDatabase]
+        [EnableRateLimiting(SecurityOptions.PasswordResetRateLimitPolicy)]
+        public async Task<IActionResult> CheckResetCode([FromBody] ResetCodeDto dto)
+        {
+            var username = await _passwordReset.CheckAsync(dto.Code);
+            if (username == null)
+                return BadRequest(new { message = "This link has expired or was already used. Please ask for a new one." });
+
+            return Ok(new { username });
+        }
+
+        // POST: /api/auth/reset-password  = set the new password with the code from the email
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        [SkipSessionCheck]
+        [UseMainDatabase]
+        [EnableRateLimiting(SecurityOptions.PasswordResetRateLimitPolicy)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var (success, message, field) = await _passwordReset.ResetAsync(dto.Code, dto.NewPassword, ClientInfo.From(HttpContext));
+            if (!success)
+                return BadRequest(new { message, field });
+
+            return Ok(new { message });
         }
 
         private bool TryGetSession(out int userId, out int loginId)

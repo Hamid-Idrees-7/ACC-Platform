@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // API endpoints for attendance. Base route: /api/attendance
+    // Attendance sheets per project. Base route: /api/attendance
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -19,7 +19,7 @@ namespace Backend.Controllers
             _service = service;
         }
 
-        // GET: /api/attendance — project cards for the list page
+        // GET: /api/attendance  = project cards for the list page
         [HttpGet]
         [RequirePermission("Attendance", "View")]
         public async Task<IActionResult> GetCards()
@@ -28,7 +28,7 @@ namespace Backend.Controllers
             return Ok(cards);
         }
 
-        // GET: /api/attendance/5?date=2026-08-26 — the sheet for a project on a date
+        // GET: /api/attendance/5?date=2026-08-26  = one project's sheet for a date
         [HttpGet("{projectId}")]
         [RequirePermission("Attendance", "View")]
         public async Task<IActionResult> GetSheet(int projectId, [FromQuery] DateTime? date)
@@ -40,7 +40,7 @@ namespace Backend.Controllers
             return Ok(sheet);
         }
 
-        // POST: /api/attendance/5 — save the marked rows for a date
+        // POST: /api/attendance/5  = save the marked rows for a date
         [HttpPost("{projectId}")]
         [RequirePermission("Attendance", "Mark")]
         public async Task<IActionResult> Save(int projectId, [FromBody] MarkAttendanceDto dto)

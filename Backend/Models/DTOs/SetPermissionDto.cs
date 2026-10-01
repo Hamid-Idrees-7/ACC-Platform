@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when the admin toggles a permission (data coming IN)
+    // Sent when the admin turns a permission on or off.
     public class SetPermissionDto
     {
         [Required]

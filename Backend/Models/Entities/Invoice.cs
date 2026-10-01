@@ -3,14 +3,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // A client invoice for a project. The client is billed toward the project's agreed
-    // budget (the price), NOT the company's costs — profit lives in the budget-vs-cost gap.
+    // A client invoice for a project. The client is billed against the project's agreed budget
+    // (the price), not the company's costs. Profit is the gap between budget and cost.
     public class Invoice
     {
         [Key]
         public int InvoiceID { get; set; }
 
-        // Auto-generated with the prefix from Settings > Company, eg INV-0001
+        // Built from the prefix in Settings > Company, eg INV-0001
         [Required]
         [MaxLength(20)]
         public string InvoiceNumber { get; set; } = string.Empty;

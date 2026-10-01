@@ -2,7 +2,7 @@
 
 namespace Backend.Models.Entities
 {
-    // Represents an employee in the system (maps to the "Employees" table)
+    // A company employee (Employees table).
     public class Employee
     {
         [Key]
@@ -31,15 +31,14 @@ namespace Backend.Models.Entities
         [MaxLength(50)]
         public string? City { get; set; }
 
-        // Designation - required, entered by admin (flexible, not hardcoded)
+        // Free text entered by the admin, not a fixed list
         [Required]
         [MaxLength(50)]
         public string Designation { get; set; } = string.Empty;
 
-        // When the employee joined - optional
         public DateTime? JoiningDate { get; set; }
 
-        // Status: "Active" or "Inactive" - defaults to Active
+        // Active or Inactive
         [Required]
         [MaxLength(20)]
         public string Status { get; set; } = "Active";

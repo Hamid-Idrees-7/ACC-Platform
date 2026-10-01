@@ -1,6 +1,6 @@
-// Invoice pdf, drawn from the same data as the invoice page 
+// Invoice PDF, built from the same data as the invoice page.
 
-import { money, formatQty, amountInWords } from "../format";
+import { money, formatQty, amountInWords, formatPhone } from "../format";
 import { formatDateShort } from "../dates";
 import { C, baseDocument, letterhead, statusPill, tableLayout, titledTable, totalsTable, signatures, downloadPdf, pdfReadyCompany } from "./pdfEngine";
 
@@ -48,7 +48,7 @@ export function buildInvoiceDoc(inv) {
 
     {
       columns: [
-        party("BILL TO", [inv.clientName, inv.clientPhone, inv.clientAddress]),
+        party("BILL TO", [inv.clientName, formatPhone(inv.clientPhone), inv.clientAddress]),
         party("PROJECT", [inv.projectTitle, inv.projectLocation]),
         {
           width: 120,

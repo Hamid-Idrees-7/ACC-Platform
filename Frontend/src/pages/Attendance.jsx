@@ -4,6 +4,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import { attendanceService } from "../services/attendanceService";
 import "./Attendance.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonCards } from "../components/Skeleton";
 
 // Groups are shown in this order; each has its own accent colour.
 const STATUS_GROUPS = [
@@ -12,8 +13,6 @@ const STATUS_GROUPS = [
   { key: "Completed", cls: "done" },
   { key: "Cancelled", cls: "cancel" },
 ];
-
-const slug = (s) => (s || "").toLowerCase().replace(/[\s/]+/g, "");
 
 function Attendance() {
   const navigate = useNavigate();
@@ -57,7 +56,7 @@ function Attendance() {
   return (
     <DashboardLayout title="Attendance">
       {loading ? (
-        <div className="att-empty"><div className="att-spinner" /><p>Loading projects...</p></div>
+        <SkeletonCards count={6} />
       ) : error ? (
         <div className="att-error">{error}</div>
       ) : cards.length === 0 ? (

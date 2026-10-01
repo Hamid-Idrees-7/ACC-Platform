@@ -1,6 +1,6 @@
-/* ABOUT PAGE */
+/* About page */
 
-/* PAGE HERO */
+/* Page hero */
 .about-hero {
     position: relative;
     padding: 140px 40px 90px;
@@ -34,7 +34,7 @@
     line-height: 1.7;
 }
 
-/* OUR STORY */
+/* Our story */
 .about-story-section {
     padding: var(--section-padding);
     background: var(--white);
@@ -104,7 +104,7 @@
 }
 .about-story-content strong { color: var(--charcoal); }
 
-/* MISSION & VISION */
+/* Mission and vision */
 .about-mv-section {
     padding: 0 40px var(--section-padding-bottom, 100px);
     background: var(--white);
@@ -147,7 +147,7 @@
     font-size: 15px;
 }
 
-/* TIMELINE */
+/* Timeline */
 .about-timeline-section {
     padding: var(--section-padding);
     background: var(--cream);
@@ -213,7 +213,7 @@
 .timeline-item.left .timeline-dot { right: -8px; }
 .timeline-item.right .timeline-dot { left: -8px; }
 
-/* STATS */
+/* Stats */
 .about-stats-section {
     padding: 80px 40px;
     background: linear-gradient(135deg, var(--charcoal) 0%, var(--dark-brown) 100%);
@@ -250,37 +250,14 @@
     letter-spacing: 0.5px;
 }
 
-/* CTA */
-.about-cta-section {
-    padding: 90px 40px;
-    background: var(--white);
-    text-align: center;
-}
-.about-cta-content {
-    max-width: 640px;
-    margin: 0 auto;
-}
-.about-cta-content h2 {
-    color: var(--charcoal);
-    font-size: clamp(1.7rem, 4vw, 2.5rem);
-    margin-bottom: 16px;
-    letter-spacing: -0.5px;
-}
-.about-cta-content p {
-    color: var(--gray);
-    font-size: 1.1rem;
-    line-height: 1.7;
-    margin-bottom: 32px;
-}
-
-/* RESPONSIVE */
+/* Responsive */
 @media (max-width: 900px) {
     .about-story-grid { grid-template-columns: 1fr; gap: 40px; }
     .about-story-visual { height: 360px; }
     .about-mv-grid { grid-template-columns: 1fr; }
     .about-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 40px 20px; }
 
-    /* Timeline becomes single column on mobile */
+    /* The timeline turns into one column on small screens */
     .timeline::before { left: 20px; }
     .timeline-item { width: 100%; padding-left: 56px; padding-right: 0; text-align: left !important; left: 0 !important; }
     .timeline-item .timeline-dot { left: 12px !important; right: auto !important; }
@@ -289,13 +266,13 @@
     .about-stats-grid { grid-template-columns: 1fr; }
 }
 
-/* TEAM SECTION */
+/* Team */
 .about-team-section {
     padding: var(--section-padding);
     background: var(--white);
 }
 
-/* Founder - featured bigger */
+/* Founder: a bigger featured card */
 .team-founder {
     max-width: 900px;
     margin: 0 auto 50px;
@@ -349,12 +326,6 @@
     line-height: 1.7;
     font-size: 14.5px;
 }
-.team-initials {
-    font-family: 'Poppins', sans-serif;
-    font-size: 3.5rem;
-    font-weight: 800;
-    color: var(--white);
-}
 
 /* Team cards */
 .team-grid {
@@ -394,7 +365,7 @@
     position: relative;
     overflow: hidden;
 }
-.team-card-photo .team-initials { font-size: 3rem; position: relative; z-index: 1; }
+
 .team-card-info { padding: 24px 20px; }
 .team-card-info h4 {
     color: var(--charcoal);
@@ -404,7 +375,7 @@
 .team-card-info .team-role { margin-bottom: 10px; font-size: 14px; }
 .team-card-info .team-desc { font-size: 13.5px; }
 
-/* CERTIFICATIONS */
+/* Certifications */
 .about-certs-section {
     padding: var(--section-padding);
     background: var(--cream);
@@ -453,12 +424,12 @@
     line-height: 1.5;
 }
 
-/* TESTIMONIALS */
+/* Testimonials */
 .about-testimonials-section {
     padding: var(--section-padding);
     background: var(--white);
 }
-/* SLIDER */
+/* Slider */
 .testimonials-slider {
     max-width: var(--container-width);
     margin: 0 auto;
@@ -507,7 +478,7 @@
     cursor: not-allowed;
 }
 
-/* DOTS */
+/* Slider dots */
 .testimonials-dots {
     display: flex;
     justify-content: center;
@@ -593,7 +564,7 @@
     font-size: 13px;
 }
 
-/* INTERACTIVE TIMELINE (hover highlight) */
+/* Timeline hover highlight */
 .timeline-content { transition: var(--transition); cursor: default; }
 .timeline-item:hover .timeline-content {
     transform: translateY(-4px);
@@ -606,7 +577,7 @@
 }
 .timeline-dot { transition: var(--transition); }
 
-/* RESPONSIVE for new sections */
+/* Responsive: team, certifications and testimonials */
 @media (max-width: 1024px) {
     .testimonials-track .testimonial-card { flex: 0 0 calc((100% - 26px) / 2); }
 }
@@ -623,8 +594,7 @@
     .certs-grid { grid-template-columns: 1fr; }
 }
 
-
-/* ARCHITECT - special wide card */
+/* Architect: a wide card */
 .team-architect {
     max-width: 960px;
     margin: 0 auto;

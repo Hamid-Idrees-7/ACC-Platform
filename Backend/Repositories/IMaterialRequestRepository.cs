@@ -6,7 +6,6 @@ namespace Backend.Repositories
     {
         Task<MaterialRequest> AddAsync(MaterialRequest request);
         Task<List<MaterialRequest>> GetAllAsync();
-        Task<List<MaterialRequest>> GetByProjectIdsAsync(List<int> projectIds);
         Task<List<MaterialRequest>> GetByUserAsync(int userId);
         Task<MaterialRequest?> GetByIdAsync(int id);
         Task UpdateAsync(MaterialRequest request);

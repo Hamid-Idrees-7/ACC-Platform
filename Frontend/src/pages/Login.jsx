@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { authService } from "../services/authService";
 import { demoService } from "../services/demoService";
 import { DEMO_NOTE_KEY, DEMO_STATUS_KEY, getDemoRole } from "../config/demoConfig";
 import { LOGIN_NOTE_KEY } from "../config/sessionConfig";
 import "./Home.css";
 import "./Login.css";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 // Last demo status seen by this browser, or an optimistic default (the demo is on in production).
 const readCachedDemoStatus = () => {
@@ -19,29 +20,26 @@ const readCachedDemoStatus = () => {
   return { enabled: true, available: true, sessionMinutes: 30 };
 };
 
-// "Remember me" keeps only the username on this device (never the password).
-const REMEMBER_KEY = "acc-remember-username";
-const readRemembered = () => {
-  try {
-    return localStorage.getItem(REMEMBER_KEY) || "";
-  } catch {
-    return "";
-  }
-};
-
 function Login() {
-  const [username, setUsername] = useState(readRemembered);
-  const [remember, setRemember] = useState(() => !!readRemembered());
+  usePageTitle("Sign in");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [shake, setShake] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
 
-  // Live demo ("Login as Visitor"). Rendered straight away from the last known status (or an
-  // optimistic default) so the page doesn't jump when the server's answer arrives.
+  // "Forgot password?" swaps the form for the reset link form.
+  const [mode, setMode] = useState("signin");
+  const [resetLogin, setResetLogin] = useState("");
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSent, setResetSent] = useState("");
+
+  // Live demo ("Login as Visitor"). Shown straight away from the last known status (or an
+  // optimistic default) so the page doesn't jump when the server answers.
   const [demoStatus, setDemoStatus] = useState(readCachedDemoStatus);   // { enabled, available, sessionMinutes }
   const [demoBusy, setDemoBusy] = useState(null);       // role key being started
   const [demoNote, setDemoNote] = useState(() => sessionStorage.getItem(DEMO_NOTE_KEY) || "");
@@ -65,7 +63,7 @@ function Login() {
         try {
           localStorage.setItem(DEMO_STATUS_KEY, JSON.stringify(status));
         } catch {
-          // Storage unavailable (private mode) - the optimistic default is used next time.
+          // Storage unavailable (private mode): the optimistic default is used next time.
         }
       })
       .catch(() => {});
@@ -115,20 +113,48 @@ function Login() {
     setSessionNote("");
 
     try {
-      const response = await api.post("/auth/login", { username, password });
-      try {
-        if (remember) localStorage.setItem(REMEMBER_KEY, username.trim());
-        else localStorage.removeItem(REMEMBER_KEY);
-      } catch {
-        // storage blocked: nothing to remember
-      }
-      login(response.data);
+      const data = await authService.login(username, password, keepSignedIn);
+      login(data, { keepSignedIn });
       setSuccess("Login successful. Redirecting to your dashboard...");
       setTimeout(() => navigate(afterLogin, { replace: true }), 800);
     } catch (err) {
       setError(err.response?.data?.message || "Invalid username or password. Please try again.");
       triggerShake();
       setLoading(false);
+    }
+  };
+
+  const openForgot = () => {
+    setResetLogin(username.trim());
+    setResetError("");
+    setResetSent("");
+    setError("");
+    setMode("forgot");
+  };
+
+  const backToSignIn = () => {
+    setMode("signin");
+    setResetError("");
+  };
+
+  const sendResetLink = async (e) => {
+    e.preventDefault();
+    if (!resetLogin.trim()) {
+      setResetError("Enter your username or email.");
+      triggerShake();
+      return;
+    }
+    setResetBusy(true);
+    setResetError("");
+    setResetSent("");
+    try {
+      const res = await authService.forgotPassword(resetLogin.trim());
+      setResetSent(res.message);
+    } catch (err) {
+      setResetError(err.response?.data?.message || "We couldn't send the link. Please try again.");
+      triggerShake();
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -140,7 +166,7 @@ function Login() {
   return (
     <section className="login-section login-page-full">
       <div className="login-wrapper">
-        {/* LEFT: Welcome side */}
+        {/* Left: welcome side */}
         <div className="login-left">
           <div className="login-left-content">
             <span className="login-tag">ACC ERP Portal</span>
@@ -181,205 +207,239 @@ function Login() {
           </div>
         </div>
 
-        {/* RIGHT: Form */}
+        {/* Right: form */}
         <div className="login-right">
-          <div className="login-form-header">
-            <h3>Sign In</h3>
-            <p>Use your assigned credentials to access the system</p>
-          </div>
-
-          <form className={shake ? "shake" : ""} onSubmit={handleSubmit}>
-            {error && (
-              <div className="login-msg-box login-msg-error" style={{ display: "flex" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span>{error}</span>
+          {mode === "forgot" ? (
+            <>
+              <div className="login-form-header">
+                <h3>Reset your password</h3>
+                <p>Enter your username or email. We'll email you a link to choose a new password.</p>
               </div>
-            )}
 
-            {success && (
-              <div className="login-msg-box login-msg-success" style={{ display: "flex" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span>{success}</span>
-              </div>
-            )}
-
-            {sessionNote && !error && !success && (
-              <div className="login-msg-box login-msg-info" role="status" style={{ display: "flex" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-                <span>{sessionNote}</span>
-              </div>
-            )}
-
-            {demoNote && !sessionNote && !error && !success && (
-              <div className="login-msg-box lgv-msg" style={{ display: "flex" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span>{demoNote}</span>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="username" className="form-label">Username</label>
-              <div className="form-input-wrapper">
-                <input
-                  type="text"
-                  id="username"
-                  className="form-input"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">Password</label>
-              <div className="password-wrapper">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  className="form-input"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-                <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-label="Show password">
-                  {showPassword ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
+              <form className={shake ? "shake" : ""} onSubmit={sendResetLink} noValidate>
+                {resetError && (
+                  <div className="login-msg-box login-msg-error" role="alert" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
+                    <span>{resetError}</span>
+                  </div>
+                )}
+
+                {resetSent && (
+                  <div className="login-msg-box login-msg-success" role="status" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>{resetSent}</span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label htmlFor="reset-login" className="form-label">Username or email</label>
+                  <div className="form-input-wrapper">
+                    <input
+                      type="text"
+                      id="reset-login"
+                      className="form-input"
+                      placeholder="Username or email"
+                      value={resetLogin}
+                      onChange={(e) => setResetLogin(e.target.value)}
+                      autoComplete="username"
+                      maxLength={100}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className={`btn-submit ${resetBusy ? "is-loading" : ""}`} disabled={resetBusy}>
+                  <span>{resetBusy ? "Sending..." : resetSent ? "Send again" : "Send reset link"}</span>
+                </button>
+
+                <p className="login-reset-note">
+                  Or contact administration.
+                </p>
+
+                <div className="login-footer">
+                  <button type="button" className="login-text-btn" onClick={backToSignIn}>← Back to sign in</button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="login-form-header">
+                <h3>Sign In</h3>
+                <p>Use your assigned credentials to access the system</p>
+              </div>
+
+              <form className={shake ? "shake" : ""} onSubmit={handleSubmit}>
+                {error && (
+                  <div className="login-msg-box login-msg-error" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="login-msg-box login-msg-success" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>{success}</span>
+                  </div>
+                )}
+
+                {sessionNote && !error && !success && (
+                  <div className="login-msg-box login-msg-info" role="status" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>{sessionNote}</span>
+                  </div>
+                )}
+
+                {demoNote && !sessionNote && !error && !success && (
+                  <div className="login-msg-box lgv-msg" style={{ display: "flex" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>{demoNote}</span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label htmlFor="username" className="form-label">Username</label>
+                  <div className="form-input-wrapper">
+                    <input
+                      type="text"
+                      id="username"
+                      className="form-input"
+                      placeholder="Enter your username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      autoComplete="username"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password" className="form-label">Password</label>
+                  <div className="password-wrapper">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      className="form-input"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-label="Show password">
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-options">
+                  <label className="remember-me">
+                    <input type="checkbox" checked={keepSignedIn} onChange={(e) => setKeepSignedIn(e.target.checked)} />
+                    <span>Remember me</span>
+                  </label>
+                  <button type="button" className="forgot-link" onClick={openForgot}>
+                    Forgot password?
+                  </button>
+                </div>
+
+                <button type="submit" className={`btn-submit ${loading ? "is-loading" : ""}`} disabled={loading || !!demoBusy}>
+                  <span>{loading ? "Signing in..." : "Sign in to dashboard"}</span>
+                  {!loading && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
                     </svg>
                   )}
                 </button>
-              </div>
-            </div>
 
-            <div className="form-options">
-              <label className="remember-me">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                <span>Remember my username</span>
-              </label>
-              <span className="forgot-link" onClick={() => setShowForgot(true)} style={{ cursor: "pointer" }}>
-                Forgot password?
-              </span>
-            </div>
+                {/* Live demo: explore without an account */}
+                {demoStatus?.enabled && (
+                  <div className="lgv">
+                    <div className="lgv-divider"><span>or explore the live demo</span></div>
 
-            <button type="submit" className={`btn-submit ${loading ? "is-loading" : ""}`} disabled={loading || !!demoBusy}>
-              <span>{loading ? "Signing in..." : "Sign in to dashboard"}</span>
-              {!loading && (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              )}
-            </button>
-
-            {/* LIVE DEMO: explore without an account */}
-            {demoStatus?.enabled && (
-              <div className="lgv">
-                <div className="lgv-divider"><span>or explore the live demo</span></div>
-
-                <button
-                  type="button"
-                  className={`lgv-main ${demoBusy ? "is-busy" : ""}`}
-                  onClick={() => startDemo("admin")}
-                  disabled={!!demoBusy || loading}
-                >
-                  <span className="lgv-main-icon">
-                    {demoBusy ? (
-                      <span className="lgv-spinner" />
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <polygon points="10 8 16 12 10 16 10 8" />
+                    <button
+                      type="button"
+                      className={`lgv-main ${demoBusy ? "is-busy" : ""}`}
+                      onClick={() => startDemo("admin")}
+                      disabled={!!demoBusy || loading}
+                    >
+                      <span className="lgv-main-icon">
+                        {demoBusy ? (
+                          <span className="lgv-spinner" />
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polygon points="10 8 16 12 10 16 10 8" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="lgv-main-text">
+                        <strong>{demoBusy ? `Preparing ${getDemoRole(demoBusy).label} demo...` : "Login as Visitor"}</strong>
+                        <small>Full admin view · sample company data · no sign-up</small>
+                      </span>
+                      <svg className="lgv-main-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
                       </svg>
-                    )}
-                  </span>
-                  <span className="lgv-main-text">
-                    <strong>{demoBusy ? `Preparing ${getDemoRole(demoBusy).label} demo...` : "Login as Visitor"}</strong>
-                    <small>Full admin view · sample company data · no sign-up</small>
-                  </span>
-                  <svg className="lgv-main-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
+                    </button>
 
-                <div className="lgv-alt">
-                  <span>or try as</span>
-                  <button type="button" onClick={() => startDemo("manager")} disabled={!!demoBusy || loading}>Manager</button>
-                  <span className="lgv-sep" aria-hidden="true">·</span>
-                  <button type="button" onClick={() => startDemo("engineer")} disabled={!!demoBusy || loading}>Site Engineer</button>
+                    <div className="lgv-alt">
+                      <span>or try as</span>
+                      <button type="button" onClick={() => startDemo("manager")} disabled={!!demoBusy || loading}>Manager</button>
+                      <span className="lgv-sep" aria-hidden="true">·</span>
+                      <button type="button" onClick={() => startDemo("engineer")} disabled={!!demoBusy || loading}>Site Engineer</button>
+                    </div>
+
+                    <p className={`lgv-note ${demoStatus.available ? "" : "is-full"}`}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                      {demoStatus.available
+                        ? `Private to you · resets after ${demoStatus.sessionMinutes} minutes`
+                        : "All demo seats are busy right now. Please try again in a few minutes."}
+                    </p>
+                  </div>
+                )}
+
+                <div className="login-footer">
+                  <Link to="/">← Back to website</Link>
                 </div>
-
-                <p className={`lgv-note ${demoStatus.available ? "" : "is-full"}`}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  {demoStatus.available
-                    ? `Private to you · resets after ${demoStatus.sessionMinutes} minutes`
-                    : "All demo seats are busy right now. Please try again in a few minutes."}
-                </p>
-              </div>
-            )}
-
-            <div className="login-footer">
-              <Link to="/">← Back to website</Link>
-            </div>
-          </form>
+              </form>
+            </>
+          )}
         </div>
       </div>
 
-      {/* FORGOT PASSWORD MODAL */}
-      {showForgot && (
-        <div className="forgot-modal show" onClick={(e) => e.target.classList.contains("forgot-modal") && setShowForgot(false)}>
-          <div className="forgot-modal-box">
-            <button type="button" className="forgot-modal-close" onClick={() => setShowForgot(false)} aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-            <div className="forgot-modal-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-            </div>
-            <h3>Forgot your password?</h3>
-            <p>
-              For security, password resets are handled by your administrator. Please
-              contact your system administrator to have your password reset.
-            </p>
-            <div className="forgot-contact">
-              <strong>System Administrator</strong>
-              admin@acc.com.pk
-            </div>
-            <button type="button" className="btn-submit" onClick={() => setShowForgot(false)}>Got it</button>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

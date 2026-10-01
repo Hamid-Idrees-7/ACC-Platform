@@ -1,6 +1,6 @@
 namespace Backend.Models.DTOs
 {
-    // Engineer raising a request (data IN). ProjectID comes from the route.
+    // An engineer raising a request. ProjectID comes from the route.
     public class CreateMaterialRequestDto
     {
         public int MaterialID { get; set; }
@@ -9,13 +9,13 @@ namespace Backend.Models.DTOs
         public string? Note { get; set; }
     }
 
-    // Admin resolving (reject reason / approve note).
+    // Admin resolving a request (reject reason or approve note).
     public class ResolveRequestDto
     {
         public string? Note { get; set; }
     }
 
-    // A material request with all display names resolved (data OUT).
+    // A material request with all display names filled in.
     public class MaterialRequestDto
     {
         public int RequestID { get; set; }
@@ -36,7 +36,7 @@ namespace Backend.Models.DTOs
         public DateTime? ResolvedAt { get; set; }
     }
 
-    // What the engineer's request form needs: pickable materials + this project's phases.
+    // What the engineer's request form needs: the materials to pick from and this project's phases.
     public class FieldRequestOptionsDto
     {
         public List<MaterialDto> Materials { get; set; } = new();

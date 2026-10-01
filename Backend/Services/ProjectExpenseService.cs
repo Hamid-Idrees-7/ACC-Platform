@@ -7,7 +7,7 @@ namespace Backend.Services
     // Business rules for project expenses (plot fees, transfer fees, taxes, possession charges...).
     public class ProjectExpenseService : IProjectExpenseService
     {
-        // Upper sanity limit for one expense (10 billion) — catches typing mistakes like extra zeros.
+        // Highest amount for one expense (10 billion), to catch typing mistakes like extra zeros.
         private const decimal MaxAmount = 10_000_000_000m;
 
         private readonly IProjectExpenseRepository _repository;

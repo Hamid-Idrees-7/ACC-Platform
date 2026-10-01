@@ -3,17 +3,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Data
 {
-    // The database context - the main bridge between our C# code and the SQL Server database.
-    // EF Core uses this class to know which tables exist and to run all queries.
+    // EF Core context for the SQL Server database: the tables and how they relate.
     public class AppDbContext : DbContext
     {
-        // Constructor - receives database configuration (like the connection string) from Program.cs
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
 
-        // Each DbSet represents a table in the database.
-        // Clients is the table name; it holds records of type Client.
         public DbSet<Client> Clients { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Employee> Employees { get; set; }
@@ -39,11 +35,12 @@ namespace Backend.Data
 
         // Every sign-in attempt; successful ones are also the sessions behind the tokens.
         public DbSet<LoginActivity> LoginActivities { get; set; }
+        public DbSet<PasswordReset> PasswordResets { get; set; }
 
         public DbSet<Alert> Alerts { get; set; }
         public DbSet<AlertRule> AlertRules { get; set; }
 
-        // Registry of isolated visitor demo databases (only ever filled in the main database).
+        // Visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -90,6 +87,14 @@ namespace Backend.Data
             modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.UserID, a.CreatedAt });
             modelBuilder.Entity<LoginActivity>().HasIndex(a => new { a.Username, a.IpAddress, a.CreatedAt });
             modelBuilder.Entity<LoginActivity>().HasIndex(a => a.CreatedAt);
+
+            modelBuilder.Entity<PasswordReset>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(r => r.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<PasswordReset>().HasIndex(r => r.CodeHash).IsUnique();
+            modelBuilder.Entity<PasswordReset>().HasIndex(r => new { r.UserID, r.CreatedAt });
 
             modelBuilder.Entity<Alert>()
                 .HasIndex(a => a.Key)

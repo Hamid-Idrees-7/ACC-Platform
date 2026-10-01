@@ -2,7 +2,7 @@ import api from "./api";
 
 // Project expenses: plot fees, transfer fees, taxes, possession charges and other one-off costs
 export const projectExpenseService = {
-  // All expenses of a project with server-computed totals, categories and phases
+  // All expenses of a project, with totals worked out on the server, categories and phases
   getForProject: async (projectId) => {
     const response = await api.get(`/expenses/project/${projectId}`);
     return response.data;

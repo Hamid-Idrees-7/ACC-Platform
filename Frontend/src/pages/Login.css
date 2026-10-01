@@ -11,7 +11,7 @@
   width: 100%;
 }
 
-/* LIVE DEMO - Login as Visitor */
+/* Live demo: log in as a visitor */
 
 .lgv {
   margin-top: var(--space-lg);
@@ -149,14 +149,14 @@
 .lgv-note.is-full { color: var(--color-warning); }
 .lgv-note svg { flex-shrink: 0; }
 
-/* Thanks for exploring note at the top of the form after a demo ends */
+/* "Thanks for exploring" note at the top of the form after a demo ends */
 .lgv-msg {
   background: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
   color: color-mix(in srgb, var(--color-success) 75%, var(--color-text));
   border: 1px solid color-mix(in srgb, var(--color-success) 35%, var(--color-surface));
 }
 
-/* Why the user was signed out (inactivity, another device, password changed...) */
+/* Why the user was signed out (eg inactivity, another device, a changed password) */
 .login-msg-info {
   background: var(--color-info-soft);
   color: var(--color-info-strong);
@@ -171,3 +171,32 @@
   .lgv-main, .lgv-main-arrow { transition: none; }
   .lgv-main:hover:not(:disabled) { transform: none; }
 }
+
+.form-options .forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Forgot password form */
+.login-reset-note {
+  margin-top: var(--space-md);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.login-text-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-text-btn:hover { text-decoration: underline; }

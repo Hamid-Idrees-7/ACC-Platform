@@ -34,7 +34,7 @@ namespace Backend.Demo
             if (demoDatabase == null)
                 return _factory.MainConnectionString;
 
-            // A demo token must NEVER fall back to the main database: stop the request instead.
+            // A demo token must never fall back to the main database: stop the request instead.
             if (context.User.Identity?.IsAuthenticated != true || !DemoDbFactory.IsValidName(demoDatabase))
                 throw new UnauthorizedAccessException("Invalid demo session.");
 

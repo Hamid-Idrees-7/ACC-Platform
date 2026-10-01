@@ -1,4 +1,4 @@
-/* LIVE DEMO BAR */
+/* Live demo bar */
 
 .dmb {
   flex-shrink: 0;
@@ -50,7 +50,7 @@
   white-space: nowrap;
 }
 
-/*  Role switcher  */
+/* Role switcher */
 .dmb-roles {
   display: flex;
   align-items: center;
@@ -107,7 +107,7 @@
 }
 .dmb-seg-short { display: none; }
 
-/*  Timer + exit  */
+/* Timer and exit */
 .dmb-timer {
   display: inline-flex;
   align-items: center;
@@ -164,7 +164,7 @@
   50% { opacity: 0.55; }
 }
 
-/*  Responsive  */
+/* Responsive */
 @media (max-width: 1100px) {
   .dmb-text { display: none; }
 }

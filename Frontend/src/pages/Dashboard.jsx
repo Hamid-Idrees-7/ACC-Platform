@@ -32,7 +32,7 @@ function Dashboard() {
   const showMessages = isAdmin || canView("Messages");
   const showReports = isAdmin || canView("Reports");
   const showAI = isAdmin || canView("AI");
-  const showControlUnit = isAdmin; // Admin-only
+  const showControlUnit = isAdmin;
   const showApprovals = isAdmin || canView("Approvals");
   const showMatRequests = isAdmin || can("MaterialRequests", "View");
 
@@ -42,7 +42,7 @@ function Dashboard() {
   useLiveRefresh(["messages", "approvals", "material-requests", "users", "employees", "projects", "billing"], () => setLiveTick((t) => t + 1));
 
   useEffect(() => {
-    if (!showMessages) { setLoadingQueries(false); return; }
+    if (!showMessages) return;
     const load = async () => {
       try {
         const data = await inquiryService.getAll();
@@ -56,7 +56,6 @@ function Dashboard() {
     load();
   }, [showMessages, liveTick]);
 
-  // Load pending approval count (Admin only)
   useEffect(() => {
     if (!showApprovals) return;
     const loadCount = async () => {
@@ -70,7 +69,6 @@ function Dashboard() {
     loadCount();
   }, [showApprovals, liveTick]);
 
-  // Load pending material-request count
   useEffect(() => {
     if (!showMatRequests) return;
     (async () => {
@@ -82,26 +80,25 @@ function Dashboard() {
     })();
   }, [showMatRequests, liveTick]);
 
-  // Load the top stat cards (Admin only). Active users/employees/projects + total revenue
-  // (money actually received from clients). Each source is loaded independently so one
-  // failing endpoint doesn't blank the others.
+  // Top stat cards (admin only): active users, employees and projects, and revenue (money
+  // actually received from clients). Each source loads on its own, and one that fails keeps
+  // its last number instead of dropping to 0.
   useEffect(() => {
     if (!isAdmin) return;
     const load = async () => {
       const [users, employees, projects, billing] = await Promise.all([
-        userService.getAll().catch(() => []),
-        employeeService.getAll().catch(() => []),
-        projectService.getAll().catch(() => []),
+        userService.getAll().catch(() => null),
+        employeeService.getAll().catch(() => null),
+        projectService.getAll().catch(() => null),
         billingService.getOverview().catch(() => null),
       ]);
-      const revenue = (billing?.projects || []).reduce((sum, p) => sum + (p.received || 0), 0);
-      setMetrics({
-        users: users.filter((u) => u.isActive).length,
-        employees: employees.filter((e) => e.status === "Active").length,
-        projects: projects.filter((p) => p.status === "In Progress").length,
-        revenue,
-        loaded: true,
-      });
+      setMetrics((prev) => ({
+        users: users ? users.filter((u) => u.isActive).length : prev.users,
+        employees: employees ? employees.filter((e) => e.status === "Active").length : prev.employees,
+        projects: projects ? projects.filter((p) => p.status === "In Progress").length : prev.projects,
+        revenue: billing ? (billing.projects || []).reduce((sum, p) => sum + (p.received || 0), 0) : prev.revenue,
+        loaded: prev.loaded || !!(users || employees || projects || billing),
+      }));
     };
     load();
   }, [isAdmin, liveTick]);
@@ -127,13 +124,11 @@ function Dashboard() {
 
   return (
     <DashboardLayout title="Dashboard">
-      {/* Welcome banner */}
       <div className="dash-welcome">
         <h2>Welcome, <span>{firstName}</span></h2>
         <p>Here's what's happening with {company.companyName} today.</p>
       </div>
 
-      {/* Stat cards - Admin only */}
       {isAdmin && (
         <div className="dash-stats">
           {stats.map((s) => (
@@ -150,7 +145,6 @@ function Dashboard() {
       {/* Action grid: only the cards this user may see */}
       {anyCard ? (
         <div className="dash-grid">
-          {/* Messages */}
           {showMessages && (
             <button className="dash-mod-card" onClick={() => navigate("/dashboard/queries")}>
               <div className="dash-mod-top">
@@ -164,7 +158,6 @@ function Dashboard() {
             </button>
           )}
 
-          {/* Control Unit - Admin only */}
           {showControlUnit && (
             <button className="dash-mod-card" onClick={() => navigate("/dashboard/control-unit")}>
               <div className="dash-mod-top">
@@ -177,7 +170,7 @@ function Dashboard() {
             </button>
           )}
 
-          {/* AI card - special, spans both rows */}
+          {/* AI card spans both rows */}
           {showAI && (
             <button className="dash-ai-card" onClick={() => navigate("/dashboard/ai")}>
               <div className="dash-ai-glow" />
@@ -194,7 +187,6 @@ function Dashboard() {
             </button>
           )}
 
-          {/* Approvals - Admin only */}
           {showApprovals && (
             <button className="dash-mod-card" onClick={() => navigate("/dashboard/approvals")}>
               <div className="dash-mod-top">
@@ -208,7 +200,7 @@ function Dashboard() {
             </button>
           )}
 
-          {/* Material Requests (from the field) */}
+          {/* Material requests from the field */}
           {showMatRequests && (
             <button className="dash-mod-card" onClick={() => navigate("/dashboard/material-requests")}>
               <div className="dash-mod-top">
@@ -222,7 +214,6 @@ function Dashboard() {
             </button>
           )}
 
-          {/* Reports */}
           {showReports && (
             <button className="dash-mod-card" onClick={() => navigate("/dashboard/reports")}>
               <div className="dash-mod-top">

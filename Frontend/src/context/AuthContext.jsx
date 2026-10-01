@@ -2,16 +2,17 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import api from "../services/api";
 import { tokenExpiresAt } from "../utils/token";
 import { DEMO_NOTE_KEY } from "../config/demoConfig";
-import { LOGIN_NOTE_KEY, SIGNOUT_NOTE_KEY, ACTIVITY_KEY } from "../config/sessionConfig";
+import {
+  LOGIN_NOTE_KEY, SIGNOUT_NOTE_KEY, ACTIVITY_KEY, TAB_KEY, TAB_ALIVE_KEY, TAB_ALIVE_EVERY_MS, TAB_ALIVE_MS,
+} from "../config/sessionConfig";
 import { ALERT_BASELINE_KEY } from "../config/notificationConfig";
 
-// Create the context (the shared "notice board")
 const AuthContext = createContext();
 
 // Demo role transition timing: the role card stays up at least this long,
 // then fades out while the new dashboard fades in (1.5s in total).
-const TRANSITION_MIN_MS = 700;                                                       // card kitni der dikhe
-const TRANSITION_OUT_MS = 300;                                                       // card kitni der me gayab ho
+const TRANSITION_MIN_MS = 700;                                                       // shortest time the card stays up
+const TRANSITION_OUT_MS = 300;                                                       // how long the card takes to fade out
 
 // A message for the sign-in page (shown once, in this tab).
 const leaveNote = (note, demo) => {
@@ -22,10 +23,63 @@ const leaveNote = (note, demo) => {
   }
 };
 
-// Provider component - wraps the app and gives login state to all pages
+// True for the first tab opened after the browser was closed (no other tab is open).
+const isFirstTab = () => {
+  try {
+    if (sessionStorage.getItem(TAB_KEY)) return false;
+    const lastBeat = Number(localStorage.getItem(TAB_ALIVE_KEY)) || 0;
+    return Date.now() - lastBeat > TAB_ALIVE_MS;
+  } catch {
+    return false;
+  }
+};
+
+const markTabAlive = () => {
+  try {
+    sessionStorage.setItem(TAB_KEY, "1");
+    localStorage.setItem(TAB_ALIVE_KEY, String(Date.now()));
+  } catch {
+    // storage blocked
+  }
+};
+
+// The saved sign-in, read once when the app starts.
+// A token that has already expired is cleared straight away, with a note for the sign-in page.
+// If the browser was closed since the last visit: without "Remember me" that ends the
+// sign-in; with it, the inactivity timer starts again from now.
+let startupUser;
+const readSavedUser = () => {
+  if (startupUser !== undefined) return startupUser;
+  const firstTab = isFirstTab();
+  markTabAlive();
+  startupUser = null;
+  try {
+    const stored = JSON.parse(localStorage.getItem("user") || "null");
+    const token = localStorage.getItem("token");
+    const expiresAt = tokenExpiresAt(token);
+    if (stored && token && expiresAt && expiresAt <= Date.now()) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      leaveNote(stored.demo ? "Your demo session has ended. Thanks for exploring ACC!" : "Your session has expired. Please sign in again.", !!stored.demo);
+    } else if (stored && token && firstTab && !stored.demo && !stored.keepSignedIn) {
+      api.post("/auth/logout", { reason: null }, { timeout: 8000, headers: { Authorization: `Bearer ${token}` } })
+        .catch(() => {});
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      leaveNote("Session ended. Use \"Remember me\" to stay logged in.", false);
+    } else if (stored) {
+      if (firstTab && stored.keepSignedIn) localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+      startupUser = stored;
+    }
+  } catch {
+    localStorage.removeItem("user");
+  }
+  return startupUser;
+};
+
+// Wraps the app and gives every page the sign-in state.
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(readSavedUser);
   // Where a dashboard page goes after signing out: the home page after Logout, otherwise
   // (null) the sign-in page. Set in the same update as the user, so it is never too late.
   const [exitTo, setExitTo] = useState(null);
@@ -33,24 +87,15 @@ export function AuthProvider({ children }) {
   // Live demo role-change transition: { role, title, phase: in | out } or null
   const [demoTransition, setDemoTransition] = useState(null);
 
-  // On app load, check if a user is already logged in (from localStorage).
-  // A token that has already expired is cleared straight away, with a note for the sign-in page.
+  // Heartbeat so a new tab knows the browser is still open.
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("user") || "null");
-      const token = localStorage.getItem("token");
-      const expiresAt = tokenExpiresAt(token);
-      if (stored && token && expiresAt && expiresAt <= Date.now()) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        leaveNote(stored.demo ? "Your demo session has ended. Thanks for exploring ACC!" : "Your session has expired. Please sign in again.", !!stored.demo);
-      } else if (stored) {
-        setUser(stored);
-      }
-    } catch {
-      localStorage.removeItem("user");
-    }
-    setLoading(false);
+    const timer = setInterval(markTabAlive, TAB_ALIVE_EVERY_MS);
+    const onVisible = () => { if (document.visibilityState === "visible") markTabAlive(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   // Other open tabs: signing out (or in) there applies here too.
@@ -77,8 +122,9 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Called after a successful login - save token and user info
-  const login = (authData) => {
+  // After a successful sign-in: saves the token and the user info.
+  // keepSignedIn: the sign-in survives closing the browser (30 days).
+  const login = (authData, { keepSignedIn = false } = {}) => {
     localStorage.setItem("token", authData.token);
     localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
     localStorage.removeItem(SIGNOUT_NOTE_KEY);
@@ -89,6 +135,7 @@ export function AuthProvider({ children }) {
       fullName: authData.fullName,
       role: authData.role,
       profilePicture: authData.profilePicture || null,
+      keepSignedIn: !authData.isDemo && keepSignedIn,
       // Demo visitors carry their demo role and the moment their session ends.
       demo: authData.isDemo
         ? {
@@ -103,7 +150,7 @@ export function AuthProvider({ children }) {
     setUser(userInfo);
   };
 
-  // Update user info only (keeps the token untouched)
+  // Updates the user info only; the token stays as it is.
   const updateUser = (updatedFields) => {
     setUser((prev) => {
       const merged = { ...prev, ...updatedFields };
@@ -112,7 +159,7 @@ export function AuthProvider({ children }) {
     });
   };
 
-  // Called on logout - clear everything (this browser only).
+  // Signs out in this browser only and clears everything.
   // to: the page to show next ("/" after Logout); the sign-in page when left out.
   const logout = useCallback((to = null) => {
     localStorage.removeItem("token");
@@ -159,14 +206,13 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, logout, signOut, exitTo, updateUser, loading, demoTransition, runDemoTransition }}
+      value={{ user, login, logout, signOut, exitTo, updateUser, demoTransition, runDemoTransition }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Custom hook - lets any page easily use the auth context
 export function useAuth() {
   return useContext(AuthContext);
 }

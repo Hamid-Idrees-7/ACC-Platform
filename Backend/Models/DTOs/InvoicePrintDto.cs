@@ -18,7 +18,6 @@ namespace Backend.Models.DTOs
         public string? ClientPhone { get; set; }
         public string? ClientAddress { get; set; }
 
-        // Project
         public string ProjectTitle { get; set; } = string.Empty;
         public string ProjectLocation { get; set; } = string.Empty;
 

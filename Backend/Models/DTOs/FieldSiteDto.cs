@@ -1,8 +1,8 @@
 namespace Backend.Models.DTOs
 {
-    // The Site Engineers my Site view — who they are + the projects they are
-    // assigned to, each with today's attendance snapshot. Scoped server-side to the
-    // logged-in user's linked employee, so an engineer only ever sees their own sites.
+    // The site engineer's My Site view: who they are and the projects they are
+    // assigned to, each with today's attendance. The server limits it to the
+    // logged-in user's linked employee, so an engineer only sees their own sites.
     public class FieldSiteDto
     {
         public string EmployeeName { get; set; } = string.Empty;

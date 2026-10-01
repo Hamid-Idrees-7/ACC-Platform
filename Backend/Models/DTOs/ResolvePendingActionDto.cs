@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when an admin approves or rejects a pending action
+    // Sent when an admin approves or rejects a pending action.
     public class ResolvePendingActionDto
     {
         // Approved or rejected

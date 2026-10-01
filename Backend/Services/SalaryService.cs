@@ -69,13 +69,13 @@ namespace Backend.Services
 
                 var lines = new List<SalaryLineDto>();
 
-                // Monthly — one line per employee (company payroll, not project-specific).
+                // Monthly: one line per employee (company payroll, not tied to a project).
                 var monthly = grp.Where(a => a.WageType == "Monthly")
                     .OrderByDescending(a => a.StartDate).FirstOrDefault();
                 if (monthly != null && allProjects)
                     lines.Add(BuildLine("Monthly", null, null, "", monthly.WageAmount, 0, 0, monthly.WageAmount, payments, grp.Key));
 
-                // Daily — per assignment, present days in the month × rate.
+                // Daily: per assignment, present days in the month x rate.
                 foreach (var a in grp.Where(a => a.WageType == "Daily"))
                 {
                     if (!allProjects && a.ProjectID != projectId) continue;
@@ -86,7 +86,7 @@ namespace Backend.Services
                         projectNames.GetValueOrDefault(a.ProjectID, "—"), a.WageAmount, present, absent, present * a.WageAmount, payments, grp.Key));
                 }
 
-                // Contract — a fixed sum, shown in the month the assignment starts.
+                // Contract: a fixed sum, shown in the month the assignment starts.
                 foreach (var a in grp.Where(a => a.WageType == "Contract" && a.StartDate.Year == year && a.StartDate.Month == month))
                 {
                     if (!allProjects && a.ProjectID != projectId) continue;
@@ -124,10 +124,10 @@ namespace Backend.Services
 
         public async Task<SalaryPeriodDto> PayAsync(PaySalaryDto dto, int userId)
         {
-            // Recompute the calculated amount on the server — never trust the client's number.
+            // Work the amount out again on the server; never trust the client's number.
             decimal calculated = await ComputeCalculatedAsync(dto);
 
-            // One payment per line — ignore a duplicate pay for an already-paid line.
+            // One payment per line: a second pay for a paid line is ignored.
             var existing = (await _salaryRepository.GetForPeriodAsync(dto.Year, dto.Month))
                 .FirstOrDefault(p => p.EmployeeID == dto.EmployeeID && p.SourceType == dto.SourceType && p.AssignmentID == dto.AssignmentID);
 

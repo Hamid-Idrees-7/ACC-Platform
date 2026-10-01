@@ -8,7 +8,7 @@ namespace Backend.Services
     {
         private readonly IInquiryRepository _repository;
 
-        // Spam protection settings
+        // Spam protection limits
         private const int RateLimitMinutes = 5;
         private const int MaxMessagesPerWindow = 3;
 
@@ -19,14 +19,13 @@ namespace Backend.Services
 
         public async Task<(bool Success, string Message)> SubmitInquiryAsync(CreateInquiryDto dto)
         {
-            // 1. Honeypot check - if the hidden Website field is filled, it's a bot
+            // Honeypot: only a bot fills in the hidden Website field.
             if (!string.IsNullOrWhiteSpace(dto.Website))
             {
-                // Silently reject - pretend success so the bot doesn't retry
+                // Pretend it worked so the bot doesn't try again.
                 return (true, "Thank you for your message.");
             }
 
-            // 2. Basic validation
             if (string.IsNullOrWhiteSpace(dto.Name) ||
                 string.IsNullOrWhiteSpace(dto.Phone) ||
                 string.IsNullOrWhiteSpace(dto.Message))
@@ -34,7 +33,7 @@ namespace Backend.Services
                 return (false, "Please fill in your name, phone, and message.");
             }
 
-            // 3. Rate limiting - block if too many messages from the same phone recently
+            // Block the phone number if it sent too many messages in the last few minutes.
             var since = DateTime.Now.AddMinutes(-RateLimitMinutes);
             var recentCount = await _repository.CountRecentByPhoneAsync(dto.Phone.Trim(), since);
             if (recentCount >= MaxMessagesPerWindow)
@@ -42,7 +41,6 @@ namespace Backend.Services
                 return (false, "You've sent several messages already. Please wait a little before sending more.");
             }
 
-            // 4. Save the inquiry
             var inquiry = new Inquiry
             {
                 Name = dto.Name.Trim(),
@@ -98,7 +96,6 @@ namespace Backend.Services
             return await _repository.GetUnreadCountAsync();
         }
 
-        // Convert entity to DTO
         private InquiryDto ToDto(Inquiry i)
         {
             return new InquiryDto

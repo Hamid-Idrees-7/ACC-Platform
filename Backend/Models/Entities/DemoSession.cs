@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Models.Entities
 {
-    // Registry entry for one isolated visitor database. Kept in the MAIN database and used to
-    // track each demo database through its lifecycle:
-    //   Preparing (being built for the ready pool) to Ready (waiting for a visitor)
-    //   Claimed (being built on demand for a visitor) to Active (in use) to Ended (dropped)
+    // One isolated demo database for a visitor. The row lives in the main database and
+    // follows the demo database through its lifecycle:
+    //   Preparing (built for the ready pool), then Ready (waiting for a visitor)
+    //   Claimed (built on demand for a visitor), then Active (in use), then Ended (dropped)
     [Index(nameof(DatabaseName), IsUnique = true)]
     public class DemoSession
     {
@@ -22,7 +22,7 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string Status { get; set; } = "Preparing";
 
-        // The role the visitor started with (admin / manager / engineer). Used for the owner's activity log only.
+        // The role the visitor started with (admin, manager or engineer). Only used for the owner's activity log.
         [MaxLength(20)]
         public string? StartRole { get; set; }
 

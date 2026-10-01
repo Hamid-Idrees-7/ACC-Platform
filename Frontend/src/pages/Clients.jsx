@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { clientService } from "../services/clientService";
@@ -6,6 +6,12 @@ import ClientFormModal from "../components/ClientFormModal";
 import "./Clients.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonCards } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { formatCnic, formatPhone, digitsMatch } from "../utils/format";
+import { useLoader } from "../hooks/useLoader";
 
 function Clients() {
   const { can } = usePermissions();
@@ -17,31 +23,27 @@ function Clients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Filters
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");    // All | External | Internal (via buttons)
-  const [statusFilter, setStatusFilter] = useState("All"); // All | Active | Inactive (via cards)
+  const [typeFilter, setTypeFilter] = useState("All");    // All | External | Internal (type buttons)
+  const [statusFilter, setStatusFilter] = useState("All"); // All | Active | Inactive (stat cards)
 
-  // Modals
   const [formModal, setFormModal] = useState(null); // { mode, data }
   const [detailClient, setDetailClient] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Toast
   const [toast, setToast] = useState(null);
   const showToast = (text, type = "success") => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadClients = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
     try {
       const data = await clientService.getAll();
-      // Newest first - clientID is reliable (auto-increment), so sort by it descending
+      // Newest first (IDs only go up).
       data.sort((a, b) => b.clientID - a.clientID);
       setClients(data);
     } catch {
@@ -52,18 +54,16 @@ function Clients() {
     }
   };
 
-  useEffect(() => { loadClients(); }, []);
+  useLoader(() => loadClients());
 
   useLiveRefresh(["clients"], () => loadClients({ quiet: true }));
 
-  // Stats (now Total / Active / Inactive)
   const stats = useMemo(() => ({
     total: clients.length,
     active: clients.filter((c) => c.status === "Active").length,
     inactive: clients.filter((c) => c.status === "Inactive").length,
   }), [clients]);
 
-  // Filtered + sorted (inactive always last)
   const filtered = useMemo(() => {
     let list = [...clients];
     if (typeFilter !== "All") list = list.filter((c) => c.clientType === typeFilter);
@@ -74,16 +74,19 @@ function Clients() {
         c.fullName?.toLowerCase().includes(q) ||
         c.phone?.includes(q) ||
         c.cnic?.includes(q) ||
-        c.email?.toLowerCase().includes(q)
+        c.email?.toLowerCase().includes(q) ||
+        digitsMatch(c.phone, q) ||
+        digitsMatch(c.secondaryPhone, q) ||
+        digitsMatch(c.cnic, q)
       );
     }
-    // Inactive to the bottom
+    // Inactive clients go last.
     list.sort((a, b) => (a.status === "Inactive" ? 1 : 0) - (b.status === "Inactive" ? 1 : 0));
     return list;
   }, [clients, typeFilter, statusFilter, search]);
-  useHighlight(loading ? null : `${filtered.length}:${search}:${typeFilter}:${statusFilter}`, () => { setSearch(""); setTypeFilter("All"); setStatusFilter("All"); });
+  const paging = usePagination(filtered, { resetKey: `${search}|${typeFilter}|${statusFilter}`, getId: (c) => c.clientID });
+  useHighlight(loading ? null : `${filtered.length}:${paging.page}:${search}:${typeFilter}:${statusFilter}`, () => { setSearch(""); setTypeFilter("All"); setStatusFilter("All"); });
 
-  // ---- Actions ----
   const handleSave = async (data) => {
     if (formModal.mode === "edit") {
       await clientService.update(formModal.data.clientID, data);
@@ -113,9 +116,9 @@ function Clients() {
       const res = await clientService.delete(id);
       setConfirmDelete(null);
       setDetailClient(null);
-      // If the backend queued an approval request instead of deleting
+      // The server may queue an approval request instead of deleting.
       if (res?.requiresApproval) {
-        // A duplicate request shows a neutral (grey) toast
+        // A request that is already pending shows a neutral (grey) toast.
         showToast(res.message || "Request sent to administration for approval.", res.alreadyPending ? "warn" : "success");
       } else {
         showToast("Client deleted.", "error");
@@ -129,7 +132,7 @@ function Clients() {
 
   const initials = (name) => (name || "C").charAt(0).toUpperCase();
 
-  // Stat cards now filter by STATUS (Total / Active / Inactive)
+  // Stat cards filter by status.
   const statCards = [
     { key: "All", label: "Total Clients", value: loading ? "" : stats.total, icon: "users" },
     { key: "Active", label: "Active", value: loading ? "" : stats.active, icon: "check" },
@@ -147,7 +150,7 @@ function Clients() {
 
   return (
     <DashboardLayout title="Client Management">
-      {/* Stat cards (clickable to filter by status: Total / Active / Inactive) */}
+      {/* Stat cards */}
       <div className="cl-stats">
         {statCards.map((s) => (
           <button
@@ -164,7 +167,7 @@ function Clients() {
         ))}
       </div>
 
-      {/* Toolbar: search + type filter (All / External / Internal) + add */}
+      {/* Toolbar: search, type filter and Add button */}
       <div className="cl-toolbar">
         <div className="cl-search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -189,7 +192,7 @@ function Clients() {
 
       {/* Cards grid */}
       {loading ? (
-        <div className="cl-empty"><div className="cl-spinner" /><p>Loading clients...</p></div>
+        <SkeletonCards count={6} />
       ) : filtered.length === 0 ? (
         <div className="cl-empty">
           <div className="cl-empty-icon">
@@ -199,48 +202,50 @@ function Clients() {
           <p>{clients.length === 0 ? "Add your first client to get started." : "Try adjusting your search or filters."}</p>
         </div>
       ) : (
-        <div className="cl-grid">
-          {filtered.map((c) => (
-            <div
-              key={c.clientID}
-              data-highlight={c.clientID}
-              className={`cl-card ${c.status === "Inactive" ? "inactive" : ""}`}
-              onClick={() => setDetailClient(c)}
-            >
-              {canEdit && (
-                <button
-                  className="cl-card-edit"
-                  onClick={(e) => { e.stopPropagation(); setFormModal({ mode: "edit", data: c }); }}
-                  aria-label="Edit"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                </button>
-              )}
-
-              <div className={`cl-card-avatar ${c.clientType === "Internal" ? "internal" : "external"}`}>{initials(c.fullName)}</div>
-              <h4 className="cl-card-name">{c.fullName}</h4>
-              <div className="cl-card-badges">
-                <span className={`cl-badge cl-badge-${c.clientType.toLowerCase()}`}>{c.clientType}</span>
-                {c.status === "Inactive" && <span className="cl-badge cl-badge-inactive">Inactive</span>}
-              </div>
-              <div className="cl-card-info">
-                <div className="cl-card-info-row">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
-                  {c.phone}
-                </div>
-                {c.city && (
-                  <div className="cl-card-info-row">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                    {c.city}
-                  </div>
+        <>
+          <div className="cl-grid">
+            {paging.pageItems.map((c) => (
+              <div
+                key={c.clientID}
+                data-highlight={c.clientID}
+                className={`cl-card ${c.status === "Inactive" ? "inactive" : ""}`}
+                onClick={() => setDetailClient(c)}
+              >
+                {canEdit && (
+                  <button
+                    className="cl-card-edit"
+                    onClick={(e) => { e.stopPropagation(); setFormModal({ mode: "edit", data: c }); }}
+                    aria-label="Edit"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  </button>
                 )}
+
+                <div className={`cl-card-avatar ${c.clientType === "Internal" ? "internal" : "external"}`}>{initials(c.fullName)}</div>
+                <h4 className="cl-card-name">{c.fullName}</h4>
+                <div className="cl-card-badges">
+                  <span className={`cl-badge cl-badge-${c.clientType.toLowerCase()}`}>{c.clientType}</span>
+                  {c.status === "Inactive" && <span className="cl-badge cl-badge-inactive">Inactive</span>}
+                </div>
+                <div className="cl-card-info">
+                  <div className="cl-card-info-row">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                    {formatPhone(c.phone)}
+                  </div>
+                  {c.city && (
+                    <div className="cl-card-info-row">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                      {c.city}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination {...paging} label="clients" />
+        </>
       )}
 
-      {/* Add/Edit form modal */}
       {formModal && (
         <ClientFormModal
           mode={formModal.mode}
@@ -252,9 +257,9 @@ function Clients() {
 
       {/* Detail modal */}
       {detailClient && (
-        <div className="cl-detail-overlay" onClick={(e) => e.target.classList.contains("cl-detail-overlay") && setDetailClient(null)}>
+        <ModalOverlay className="cl-detail-overlay" onClose={() => setDetailClient(null)}>
           <div className="cl-detail">
-            <button className="cl-detail-close" onClick={() => setDetailClient(null)} aria-label="Close">
+            <button className="cl-detail-close" data-close onClick={() => setDetailClient(null)} aria-label="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
 
@@ -268,9 +273,9 @@ function Clients() {
             </div>
 
             <div className="cl-detail-info">
-              <div className="cl-detail-row"><span>Phone</span><strong>{detailClient.phone}</strong></div>
-              {detailClient.secondaryPhone && <div className="cl-detail-row"><span>Secondary</span><strong>{detailClient.secondaryPhone}</strong></div>}
-              <div className="cl-detail-row"><span>CNIC</span><strong>{detailClient.cnic || "—"}</strong></div>
+              <div className="cl-detail-row"><span>Phone</span><strong>{formatPhone(detailClient.phone)}</strong></div>
+              {detailClient.secondaryPhone && <div className="cl-detail-row"><span>Secondary</span><strong>{formatPhone(detailClient.secondaryPhone)}</strong></div>}
+              <div className="cl-detail-row"><span>CNIC</span><strong>{formatCnic(detailClient.cnic) || "—"}</strong></div>
               {detailClient.email && <div className="cl-detail-row"><span>Email</span><strong>{detailClient.email}</strong></div>}
               {detailClient.city && <div className="cl-detail-row"><span>City</span><strong>{detailClient.city}</strong></div>}
               {detailClient.address && <div className="cl-detail-row"><span>Address</span><strong>{detailClient.address}</strong></div>}
@@ -298,12 +303,12 @@ function Clients() {
               </div>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete confirm */}
       {confirmDelete && (
-        <div className="cl-detail-overlay" onClick={(e) => e.target.classList.contains("cl-detail-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="cl-detail-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="cl-confirm">
             <div className="cl-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -311,14 +316,13 @@ function Clients() {
             <h3>Delete this client?</h3>
             <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
             <div className="cl-confirm-actions">
-              <button className="cl-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="cl-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="cl-confirm-delete" onClick={() => handleDelete(confirmDelete.clientID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`cl-toast cl-toast-${toast.type}`}>{toast.text}</div>
       )}

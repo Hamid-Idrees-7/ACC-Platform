@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const fieldService = {
-  // The logged-in engineer's own sites + todays attendance snapshot
+  // The signed-in engineer's own sites and today's attendance
   getMySite: async () => {
     const response = await api.get("/field/my-site");
     return response.data;
@@ -26,13 +26,13 @@ export const fieldService = {
     return response.data;
   },
 
-  // Update one phase's progress on my site. Returns the refreshed phase list
+  // Updates one phase's progress on my site and returns the new phase list.
   updateProgress: async (projectId, phaseID, progress) => {
     const response = await api.post(`/field/progress/${projectId}`, { phaseID, progress });
     return response.data;
   },
 
-  // Materials + phases to build a material request for my site.
+  // Materials and phases for the material request form of my site.
   getRequestOptions: async (projectId) => {
     const response = await api.get(`/field/request-options/${projectId}`);
     return response.data;
@@ -44,7 +44,7 @@ export const fieldService = {
     return response.data;
   },
 
-  // My own material requests + their status
+  // My own material requests and their status
   getMyRequests: async () => {
     const response = await api.get("/field/my-requests");
     return response.data;

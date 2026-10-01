@@ -1,4 +1,4 @@
-/* DASHBOARD LAYOUT  */
+/* Dashboard layout */
 
 /* Lock the whole layout to the viewport */
 .dash-layout {
@@ -13,7 +13,7 @@
     left: 0;
 }
 
-/* SIDEBAR */
+/* Sidebar */
 .dash-sidebar {
     width: 260px;
     flex-shrink: 0;
@@ -75,7 +75,7 @@
 .dash-nav::-webkit-scrollbar-track { background: transparent; }
 
 .dash-nav-section { margin-bottom: 16px; }
-.dash-nav-logout-section { margin-bottom: 0; margin-top: 0; }
+
 .dash-nav-title {
     font-size: 11px;
     font-weight: 700;
@@ -124,7 +124,7 @@
 .dash-nav-logout { color: var(--color-error); }
 .dash-nav-logout:hover { background: rgba(220,38,38,0.12); color: var(--color-error); }
 
-/* MAIN */
+/* Main */
 .dash-main {
     flex: 1;
     display: flex;
@@ -134,7 +134,7 @@
     overflow: hidden;
 }
 
-/* HEADER - fixed height, never scrolls */
+/* Header: fixed height, never scrolls */
 .dash-header {
     flex-shrink: 0;
     height: 76px;
@@ -310,49 +310,8 @@
 }
 .dash-profile-info strong { font-size: 14px; color: var(--color-text); font-weight: 600; }
 .dash-profile-info span { font-size: 12px; color: var(--color-text-muted); }
-.dash-profile-chevron { color: var(--color-text-muted); }
 
-.dash-profile-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 190px;
-    background: var(--color-surface);
-    border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-    border: 1px solid var(--color-border);
-    padding: 8px;
-    z-index: 100;
-    animation: dashMenuIn 0.15s ease;
-}
-@keyframes dashMenuIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.dash-profile-menu button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
-    background: none;
-    border: none;
-    border-radius: 9px;
-    color: var(--color-text);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    text-align: left;
-}
-.dash-profile-menu button:hover { background: var(--color-bg); }
-.dash-profile-menu button svg { width: 17px; height: 17px; color: var(--color-text-muted); }
-.dash-profile-logout { color: var(--color-error) !important; }
-.dash-profile-logout svg { color: var(--color-error) !important; }
-.dash-profile-logout:hover { background: var(--color-error-soft-hover) !important; }
-
-/* CONTENT - the ONLY scrollable area */
+/* Content: the only part that scrolls */
 .dash-content {
     flex: 1;
     overflow-y: auto;
@@ -387,7 +346,7 @@
     .dash-alerts-dot { animation: none; }
 }
 
-/* RESPONSIVE */
+/* Responsive */
 @media (max-width: 1024px) {
     .dash-sidebar { width: 230px; }
 }
@@ -432,4 +391,36 @@
     .dash-avatar, .dash-avatar-img { width: 36px; height: 36px; font-size: 14px; }
     .dash-content { padding: 16px 14px 24px; }
     .dash-sidebar { width: min(280px, 86vw); }
+}
+.dash-leave-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--color-overlay);
+}
+
+/* Notification count badge in the sidebar */
+.dash-nav-badge {
+    margin-left: auto;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+/* When the nav item is active, keep the badge readable */
+.dash-nav-item.active .dash-nav-badge {
+    background: var(--color-surface);
+    color: var(--color-primary);
 }

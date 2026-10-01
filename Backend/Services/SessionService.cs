@@ -18,7 +18,7 @@ namespace Backend.Services
             _tokenLifetime = TimeSpan.FromMinutes(double.TryParse(config["Jwt:ExpiryMinutes"], out var minutes) ? minutes : 120);
         }
 
-        // sign-in protection
+        // Sign-in protection
 
         // Wrong passwords that still count: the last 15 minutes, and only after the last
         // successful sign-in from the same place.
@@ -59,9 +59,9 @@ namespace Backend.Services
             });
         }
 
-        // sessions
+        // Sessions
 
-        public async Task<LoginActivity> StartAsync(User user, ClientInfo client)
+        public async Task<LoginActivity> StartAsync(User user, ClientInfo client, bool keepSignedIn)
         {
             var now = DateTime.UtcNow;
             var session = new LoginActivity
@@ -73,7 +73,8 @@ namespace Backend.Services
                 UserAgent = client.UserAgent,
                 CreatedAt = now,
                 LastSeenAt = now,
-                ExpiresAt = now + _tokenLifetime
+                ExpiresAt = now + (keepSignedIn ? SecurityOptions.KeepSignedInLength : _tokenLifetime),
+                KeepSignedIn = keepSignedIn
             };
             await _repository.AddAsync(session);
 
@@ -125,8 +126,8 @@ namespace Backend.Services
                 session.ExpiresAt == null || session.ExpiresAt <= now)
                 return null;
 
-            // Never past 12 hours from the sign-in.
-            var limit = session.CreatedAt + SecurityOptions.MaxSessionLength;
+            // Never past 12 hours from the sign-in (30 days with "Keep me signed in").
+            var limit = session.CreatedAt + (session.KeepSignedIn ? SecurityOptions.KeepSignedInLength : SecurityOptions.MaxSessionLength);
             var next = now + _tokenLifetime;
             if (next > limit) next = limit;
             if (next <= session.ExpiresAt.Value) return null;

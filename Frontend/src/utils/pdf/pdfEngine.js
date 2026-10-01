@@ -1,7 +1,7 @@
-// Shared pdf building blocks (invoice, payslip, reports).
-// pdfmake is loaded only when the first PDF is made, so it never slows down page loads
-// Every document is drawn from data (not a screenshot), so the text stays sharp and
-// can be selected and searched, and the paper is always white
+// Shared PDF building blocks for invoices, payslips and reports.
+// pdfmake is loaded only when the first PDF is made, so it never slows down page loads.
+// Documents are drawn from data, not screenshots, so the text stays sharp and
+// searchable, and the paper is always white.
 
 import { formatDateTime } from "../dates";
 
@@ -56,12 +56,6 @@ export const safeFileName = (name) =>
 export async function downloadPdf(docDefinition, fileName) {
   const pdfMake = await loadEngine();
   await pdfMake.createPdf(docDefinition).download(safeFileName(fileName));
-}
-
-// Only for tests and previews: the PDF as a Blob.
-export async function pdfBlob(docDefinition) {
-  const pdfMake = await loadEngine();
-  return pdfMake.createPdf(docDefinition).getBlob();
 }
 
 // Base document: A4, margins, font sizes and named styles shared by all PDFs.

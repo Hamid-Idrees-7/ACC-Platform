@@ -31,7 +31,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetAsync());
         }
 
-        // PUT: /api/calendar/weekly-off  - Admin only
+        // PUT: /api/calendar/weekly-off  = set the weekly off days (Admin only)
         [HttpPut("weekly-off")]
         [AdminOnly]
         public async Task<IActionResult> SaveWeeklyOff([FromBody] SaveWeeklyOffDto dto)
@@ -41,7 +41,7 @@ namespace Backend.Controllers
             return Ok(calendar);
         }
 
-        // POST: /api/calendar/holidays  - Admin only
+        // POST: /api/calendar/holidays  = add a holiday (Admin only)
         [HttpPost("holidays")]
         [AdminOnly]
         public async Task<IActionResult> AddHoliday([FromBody] SaveHolidayDto dto)
@@ -51,7 +51,7 @@ namespace Backend.Controllers
             return Ok(calendar);
         }
 
-        // PUT: /api/calendar/holidays/5  - Admin only
+        // PUT: /api/calendar/holidays/5  = edit a holiday (Admin only)
         [HttpPut("holidays/{id}")]
         [AdminOnly]
         public async Task<IActionResult> UpdateHoliday(int id, [FromBody] SaveHolidayDto dto)
@@ -61,7 +61,7 @@ namespace Backend.Controllers
             return Ok(calendar);
         }
 
-        // DELETE: /api/calendar/holidays/5  - Admin only
+        // DELETE: /api/calendar/holidays/5  = delete a holiday (Admin only)
         [HttpDelete("holidays/{id}")]
         [AdminOnly]
         public async Task<IActionResult> DeleteHoliday(int id)

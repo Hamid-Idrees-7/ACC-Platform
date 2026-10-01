@@ -13,6 +13,15 @@ export const SIGNOUT_NOTE_KEY = "acc-signout-note";
 // Time of the last click or key press in any tab (localStorage), for automatic sign-out.
 export const ACTIVITY_KEY = "acc-last-activity";
 
+// Without "Remember me" the sign-in ends when the browser is closed. Each open tab
+// marks itself (sessionStorage) and writes a heartbeat (localStorage); a tab that opens
+// with neither is the first one after the browser was closed.
+export const TAB_KEY = "acc-tab-open";
+export const TAB_ALIVE_KEY = "acc-tab-alive";
+export const TAB_ALIVE_EVERY_MS = 30 * 1000;
+// Background tabs may only run timers once a minute, so allow a bit more than two beats.
+export const TAB_ALIVE_MS = 150 * 1000;
+
 // Choices in Settings > Security (minutes, 0 = off). Same list as the server.
 export const IDLE_CHOICES = [
   { minutes: 0, label: "Off", hint: "Stay signed in until you log out" },

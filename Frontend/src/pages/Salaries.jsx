@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
@@ -6,6 +6,11 @@ import { salaryService } from "../services/salaryService";
 import { money, moneyGrouped, amountInWords, currencySymbol } from "../utils/format";
 import "./Salaries.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonPage } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
@@ -57,7 +62,7 @@ function Salaries() {
     catch { showToast("Could not load payroll.", "error"); }
     finally { if (period.current === asked) setLoading(false); }
   };
-  useEffect(() => { period.current = `${year}-${month}`; load(); }, [year, month]);
+  useLoader(() => { period.current = `${year}-${month}`; load(); }, `${year}-${month}`);
 
   useLiveRefresh(["salaries", "attendance", "assignments", "employees", "projects"], async () => {
     const asked = `${year}-${month}`;
@@ -77,7 +82,7 @@ function Salaries() {
   const goThisMonth = () => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); };
   const isThisMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
-  // Flatten every employees lines, tagging each with its employee.
+  // One flat list of pay lines, each tagged with its employee.
   const lines = useMemo(() => {
     return (data?.employees || []).flatMap((e) =>
       e.lines.map((l) => ({ ...l, employeeID: e.employeeID, employeeName: e.employeeName, designation: e.designation }))
@@ -97,6 +102,13 @@ function Salaries() {
       return true;
     });
   }, [lines, statusFilter, search]);
+
+  // Section order first, so each page keeps the Monthly / Daily / Contract grouping.
+  const ordered = useMemo(
+    () => SECTIONS.flatMap((sec) => visible.filter((l) => l.sourceType === sec.type)),
+    [visible]
+  );
+  const paging = usePagination(ordered, { resetKey: `${year}-${month}|${statusFilter}|${search}` });
 
   const openPay = (line) => { setPayModal(line); setFinalAmount(String(line.calculatedAmount ?? 0)); setNote(""); };
 
@@ -166,7 +178,7 @@ function Salaries() {
   return (
     <DashboardLayout title="Salaries & Payroll">
       {loading ? (
-        <div className="sal-empty"><div className="sal-spinner" /><p>Loading payroll...</p></div>
+        <SkeletonPage stats={4} rows={6} />
       ) : (
         <>
           {/* Stat cards (clickable status filter) */}
@@ -217,23 +229,29 @@ function Salaries() {
           {visible.length === 0 ? (
             <div className="sal-empty"><h3>Nothing to show</h3><p>No salaries match this month/filter. Assign workers and mark attendance to see payroll here.</p></div>
           ) : (
-            SECTIONS.map((sec) => {
-              const items = visible.filter((l) => l.sourceType === sec.type);
-              if (items.length === 0) return null;
-              return (
-                <div key={sec.type} className="sal-section">
-                  <div className="sal-section-title">{sec.title} <span>{items.length}</span></div>
-                  <div className="sal-grid">{items.map(renderCard)}</div>
-                </div>
-              );
-            })
+            <>
+              <div>
+                {SECTIONS.map((sec) => {
+                  const items = paging.pageItems.filter((l) => l.sourceType === sec.type);
+                  if (items.length === 0) return null;
+                  const total = visible.filter((l) => l.sourceType === sec.type).length;
+                  return (
+                    <div key={sec.type} className="sal-section">
+                      <div className="sal-section-title">{sec.title} <span>{total}</span></div>
+                      <div className="sal-grid">{items.map(renderCard)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <Pagination {...paging} label="salaries" />
+            </>
           )}
         </>
       )}
 
       {/* Pay modal */}
       {payModal && (
-        <div className="sal-overlay" onClick={(e) => e.target.classList.contains("sal-overlay") && setPayModal(null)}>
+        <ModalOverlay className="sal-overlay" onClose={() => setPayModal(null)}>
           <div className="sal-modal">
             <h3>Pay Salary</h3>
             <p className="sal-modal-sub">{payModal.employeeName} · {payModal.sourceType === "Monthly" ? "Company Payroll" : payModal.projectName}</p>
@@ -254,26 +272,26 @@ function Salaries() {
             <label className="sal-modal-label">Payment Note</label>
             <input type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note." />
             <div className="sal-modal-actions">
-              <button className="sal-modal-cancel" onClick={() => setPayModal(null)} disabled={busy}>Cancel</button>
+              <button className="sal-modal-cancel" data-close onClick={() => setPayModal(null)} disabled={busy}>Cancel</button>
               <button className="sal-modal-ok" onClick={confirmPay} disabled={busy}>{busy ? "Saving..." : "Confirm Payment"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Undo confirm */}
       {confirmUndo && (
-        <div className="sal-overlay" onClick={(e) => e.target.classList.contains("sal-overlay") && setConfirmUndo(null)}>
+        <ModalOverlay className="sal-overlay" onClose={() => setConfirmUndo(null)}>
           <div className="sal-confirm">
             <div className="sal-confirm-ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg></div>
             <h3>Revert this payment?</h3>
             <p>This will move the salary back to <strong>Pending</strong> and remove the paid record. You can pay it again afterwards.</p>
             <div className="sal-modal-actions">
-              <button className="sal-modal-cancel" onClick={() => setConfirmUndo(null)} disabled={busy}>Cancel</button>
+              <button className="sal-modal-cancel" data-close onClick={() => setConfirmUndo(null)} disabled={busy}>Cancel</button>
               <button className="sal-confirm-undo" onClick={doUndo} disabled={busy}>{busy ? "..." : "Yes, Revert"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`sal-toast sal-toast-${toast.type}`}>{toast.text}</div>}

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Manages user permissions (Control Unit).
+    // User permissions (Control Unit).
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -33,7 +33,7 @@ namespace Backend.Controllers
         }
 
         // GET: /api/permissions/user/5
-        // A user may read their OWN permissions (needed for their sidebar/buttons).
+        // Users may read their own permissions (their sidebar and buttons need them).
         // Admins may read anyone's.
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetForUser(int userId)
@@ -45,7 +45,7 @@ namespace Backend.Controllers
             return Ok(perms);
         }
 
-        // GET: /api/permissions/counts  - Admin only
+        // GET: /api/permissions/counts  = counts per module (Admin only)
         [HttpGet("counts")]
         [AdminOnly]
         public async Task<IActionResult> GetCounts()
@@ -54,7 +54,7 @@ namespace Backend.Controllers
             return Ok(counts);
         }
 
-        // PUT: /api/permissions  - set a permission - Admin only
+        // PUT: /api/permissions  = set a permission (Admin only)
         [HttpPut]
         [AdminOnly]
         public async Task<IActionResult> Set([FromBody] SetPermissionDto dto)

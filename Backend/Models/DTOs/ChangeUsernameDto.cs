@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used to change username - requires the current password (re-authentication)
+    // Changing the username needs the current password again.
     public class ChangeUsernameDto
     {
         [Required]

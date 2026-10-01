@@ -1,15 +1,20 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import DatePicker from "../components/DatePicker";
 import { usePermissions } from "../context/PermissionContext";
 import { useCompany } from "../context/CompanyContext";
 import { billingService } from "../services/billingService";
-import { money, amountInWords, formatQty, currencySymbol } from "../utils/format";
+import { money, amountInWords, formatQty, currencySymbol, formatPhone } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
 import "./ProjectBilling.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonPage } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -60,17 +65,15 @@ function ProjectBilling() {
   const [expensePick, setExpensePick] = useState("");
   const [formError, setFormError] = useState("");
 
-  // Payment modal
   const [payModal, setPayModal] = useState(null);       
   const [payForm, setPayForm] = useState(null);         
 
-  // Delete confirms
   const [delInvoice, setDelInvoice] = useState(null);   
   const [delPayment, setDelPayment] = useState(null);   
 
   const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
-  // Download an invoice as pdf straight from the list 
+  // Download an invoice as pdf straight from the list
   const [pdfBusy, setPdfBusy] = useState(null);
   const downloadInvoice = async (inv) => {
     setPdfBusy(inv.invoiceID);
@@ -89,8 +92,7 @@ function ProjectBilling() {
     }
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     try {
@@ -103,14 +105,14 @@ function ProjectBilling() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); }, [projectId]);
+  useLoader(() => load(), projectId);
 
   useLiveRefresh(["billing", "expenses", "projects", "clients", "company"], () => load({ quiet: true }));
 
-  useHighlight(data ? data.projectID : null);
+  const paging = usePagination(data?.invoices || [], { resetKey: projectId, getId: (inv) => inv.invoiceID });
+  useHighlight(data ? `${data.projectID}:${paging.page}` : null);
 
-  // Invoice form 
-  // prefill: optional list of recoverable expenses to start the invoice with.
+  // prefill: an optional list of recoverable expenses to start the invoice with.
   const openCreate = (prefill = []) => {
     setInvModal({ mode: "create", ownExpenses: [] });
     setForm({
@@ -248,7 +250,6 @@ function ProjectBilling() {
     }
   };
 
-  // Payment 
   const openPay = (inv) => {
     setPayModal(inv);
     setPayForm({ amount: String(inv.due > 0 ? inv.due : ""), paymentDate: todayISO(), method: "Cash", reference: "" });
@@ -275,7 +276,6 @@ function ProjectBilling() {
     }
   };
 
-  // Deletes
   const doDeleteInvoice = async () => {
     setBusy(true);
     try {
@@ -305,7 +305,7 @@ function ProjectBilling() {
   };
 
   if (loading) {
-    return <DashboardLayout title="Project Billing"><div className="pbl-empty"><div className="pbl-spinner" /><p>Loading...</p></div></DashboardLayout>;
+    return <DashboardLayout title="Project Billing"><SkeletonPage stats={4} rows={5} /></DashboardLayout>;
   }
   if (error || !data) {
     return (
@@ -343,7 +343,7 @@ function ProjectBilling() {
           <h2>{data.title}</h2>
           <div className="pbl-head-meta">
             <span>{data.clientName}</span>
-            {data.clientPhone && <span>· {data.clientPhone}</span>}
+            {data.clientPhone && <span>· {formatPhone(data.clientPhone)}</span>}
             {data.location && <span>· {data.location}</span>}
           </div>
         </div>
@@ -401,123 +401,126 @@ function ProjectBilling() {
           {canManage && <button className="pbl-new pbl-new-lg" onClick={() => openCreate()}>+ New Invoice</button>}
         </div>
       ) : (
-        <div className="pbl-list">
-          {data.invoices.map((inv) => {
-            const open = expanded === inv.invoiceID;
-            const st = (inv.status || "Unpaid").toLowerCase();
-            return (
-              <div key={inv.invoiceID} className={`pbl-inv ${st}`} data-highlight={inv.invoiceID}>
-                <button className="pbl-inv-head" onClick={() => setExpanded(open ? null : inv.invoiceID)}>
-                  <div className="pbl-inv-id">
-                    <span className="pbl-inv-num">{inv.invoiceNumber}</span>
-                    <span className={`pbl-status ${st}`}>{inv.status}</span>
-                  </div>
-                  <div className="pbl-inv-dates">
-                    <span>Issued {fmtDate(inv.issueDate)}</span>
-                    {inv.dueDate && <span className={st === "overdue" ? "pbl-due-red" : ""}>Due {fmtDate(inv.dueDate)}</span>}
-                  </div>
-                  <div className="pbl-inv-amts">
-                    <div className="pbl-inv-amt">
-                      <span className="pbl-inv-amt-lbl">Total</span>
-                      <span className="pbl-inv-amt-val">{money(inv.total)}</span>
+        <>
+          <div className="pbl-list">
+            {paging.pageItems.map((inv) => {
+              const open = expanded === inv.invoiceID;
+              const st = (inv.status || "Unpaid").toLowerCase();
+              return (
+                <div key={inv.invoiceID} className={`pbl-inv ${st}`} data-highlight={inv.invoiceID}>
+                  <button className="pbl-inv-head" onClick={() => setExpanded(open ? null : inv.invoiceID)}>
+                    <div className="pbl-inv-id">
+                      <span className="pbl-inv-num">{inv.invoiceNumber}</span>
+                      <span className={`pbl-status ${st}`}>{inv.status}</span>
                     </div>
-                    <div className="pbl-inv-amt">
-                      <span className="pbl-inv-amt-lbl">Due</span>
-                      <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{money(inv.due)}</span>
+                    <div className="pbl-inv-dates">
+                      <span>Issued {fmtDate(inv.issueDate)}</span>
+                      {inv.dueDate && <span className={st === "overdue" ? "pbl-due-red" : ""}>Due {fmtDate(inv.dueDate)}</span>}
                     </div>
-                  </div>
-                  <svg className={`pbl-chev ${open ? "up" : ""}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-                </button>
-
-                {open && (
-                  <div className="pbl-inv-body">
-                    {/* Line items */}
-                    <table className="pbl-items">
-                      <thead>
-                        <tr><th>Description</th><th className="r">Qty</th><th className="r">Rate</th><th className="r">Amount</th></tr>
-                      </thead>
-                      <tbody>
-                        {inv.items.map((it) => (
-                          <tr key={it.itemID}>
-                            <td>{it.description}{it.expenseID && <span className="pbl-reimb-tag">Reimbursement</span>}</td>
-                            <td className="r">{formatQty(it.quantity)}</td>
-                            <td className="r">{money(it.rate)}</td>
-                            <td className="r">{money(it.amount)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div className="pbl-inv-totals">
-                      <div className="pbl-tot-row"><span>Subtotal</span><strong>{money(inv.subtotal)}</strong></div>
-                      {inv.taxAmount > 0 && <div className="pbl-tot-row"><span>Tax</span><strong>{money(inv.taxAmount)}</strong></div>}
-                      <div className="pbl-tot-row big"><span>Total</span><strong>{money(inv.total)}</strong></div>
-                      <div className="pbl-tot-words">{amountInWords(inv.total)}</div>
-                      <div className="pbl-tot-row"><span>Paid</span><strong className="green">{money(inv.paid)}</strong></div>
-                      <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{money(inv.due)}</strong></div>
-                    </div>
-
-                    {inv.notes && <div className="pbl-inv-notes"><strong>Notes:</strong> {inv.notes}</div>}
-
-                    {/* Payments ledger */}
-                    {inv.payments && inv.payments.length > 0 && (
-                      <div className="pbl-payments">
-                        <div className="pbl-payments-title">Payments</div>
-                        {inv.payments.map((p) => (
-                          <div key={p.paymentID} className="pbl-pay-row">
-                            <div className="pbl-pay-main">
-                              <span className="pbl-pay-amt">{money(p.amount)}</span>
-                              <span className={`pbl-pay-method ${p.method.replace(/\s/g, "").toLowerCase()}`}>{p.method}</span>
-                              {p.reference && <span className="pbl-pay-ref">#{p.reference}</span>}
-                            </div>
-                            <div className="pbl-pay-side">
-                              <span className="pbl-pay-date">{fmtDate(p.paymentDate)}</span>
-                              {canManage && (
-                                <button className="pbl-pay-del" onClick={() => setDelPayment({ payment: p, invoice: inv })} title="Remove payment">
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                    <div className="pbl-inv-amts">
+                      <div className="pbl-inv-amt">
+                        <span className="pbl-inv-amt-lbl">Total</span>
+                        <span className="pbl-inv-amt-val">{money(inv.total)}</span>
                       </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="pbl-inv-actions">
-                      <button className="pbl-act print" onClick={() => navigate(`/dashboard/billing/invoice/${inv.invoiceID}/print`)}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
-                        View
-                      </button>
-                      <button className="pbl-act print" onClick={() => downloadInvoice(inv)} disabled={pdfBusy === inv.invoiceID}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                        {pdfBusy === inv.invoiceID ? "Preparing..." : "PDF"}
-                      </button>
-                      {canManage && inv.due > 0 && (
-                        <button className="pbl-act pay" onClick={() => openPay(inv)}>Record Payment</button>
-                      )}
-                      {canManage && (
-                        <button className="pbl-act edit" onClick={() => openEdit(inv)}>Edit</button>
-                      )}
-                      {canManage && (
-                        <button className="pbl-act del" onClick={() => setDelInvoice(inv)}>Delete</button>
-                      )}
+                      <div className="pbl-inv-amt">
+                        <span className="pbl-inv-amt-lbl">Due</span>
+                        <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{money(inv.due)}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                    <svg className={`pbl-chev ${open ? "up" : ""}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
+
+                  {open && (
+                    <div className="pbl-inv-body">
+                      {/* Line items */}
+                      <table className="pbl-items">
+                        <thead>
+                          <tr><th>Description</th><th className="r">Qty</th><th className="r">Rate</th><th className="r">Amount</th></tr>
+                        </thead>
+                        <tbody>
+                          {inv.items.map((it) => (
+                            <tr key={it.itemID}>
+                              <td>{it.description}{it.expenseID && <span className="pbl-reimb-tag">Reimbursement</span>}</td>
+                              <td className="r">{formatQty(it.quantity)}</td>
+                              <td className="r">{money(it.rate)}</td>
+                              <td className="r">{money(it.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      <div className="pbl-inv-totals">
+                        <div className="pbl-tot-row"><span>Subtotal</span><strong>{money(inv.subtotal)}</strong></div>
+                        {inv.taxAmount > 0 && <div className="pbl-tot-row"><span>Tax</span><strong>{money(inv.taxAmount)}</strong></div>}
+                        <div className="pbl-tot-row big"><span>Total</span><strong>{money(inv.total)}</strong></div>
+                        <div className="pbl-tot-words">{amountInWords(inv.total)}</div>
+                        <div className="pbl-tot-row"><span>Paid</span><strong className="green">{money(inv.paid)}</strong></div>
+                        <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{money(inv.due)}</strong></div>
+                      </div>
+
+                      {inv.notes && <div className="pbl-inv-notes"><strong>Notes:</strong> {inv.notes}</div>}
+
+                      {/* Payments ledger */}
+                      {inv.payments && inv.payments.length > 0 && (
+                        <div className="pbl-payments">
+                          <div className="pbl-payments-title">Payments</div>
+                          {inv.payments.map((p) => (
+                            <div key={p.paymentID} className="pbl-pay-row">
+                              <div className="pbl-pay-main">
+                                <span className="pbl-pay-amt">{money(p.amount)}</span>
+                                <span className={`pbl-pay-method ${p.method.replace(/\s/g, "").toLowerCase()}`}>{p.method}</span>
+                                {p.reference && <span className="pbl-pay-ref">#{p.reference}</span>}
+                              </div>
+                              <div className="pbl-pay-side">
+                                <span className="pbl-pay-date">{fmtDate(p.paymentDate)}</span>
+                                {canManage && (
+                                  <button className="pbl-pay-del" onClick={() => setDelPayment({ payment: p, invoice: inv })} title="Remove payment">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="pbl-inv-actions">
+                        <button className="pbl-act print" onClick={() => navigate(`/dashboard/billing/invoice/${inv.invoiceID}/print`)}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+                          View
+                        </button>
+                        <button className="pbl-act print" onClick={() => downloadInvoice(inv)} disabled={pdfBusy === inv.invoiceID}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                          {pdfBusy === inv.invoiceID ? "Preparing..." : "PDF"}
+                        </button>
+                        {canManage && inv.due > 0 && (
+                          <button className="pbl-act pay" onClick={() => openPay(inv)}>Record Payment</button>
+                        )}
+                        {canManage && (
+                          <button className="pbl-act edit" onClick={() => openEdit(inv)}>Edit</button>
+                        )}
+                        {canManage && (
+                          <button className="pbl-act del" onClick={() => setDelInvoice(inv)}>Delete</button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <Pagination {...paging} label="invoices" />
+        </>
       )}
 
-      {/*  Invoice form modal  */}
+      {/* Invoice form modal */}
       {invModal && form && (
-        <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && closeInvModal()}>
+        <ModalOverlay className="pbl-overlay" onClose={closeInvModal}>
           <div className="pbl-modal pbl-modal-lg">
             <div className="pbl-modal-head">
               <h3>{invModal.mode === "edit" ? `Edit ${invModal.invoiceNumber}` : "New Invoice"}</h3>
-              <button className="pbl-x" onClick={closeInvModal}>
+              <button className="pbl-x" data-close onClick={closeInvModal}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
@@ -628,22 +631,22 @@ function ProjectBilling() {
             </div>
 
             <div className="pbl-modal-actions">
-              <button className="pbl-btn-cancel" onClick={closeInvModal} disabled={busy}>Cancel</button>
+              <button className="pbl-btn-cancel" data-close onClick={closeInvModal} disabled={busy}>Cancel</button>
               <button className="pbl-btn-ok" onClick={submitInvoice} disabled={busy || !canSubmitInvoice}>
                 {busy ? "Saving..." : invModal.mode === "edit" ? "Save Changes" : "Create Invoice"}
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Payment modal */}
       {payModal && payForm && (
-        <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && closePay()}>
+        <ModalOverlay className="pbl-overlay" onClose={closePay}>
           <div className="pbl-modal">
             <div className="pbl-modal-head">
               <h3>Record Payment</h3>
-              <button className="pbl-x" onClick={closePay}>
+              <button className="pbl-x" data-close onClick={closePay}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
@@ -674,16 +677,16 @@ function ProjectBilling() {
               <input type="text" maxLength={255} placeholder={payForm.method === "Cheque" ? "Cheque number" : payForm.method === "Bank Transfer" ? "Transaction ID" : "Optional reference"} value={payForm.reference} onChange={(e) => setPayForm((f) => ({ ...f, reference: e.target.value }))} />
             </div>
             <div className="pbl-modal-actions">
-              <button className="pbl-btn-cancel" onClick={closePay} disabled={busy}>Cancel</button>
+              <button className="pbl-btn-cancel" data-close onClick={closePay} disabled={busy}>Cancel</button>
               <button className="pbl-btn-ok" onClick={submitPayment} disabled={busy || !(Number(payForm.amount) > 0)}>{busy ? "Saving..." : "Record Payment"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete invoice confirm */}
       {delInvoice && (
-        <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && setDelInvoice(null)}>
+        <ModalOverlay className="pbl-overlay" onClose={() => setDelInvoice(null)}>
           <div className="pbl-confirm">
             <div className="pbl-confirm-ic">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -691,16 +694,16 @@ function ProjectBilling() {
             <h3>Delete {delInvoice.invoiceNumber}?</h3>
             <p>This removes the invoice, its {delInvoice.items.length} line item{delInvoice.items.length === 1 ? "" : "s"} and all recorded payments. This cannot be undone.</p>
             <div className="pbl-modal-actions">
-              <button className="pbl-btn-cancel" onClick={() => setDelInvoice(null)} disabled={busy}>Cancel</button>
+              <button className="pbl-btn-cancel" data-close onClick={() => setDelInvoice(null)} disabled={busy}>Cancel</button>
               <button className="pbl-btn-danger" onClick={doDeleteInvoice} disabled={busy}>{busy ? "..." : "Yes, Delete"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete payment confirm */}
       {delPayment && (
-        <div className="pbl-overlay" onClick={(e) => e.target.classList.contains("pbl-overlay") && setDelPayment(null)}>
+        <ModalOverlay className="pbl-overlay" onClose={() => setDelPayment(null)}>
           <div className="pbl-confirm">
             <div className="pbl-confirm-ic">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -708,11 +711,11 @@ function ProjectBilling() {
             <h3>Remove this payment?</h3>
             <p>{money(delPayment.payment.amount)} ({delPayment.payment.method}) will be removed from {delPayment.invoice.invoiceNumber}. The balance due will increase again.</p>
             <div className="pbl-modal-actions">
-              <button className="pbl-btn-cancel" onClick={() => setDelPayment(null)} disabled={busy}>Cancel</button>
+              <button className="pbl-btn-cancel" data-close onClick={() => setDelPayment(null)} disabled={busy}>Cancel</button>
               <button className="pbl-btn-danger" onClick={doDeletePayment} disabled={busy}>{busy ? "..." : "Yes, Remove"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`pbl-toast pbl-toast-${toast.type}`}>{toast.text}</div>}

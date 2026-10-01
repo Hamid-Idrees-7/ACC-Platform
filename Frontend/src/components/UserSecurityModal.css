@@ -72,17 +72,6 @@
 .usm-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 .usm-btn-danger:focus-visible, .usm-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
-.usm-state { display: flex; justify-content: center; padding: 40px 0; }
-.usm-spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: usmspin 0.8s linear infinite;
-}
-@keyframes usmspin { to { transform: rotate(360deg); } }
-
 .usm-error {
     display: flex;
     align-items: center;

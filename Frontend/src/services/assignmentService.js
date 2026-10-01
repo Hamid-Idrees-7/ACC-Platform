@@ -6,11 +6,6 @@ export const assignmentService = {
     return response.data;
   },
 
-  getById: async (id) => {
-    const response = await api.get(`/assignments/${id}`);
-    return response.data;
-  },
-
   create: async (data) => {
     const response = await api.post("/assignments", data);
     return response.data;
@@ -26,7 +21,7 @@ export const assignmentService = {
     return response.data;
   },
 
-  // Mark Completed with today's date
+  // Marks it Completed with today's date.
   end: async (id) => {
     const response = await api.put(`/assignments/${id}/end`);
     return response.data;

@@ -1,7 +1,7 @@
 namespace Backend.Models.DTOs
 {
-    // What a site engineer is allowed to see about their own site — NO financials
-    // (budget/cost/profit stay with management). Just the site facts + progress.
+    // What a site engineer may see about their own site. No money figures
+    // (budget, cost and profit stay with management), only the site facts and progress.
     public class FieldSiteInfoDto
     {
         public int ProjectID { get; set; }

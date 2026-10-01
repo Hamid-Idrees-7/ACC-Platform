@@ -7,7 +7,7 @@ namespace Backend.Models.DTOs
         [Required]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        // The password rule (length, letters and numbers...) is checked by PasswordPolicy.
+        // PasswordPolicy checks the password rules (length, letters and numbers).
         [Required]
         public string NewPassword { get; set; } = string.Empty;
     }

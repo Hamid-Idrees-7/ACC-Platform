@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when a user requests an action that needs approval
+    // Sent when a user asks for an action that needs approval.
     public class CreatePendingActionDto
     {
         [Required]

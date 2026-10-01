@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // API endpoints for salaries/payroll. Base route: /api/salaries
+    // Salaries (payroll). Base route: /api/salaries
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -39,7 +39,7 @@ namespace Backend.Controllers
             return int.TryParse(idClaim, out var id) ? id : 0;
         }
 
-        // GET /api/salaries?year=&month=&projectId=
+        // GET: /api/salaries?year=&month=&projectId=
         [HttpGet]
         [RequirePermission("Salaries", "View")]
         public async Task<IActionResult> GetPeriod([FromQuery] int year, [FromQuery] int month, [FromQuery] int? projectId)
@@ -52,7 +52,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // POST /api/salaries/pay
+        // POST: /api/salaries/pay
         [HttpPost("pay")]
         [RequirePermission("Salaries", "Manage")]
         public async Task<IActionResult> Pay([FromBody] PaySalaryDto dto)
@@ -71,7 +71,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // DELETE /api/salaries/5 — undo a payment (back to Pending)
+        // DELETE: /api/salaries/5  = undo a payment (back to Pending)
         [HttpDelete("{paymentId}")]
         [RequirePermission("Salaries", "Manage")]
         public async Task<IActionResult> Revert(int paymentId)
@@ -91,7 +91,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // GET /api/salaries/5/payslip?year=&month=
+        // GET: /api/salaries/5/payslip?year=&month=
         [HttpGet("{employeeId}/payslip")]
         [RequirePermission("Salaries", "View")]
         public async Task<IActionResult> Payslip(int employeeId, [FromQuery] int year, [FromQuery] int month)

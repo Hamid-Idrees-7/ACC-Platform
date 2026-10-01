@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { salaryService } from "../services/salaryService";
-import { money } from "../utils/format";
+import { money, formatCnic, formatPhone } from "../utils/format";
 import { formatDateTime } from "../utils/dates";
 import DocLetterhead from "../components/DocLetterhead";
 import Toast, { useToast } from "../components/Toast";
 import "./Payslip.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonPage } from "../components/Skeleton";
 
 const rateLabel = (l) =>
   l.sourceType === "Monthly" ? `${money(l.rate)}` : l.sourceType === "Contract" ? `${money(l.rate)}` : `${money(l.rate)}`;
@@ -46,7 +47,7 @@ function Payslip() {
   });
 
   if (loading) {
-    return <DashboardLayout title="Salary Payslip"><div className="psl-loading"><div className="psl-spinner" /></div></DashboardLayout>;
+    return <DashboardLayout title="Salary Payslip"><SkeletonPage stats={0} rows={7} /></DashboardLayout>;
   }
   if (!slip) {
     return (
@@ -107,8 +108,8 @@ function Payslip() {
 
           <div className="psl-emp">
             <div><span>EMPLOYEE</span><strong>{slip.employeeName}</strong><em>{slip.designation}</em></div>
-            <div><span>CNIC</span><strong>{slip.cnic || "—"}</strong></div>
-            <div><span>PHONE</span><strong>{slip.phone || "—"}</strong></div>
+            <div><span>CNIC</span><strong>{formatCnic(slip.cnic) || "—"}</strong></div>
+            <div><span>PHONE</span><strong>{formatPhone(slip.phone) || "—"}</strong></div>
             <div><span>STATUS</span><strong className={`psl-status ${slip.status.toLowerCase()}`}>{slip.status.toUpperCase()}</strong></div>
           </div>
 

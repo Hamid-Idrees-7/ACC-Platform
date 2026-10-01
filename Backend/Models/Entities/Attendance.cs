@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // One attendance record per assignment, per day. Attendance is tied to the
-    // assignment (not the employee) because the same person can hold more than one
-    // assignment — different projects, dates, or wage rates — each tracked on its own
+    // One attendance record per assignment per day. It is tied to the assignment,
+    // not the employee, because one person can hold several assignments (different
+    // projects, dates or wage rates) and each one is tracked on its own.
     public class Attendance
     {
         [Key]
@@ -15,7 +15,7 @@ namespace Backend.Models.Entities
         public int AssignmentID { get; set; }
         public Assignment? Assignment { get; set; }
 
-        // The day this record is for. Time part is ignored — one record per calendar day.
+        // The day this record is for. The time part is ignored: one record per calendar day.
         public DateTime Date { get; set; }
 
         // Present or Absent

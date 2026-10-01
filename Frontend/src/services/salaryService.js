@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const salaryService = {
-  // One month of payroll (stats + employee cards)
+  // One month of payroll (stats and employee cards)
   getPeriod: async (year, month, projectId) => {
     const response = await api.get("/salaries", { params: { year, month, projectId: projectId || undefined } });
     return response.data;
@@ -18,7 +18,7 @@ export const salaryService = {
     return response.data;
   },
 
-  // Printable payslip for an employee + month
+  // Payslip data for one employee and month
   getPayslip: async (employeeId, year, month) => {
     const response = await api.get(`/salaries/${employeeId}/payslip`, { params: { year, month } });
     return response.data;

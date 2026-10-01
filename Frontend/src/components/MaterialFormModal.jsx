@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatNum, formatQty, amountInWords } from "../utils/format";
 import "./MaterialFormModal.css";
+import ModalOverlay from "./ModalOverlay";
 
 const emptyForm = {
   name: "",
@@ -11,26 +12,24 @@ const emptyForm = {
   initialRate: "",
 };
 
+// The form filled in with the material being edited.
+const formFrom = (data) => ({
+  name: data.name || "",
+  category: data.category || "",
+  unit: data.unit || "",
+  lowStockThreshold: data.lowStockThreshold ?? "",
+  initialStock: "",
+  initialRate: "",
+});
+
 function MaterialFormModal({ mode, initialData, existingCategories = [], existingUnits = [], onClose, onSave }) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => (mode === "edit" && initialData ? formFrom(initialData) : emptyForm));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
 
   const isEdit = mode === "edit";
 
-  useEffect(() => {
-    if (isEdit && initialData) {
-      setForm({
-        name: initialData.name || "",
-        category: initialData.category || "",
-        unit: initialData.unit || "",
-        lowStockThreshold: initialData.lowStockThreshold ?? "",
-        initialStock: "",
-        initialRate: "",
-      });
-    }
-  }, [isEdit, initialData]);
 
   const setField = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -83,14 +82,14 @@ function MaterialFormModal({ mode, initialData, existingCategories = [], existin
   };
 
   return (
-    <div className="mfm-overlay" onClick={(e) => e.target.classList.contains("mfm-overlay") && onClose()}>
+    <ModalOverlay className="mfm-overlay" onClose={onClose}>
       <div className="mfm-modal">
         <div className="mfm-head">
           <div>
             <h3>{isEdit ? "Edit Material" : "Add New Material"}</h3>
             <p>Item details and stock alert level</p>
           </div>
-          <button className="mfm-close" onClick={onClose} aria-label="Close">
+          <button className="mfm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -147,13 +146,13 @@ function MaterialFormModal({ mode, initialData, existingCategories = [], existin
         </div>
 
         <div className="mfm-actions">
-          <button className="mfm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="mfm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="mfm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Material"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

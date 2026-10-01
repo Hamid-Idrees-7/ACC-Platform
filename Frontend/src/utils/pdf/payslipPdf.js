@@ -1,6 +1,6 @@
-// Payslip pdf, drawn from the same data as the payslip page
+// Payslip PDF, built from the same data as the payslip page.
 
-import { money } from "../format";
+import { money, formatCnic, formatPhone } from "../format";
 import { C, baseDocument, letterhead, statusPill, tableLayout, totalsTable, signatures, downloadPdf, pdfReadyCompany } from "./pdfEngine";
 
 const unit = (l) => (l.sourceType === "Daily" ? "/day" : l.sourceType === "Contract" ? " contract" : "/month");
@@ -62,8 +62,8 @@ export function buildPayslipDoc(slip) {
         widths: ["*", "*", "*", 90],
         body: [[
           info("EMPLOYEE", slip.employeeName, slip.designation),
-          info("CNIC", slip.cnic),
-          info("PHONE", slip.phone),
+          info("CNIC", formatCnic(slip.cnic)),
+          info("PHONE", formatPhone(slip.phone)),
           { stack: [{ text: "STATUS", style: "label", margin: [0, 0, 0, 4] }, statusPill(slip.status || "Pending", paid ? "green" : "amber")] },
         ]],
       },

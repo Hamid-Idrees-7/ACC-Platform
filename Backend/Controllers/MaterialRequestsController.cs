@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Admin/store side of the field material-request flow. Base route: /api/materialrequests.
-    // Guarded by its own MaterialRequests permission (separate from Materials) so an
-    // engineer with Materials access can never approve/reject their own field requests.
+    // The admin and store side of field material requests. Base route: /api/materialrequests
+    // It has its own MaterialRequests permission (separate from Materials), so an engineer
+    // with Materials access can never approve or reject their own field requests.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -28,7 +28,7 @@ namespace Backend.Controllers
             return int.TryParse(idClaim, out var id) ? id : 0;
         }
 
-        // GET /api/materialrequests — all requests (pending + resolved)
+        // GET: /api/materialrequests  = all requests, pending and resolved
         [HttpGet]
         [RequirePermission("MaterialRequests", "View")]
         public async Task<IActionResult> GetAll()
@@ -36,7 +36,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetAllAsync());
         }
 
-        // GET /api/materialrequests/pending-count — for the dashboard badge
+        // GET: /api/materialrequests/pending-count  = for the dashboard badge
         [HttpGet("pending-count")]
         [RequirePermission("MaterialRequests", "View")]
         public async Task<IActionResult> PendingCount()
@@ -44,7 +44,7 @@ namespace Backend.Controllers
             return Ok(new { count = await _service.GetPendingCountAsync() });
         }
 
-        // POST /api/materialrequests/5/approve — approve + issue the stock
+        // POST: /api/materialrequests/5/approve  = approve and issue the stock
         [HttpPost("{id}/approve")]
         [RequirePermission("MaterialRequests", "Manage")]
         public async Task<IActionResult> Approve(int id)
@@ -55,7 +55,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Request approved and material issued." });
         }
 
-        // POST /api/materialrequests/5/reject — reject with an optional reason
+        // POST: /api/materialrequests/5/reject  = reject with an optional reason
         [HttpPost("{id}/reject")]
         [RequirePermission("MaterialRequests", "Manage")]
         public async Task<IActionResult> Reject(int id, [FromBody] ResolveRequestDto dto)

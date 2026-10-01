@@ -83,7 +83,6 @@ namespace Backend.Services
                     $"Too many failed attempts. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.");
             }
 
-            // Verify the password against the stored hash (BCrypt)
             var passwordOk = BCrypt.Net.BCrypt.Verify(dto.Password, user?.PasswordHash ?? DummyHash);
             if (user == null || !passwordOk)
             {
@@ -105,7 +104,7 @@ namespace Backend.Services
                 return LoginResult.Fail(401, InvalidCredentials);
             }
 
-            // Credentials are correct, but the account is disabled
+            // Right password, but the account is disabled
             if (!user.IsActive)
             {
                 await _sessions.RecordAsync(user.UserID, username, LoginResults.Disabled, client);
@@ -115,9 +114,8 @@ namespace Backend.Services
             user.LastLogin = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            var session = await _sessions.StartAsync(user, client);
+            var session = await _sessions.StartAsync(user, client, dto.KeepSignedIn);
 
-            // Record a login notification for the user
             await _notificationService.NotifyPersonalAsync(
                 user.UserID, LoginNotification.Category, LoginNotification.Title,
                 LoginNotification.Message(DateTime.Now));
@@ -155,7 +153,6 @@ namespace Backend.Services
                 "in Settings > Account Management.", link: NotificationLinks.Security);
         }
 
-        // Helper: build the auth response (token + basic user info)
         private AuthResponseDto BuildAuthResponse(User user, int loginId, DateTime expiresAtUtc)
         {
             return new AuthResponseDto

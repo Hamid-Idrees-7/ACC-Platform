@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DatePicker from "./DatePicker";
 import { amountInWords, currencySymbol } from "../utils/format";
 import "./ProjectFormModal.css";
+import ModalOverlay from "./ModalOverlay";
 
 const emptyForm = {
   title: "",
@@ -16,29 +17,26 @@ const emptyForm = {
   createStandardPhases: true,
 };
 
+// The form filled in with the project being edited.
+const formFrom = (data) => ({
+  title: data.title || "",
+  clientID: data.clientID || "",
+  projectType: data.projectType || "",
+  areaSize: data.areaSize || "",
+  startDate: data.startDate ? data.startDate.split("T")[0] : "",
+  expectedEndDate: data.expectedEndDate ? data.expectedEndDate.split("T")[0] : "",
+  budget: data.budget ?? "",
+  location: data.location || "",
+  description: data.description || "",
+  createStandardPhases: false,
+});
+
 function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [], onClose, onSave }) {
   const isEdit = mode === "edit";
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => (mode === "edit" && initialData ? formFrom(initialData) : emptyForm));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  useEffect(() => {
-    if (isEdit && initialData) {
-      setForm({
-        title: initialData.title || "",
-        clientID: initialData.clientID || "",
-        projectType: initialData.projectType || "",
-        areaSize: initialData.areaSize || "",
-        startDate: initialData.startDate ? initialData.startDate.split("T")[0] : "",
-        expectedEndDate: initialData.expectedEndDate ? initialData.expectedEndDate.split("T")[0] : "",
-        budget: initialData.budget ?? "",
-        location: initialData.location || "",
-        description: initialData.description || "",
-        createStandardPhases: false,
-      });
-    }
-  }, [isEdit, initialData]);
 
   const setField = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -83,14 +81,14 @@ function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [],
   };
 
   return (
-    <div className="pfm-overlay" onClick={(e) => e.target.classList.contains("pfm-overlay") && onClose()}>
+    <ModalOverlay className="pfm-overlay" onClose={onClose}>
       <div className="pfm-modal">
         <div className="pfm-head">
           <div>
             <h3>{isEdit ? "Edit Project" : "Create New Project"}</h3>
             <p>{isEdit ? "Update project details" : "Add a project — optionally seed standard phases"}</p>
           </div>
-          <button className="pfm-close" onClick={onClose} aria-label="Close">
+          <button className="pfm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -169,13 +167,13 @@ function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [],
         </div>
 
         <div className="pfm-actions">
-          <button className="pfm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="pfm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="pfm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Project"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

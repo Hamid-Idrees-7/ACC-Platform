@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DatePicker from "./DatePicker";
 import "./EmployeeFormModal.css";
+import ModalOverlay from "./ModalOverlay";
+import { formatCnic, formatPhone, typeCnic, typePhone, typed } from "../utils/format";
 
-// Validation helpers
+// Pakistani phone: 11 digits starting with 0 (+92 counts as 0). CNIC: 13 digits, dashes optional.
 const isValidPhone = (phone) => {
   const raw = phone.trim().replace(/[\s-]/g, "");
   const normalized = raw.startsWith("+92") ? "0" + raw.slice(3) : raw;
@@ -16,27 +18,24 @@ const emptyForm = {
   email: "", address: "", city: "", designation: "", joiningDate: "",
 };
 
+// The form filled in with the employee being edited.
+const formFrom = (data) => ({
+  fullName: data.fullName || "",
+  phone: formatPhone(data.phone) || "",
+  secondaryPhone: formatPhone(data.secondaryPhone) || "",
+  cnic: formatCnic(data.cnic) || "",
+  email: data.email || "",
+  address: data.address || "",
+  city: data.city || "",
+  designation: data.designation || "",
+  joiningDate: data.joiningDate ? data.joiningDate.split("T")[0] : "",
+});
+
 function EmployeeFormModal({ mode, initialData, existingDesignations = [], onClose, onSave }) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => (mode === "edit" && initialData ? formFrom(initialData) : emptyForm));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  useEffect(() => {
-    if (mode === "edit" && initialData) {
-      setForm({
-        fullName: initialData.fullName || "",
-        phone: initialData.phone || "",
-        secondaryPhone: initialData.secondaryPhone || "",
-        cnic: initialData.cnic || "",
-        email: initialData.email || "",
-        address: initialData.address || "",
-        city: initialData.city || "",
-        designation: initialData.designation || "",
-        joiningDate: initialData.joiningDate ? initialData.joiningDate.split("T")[0] : "",
-      });
-    }
-  }, [mode, initialData]);
 
   const setField = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -91,14 +90,14 @@ function EmployeeFormModal({ mode, initialData, existingDesignations = [], onClo
   };
 
   return (
-    <div className="efm-overlay" onClick={(e) => e.target.classList.contains("efm-overlay") && onClose()}>
+    <ModalOverlay className="efm-overlay" onClose={onClose}>
       <div className="efm-modal">
         <div className="efm-head">
           <div>
             <h3>{mode === "edit" ? "Edit Employee" : "Add New Employee"}</h3>
             <p>Enter the employee's details and designation</p>
           </div>
-          <button className="efm-close" onClick={onClose} aria-label="Close">
+          <button className="efm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -118,7 +117,7 @@ function EmployeeFormModal({ mode, initialData, existingDesignations = [], onClo
             </div>
             <div className="efm-field">
               <label>Phone <span className="req">*</span></label>
-              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", e.target.value)} className={errors.phone ? "err" : ""} placeholder="+92 300 0000000" autoComplete="new-emp-field" />
+              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", typed(e, typePhone))} className={errors.phone ? "err" : ""} placeholder="0300-1234567" autoComplete="new-emp-field" />
               {errors.phone ? <span className="efm-err">{errors.phone}</span> : <span className="efm-hint">11 digits, starting with 0 or +92</span>}
             </div>
             <div className="efm-field">
@@ -135,12 +134,12 @@ function EmployeeFormModal({ mode, initialData, existingDesignations = [], onClo
             </div>
             <div className="efm-field">
               <label>Secondary Phone</label>
-              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", e.target.value)} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-emp-field" />
+              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", typed(e, typePhone))} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-emp-field" />
               {errors.secondaryPhone && <span className="efm-err">{errors.secondaryPhone}</span>}
             </div>
             <div className="efm-field">
               <label>CNIC</label>
-              <input type="text" maxLength={15} value={form.cnic} onChange={(e) => setField("cnic", e.target.value)} className={errors.cnic ? "err" : ""} placeholder="ID card number" autoComplete="new-emp-field" />
+              <input type="text" maxLength={15} value={form.cnic} onChange={(e) => setField("cnic", typed(e, typeCnic))} className={errors.cnic ? "err" : ""} placeholder="35202-1234567-1" autoComplete="new-emp-field" />
               {errors.cnic ? <span className="efm-err">{errors.cnic}</span> : <span className="efm-hint">13 digits (optional)</span>}
             </div>
             <div className="efm-field">
@@ -160,13 +159,13 @@ function EmployeeFormModal({ mode, initialData, existingDesignations = [], onClo
         </div>
 
         <div className="efm-actions">
-          <button className="efm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="efm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="efm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Add Employee"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

@@ -22,8 +22,7 @@ namespace Backend.Models.DTOs
         [MaxLength(20)]
         public string Status { get; set; } = "Active";
 
-        // Optional opening balance, used only when creating a material.
-        // On edit these are ignored.
+        // Optional opening balance, used only when creating a material (ignored on edit).
         public decimal? InitialStock { get; set; }
         public decimal? InitialRate { get; set; }
     }

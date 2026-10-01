@@ -13,6 +13,7 @@ import { useCompany } from "../context/CompanyContext";
 import Toast, { useToast } from "../components/Toast";
 import "./Reports.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonPage } from "../components/Skeleton";
 
 const TABS = [
   { key: "financial", label: "Financial" },
@@ -28,7 +29,6 @@ const C_GREEN = "#12B76A";
 const C_BLUE = "#2E90FA";
 const C_AMBER = "#F79009";
 
-// KPI stat card
 function Kpi({ label, value, sub, words, tone }) {
   return (
     <div className={`rep-kpi ${tone || ""}`}>
@@ -57,7 +57,7 @@ function ChartCard({ title, children, wide }) {
   );
 }
 
-// Recharts tooltip that formats money nicely
+// Short money format for the Recharts tooltips
 const moneyTip = (value) => moneyShort(value);
 
 // The figure cards of each tab, in rows. Used by the page and by the PDF.
@@ -146,7 +146,7 @@ function Reports() {
   const chart = useMemo(() => chartTheme(resolvedTheme), [resolvedTheme]);
   const printAreaRef = useRef(null);
   // When the open tab appeared: the charts need their draw-in animation to finish before a PDF.
-  const shownAt = useRef(Date.now());
+  const shownAt = useRef(0);
   useEffect(() => { shownAt.current = Date.now(); }, [tab, loading]);
 
   useLiveRefresh(["projects", "billing", "expenses", "materials", "salaries", "attendance", "employees", "assignments", "clients"], async () => {
@@ -174,7 +174,7 @@ function Reports() {
   }, []);
 
   if (loading) {
-    return <DashboardLayout title="Reports"><div className="rep-empty"><div className="rep-spinner" /><p>Building reports...</p></div></DashboardLayout>;
+    return <DashboardLayout title="Reports"><SkeletonPage stats={4} rows={6} /></DashboardLayout>;
   }
   if (error || !data) {
     return <DashboardLayout title="Reports"><div className="rep-empty"><h3>Could not load reports</h3><p>Please make sure the backend is running and try again.</p></div></DashboardLayout>;
@@ -242,7 +242,7 @@ function Reports() {
           <span>Generated on {genOn}</span>
         </div>
 
-        {/* FINANCIAL */}
+        {/* Financial */}
         {tab === "financial" && (
           <>
             <KpiRows rows={kpiRows(tab, data)} />
@@ -315,7 +315,7 @@ function Reports() {
           </>
         )}
 
-        {/* PROJECTS */}
+        {/* Projects */}
         {tab === "projects" && (
           <>
             <KpiRows rows={kpiRows(tab, data)} />
@@ -375,7 +375,7 @@ function Reports() {
           </>
         )}
 
-        {/* MATERIALS */}
+        {/* Materials */}
         {tab === "materials" && (
           <>
             <KpiRows rows={kpiRows(tab, data)} />
@@ -432,7 +432,7 @@ function Reports() {
           </>
         )}
 
-        {/* WORKFORCE */}
+        {/* Workforce */}
         {tab === "workforce" && (
           <>
             <KpiRows rows={kpiRows(tab, data)} />

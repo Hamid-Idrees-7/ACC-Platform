@@ -36,7 +36,7 @@ namespace Backend.Models.Entities
 
         public DateTime ExpenseDate { get; set; }
 
-        // Who was paid (e.g. "LDA", "FBR", "Society office"). Optional.
+        // Who was paid, eg LDA, FBR, Society office. Optional.
         [MaxLength(100)]
         public string? PaidTo { get; set; }
 

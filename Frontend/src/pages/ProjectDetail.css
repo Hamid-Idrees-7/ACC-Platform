@@ -1,4 +1,4 @@
-/* PROJECT DETAIL PAGE */
+/* Project detail page */
 
 .pd-back {
     border: none;
@@ -15,7 +15,7 @@
 
 .pd-wrap { display: flex; flex-direction: column; gap: 18px; }
 
-/* Cancelled = grey read-only (status card stays active) */
+/* Cancelled: grey and read-only (the status card stays active) */
 .pd-wrap.cancelled .pd-info-cards,
 .pd-wrap.cancelled .pd-fin-card,
 .pd-wrap.cancelled .pd-columns {
@@ -24,7 +24,7 @@
     pointer-events: none;
 }
 
-/* Header banner  */
+/* Header banner */
 .pd-banner {
     display: flex;
     justify-content: space-between;
@@ -167,8 +167,7 @@
 .pd-profit.pos strong { color: var(--color-success-strong); }
 .pd-profit.neg strong { color: var(--color-error); }
 .pd-profit em { font-style: normal; font-size: 11px; color: var(--color-text-muted); text-transform: capitalize; }
-/* Amber tag for figures estimated from elapsed days (until Attendance is live) */
-.pd-tag.est { background: var(--color-warning-border); color: var(--color-warning-strong); }   /* amber = provisional estimate, intentional */
+   /* amber = provisional estimate, intentional */
 .pd-tag.rec { background: var(--color-info-soft); color: var(--color-info-strong); }   /* blue = recoverable, intentional */
 .pd-fin-rec { border-top: 1px dashed var(--color-border); padding-top: 10px; }
 .pd-fin-rec > span { font-size: 13px; }
@@ -323,12 +322,12 @@
 .pd-team-wage { text-align: right; flex-shrink: 0; }
 .pd-team-wage strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--color-text); }
 .pd-team-wage span { font-size: 11px; color: var(--color-text-muted); }
-.pd-team-wage small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--color-warning-strong); }   /* amber-800, accrued-so-far, intentional */
+.pd-team-wage small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--color-warning-strong); }   /* amber, earned so far, intentional */
 .pd-team-wage small.payroll { color: var(--color-text-muted); font-weight: 600; }
 .pd-manage-team { border: none; background: transparent; color: var(--color-primary); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; padding: 0; font-family: var(--font-body); }
 .pd-team-note { font-size: 12px; color: var(--color-text-muted); margin: 14px 0 0; }
 
-/* Materials used — phase by phase */
+/* Materials used, phase by phase */
 .pd-materials {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -453,18 +452,6 @@
 .pd-confirm-del { background: var(--color-error); color: #fff; }
 .pd-confirm-del:hover { filter: brightness(0.92); }
 
-/* Empty / loading / error / toast */
-.pd-empty { text-align: center; padding: 60px 20px; color: var(--color-text-muted); }
-.pd-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: pdspin 0.8s linear infinite;
-}
-@keyframes pdspin { to { transform: rotate(360deg); } }
 .pd-error { background: var(--color-error-soft); color: var(--color-error); padding: 14px 16px; border-radius: var(--radius-md); }
 
 .pd-toast {

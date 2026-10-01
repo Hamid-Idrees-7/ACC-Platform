@@ -2,65 +2,55 @@
 
 namespace Backend.Models.Entities
 {
-    // Represents a system user who can log in (maps to the "Users" table)
+    // A user who can sign in (Users table).
     public class User
     {
-        // Primary key - unique ID for each user
         [Key]
         public int UserID { get; set; }
 
-        // Username for login - required, unique, max 50 characters
         [Required]
         [MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
-        // The HASHED password (never the real password) - required
+        // Hashed password, never the plain text
         [Required]
         [MaxLength(255)]
         public string PasswordHash { get; set; } = string.Empty;
 
-        // Email - required, max 100 characters
         [Required]
         [MaxLength(100)]
         public string Email { get; set; } = string.Empty;
 
-        // Full name - required
         [Required]
         [MaxLength(100)]
         public string FullName { get; set; } = string.Empty;
 
-        // Role name (e.g. "Admin", "Manager", "HR") - dynamic, set by admin
+        // Role name set by the admin, eg Admin, Manager, HR
         [Required]
         [MaxLength(50)]
         public string Role { get; set; } = string.Empty;
 
-        // Phone number - optional
         [MaxLength(15)]
         public string? Phone { get; set; }
 
         [MaxLength(15)]
         public string? SecondaryPhone { get; set; }
 
-        // Short bio / description - optional
         [MaxLength(300)]
         public string? Bio { get; set; }
 
-        // Profile picture stored as a Base64 string - optional
+        // Profile picture as a Base64 string
         public string? ProfilePicture { get; set; }
 
-        // Optional link to an employee record (used for field staff like site engineers)
+        // Optional link to an employee record (for field staff like site engineers)
         public int? EmployeeID { get; set; }
 
-        // Whether the account is active - defaults to true
         public bool IsActive { get; set; } = true;
 
-        // When the user last logged in - optional
         public DateTime? LastLogin { get; set; }
 
-        // When this user was created
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // When this user was last updated
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 }

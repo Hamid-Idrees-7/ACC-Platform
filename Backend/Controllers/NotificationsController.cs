@@ -31,12 +31,11 @@ namespace Backend.Controllers
             return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
         }
 
-        // GET: /api/notifications          = my personal notifications
+        // GET: /api/notifications  = my personal notifications
         // GET: /api/notifications?type=Activity  = users' activity (admins only)
         [HttpGet]
         public async Task<IActionResult> GetMine([FromQuery] string type = "Personal")
         {
-            // Only admins can read the Activity feed
             if (type == "Activity" && !IsAdmin())
                 return StatusCode(403, new { message = "Not allowed." });
 
@@ -44,7 +43,7 @@ namespace Backend.Controllers
             return Ok(list);
         }
 
-        // GET: /api/notifications/unread-count = unread personal count (bell badge)
+        // GET: /api/notifications/unread-count  = unread personal count (bell badge)
         [HttpGet("unread-count")]
         public async Task<IActionResult> GetUnreadCount()
         {
@@ -53,7 +52,7 @@ namespace Backend.Controllers
             return Ok(new { count, alerts });
         }
 
-        // PUT: /api/notifications/5/read = mark one as read
+        // PUT: /api/notifications/5/read  = mark one as read
         [HttpPut("{id}/read")]
         public async Task<IActionResult> MarkRead(int id)
         {

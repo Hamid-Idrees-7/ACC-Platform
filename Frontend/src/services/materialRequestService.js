@@ -1,6 +1,6 @@
 import api from "./api";
 
-// Admin/store side — reviewing and resolving field material requests.
+// Admin and store side: review and resolve material requests from the field.
 export const materialRequestService = {
   getAll: async () => {
     const response = await api.get("/materialrequests");

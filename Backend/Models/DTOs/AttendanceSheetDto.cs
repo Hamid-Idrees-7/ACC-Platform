@@ -22,7 +22,7 @@ namespace Backend.Models.DTOs
         public int UnmarkedCount { get; set; }
     }
 
-    // One worker row on the sheet — an assignment, its wage, and its attendance.
+    // One worker row on the sheet: an assignment, its wage and its attendance.
     public class AttendanceWorkerDto
     {
         public int AssignmentID { get; set; }
@@ -35,8 +35,8 @@ namespace Backend.Models.DTOs
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
-        // True when the selected date falls inside this assignment's period.
-        // When false, the row is shown but marking is disabled (period ended / not started)
+        // True when the selected date is inside this assignment's period. If not, the row
+        // is shown but can't be marked (the period has ended or not started yet).
         public bool OnSiteThisDate { get; set; }
 
         // Attendance for the selected date: Present, Absent or null (not marked).
@@ -51,7 +51,7 @@ namespace Backend.Models.DTOs
     public class AttendanceDayDto
     {
         public DateTime Date { get; set; }
-        // present, Absent or null (not marked)
+        // Present, Absent or null (not marked)
         public string? Status { get; set; }
     }
 }

@@ -1,15 +1,20 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { assignmentService } from "../services/assignmentService";
 import { employeeService } from "../services/employeeService";
 import { projectService } from "../services/projectService";
 import AssignmentFormModal from "../components/AssignmentFormModal";
-import { formatDate } from "../components/DatePicker";
+import { formatDate } from "../utils/dates";
 import { money } from "../utils/format";
 import "./Assignments.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
 const initials = (name) => (name || "?").charAt(0).toUpperCase();
 const wageSuffix = (type) =>
@@ -41,8 +46,7 @@ function Assignments() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadAssignments = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
@@ -69,7 +73,7 @@ function Assignments() {
     }
   };
 
-  useEffect(() => { loadAssignments(); loadRefs(); }, []);
+  useLoader(() => { loadAssignments(); loadRefs(); });
 
   useLiveRefresh(["assignments"], () => loadAssignments({ quiet: true }));
   useLiveRefresh(["employees", "projects"], () => loadRefs());
@@ -90,7 +94,8 @@ function Assignments() {
     }
     return list;
   }, [assignments, statusFilter, projectFilter, search]);
-  useHighlight(loading ? null : `${filtered.length}:${search}:${projectFilter}:${statusFilter}`, () => { setSearch(""); setProjectFilter("All"); setStatusFilter("All"); });
+  const paging = usePagination(filtered, { resetKey: `${search}|${projectFilter}|${statusFilter}`, getId: (a) => a.assignmentID });
+  useHighlight(loading ? null : `${filtered.length}:${paging.page}:${search}:${projectFilter}:${statusFilter}`, () => { setSearch(""); setProjectFilter("All"); setStatusFilter("All"); });
 
   const handleSave = async (data) => {
     if (formModal.mode === "edit") {
@@ -188,7 +193,7 @@ function Assignments() {
       {error && <div className="asn-error">{error}</div>}
 
       {loading ? (
-        <div className="asn-empty"><div className="asn-spinner" /><p>Loading assignments...</p></div>
+        <SkeletonRows count={6} />
       ) : filtered.length === 0 ? (
         <div className="asn-empty">
           <div className="asn-empty-icon">
@@ -198,63 +203,65 @@ function Assignments() {
           <p>{assignments.length === 0 ? "Create your first assignment to get started." : "Try adjusting your search or filters."}</p>
         </div>
       ) : (
-        <div className="asn-grid">
-          {filtered.map((a) => {
-            const active = a.status === "Active";
-            return (
-              <div key={a.assignmentID} data-highlight={a.assignmentID} className={`asn-card ${active ? "active" : "done"}`}>
-                <div className="asn-card-head">
-                  <div className="asn-avatar">{initials(a.employeeName)}</div>
-                  <div className="asn-card-who">
-                    <div className="asn-card-name">{a.employeeName}</div>
-                    <div className="asn-card-role">{a.role}</div>
+        <>
+          <div className="asn-grid">
+            {paging.pageItems.map((a) => {
+              const active = a.status === "Active";
+              return (
+                <div key={a.assignmentID} data-highlight={a.assignmentID} className={`asn-card ${active ? "active" : "done"}`}>
+                  <div className="asn-card-head">
+                    <div className="asn-avatar">{initials(a.employeeName)}</div>
+                    <div className="asn-card-who">
+                      <div className="asn-card-name">{a.employeeName}</div>
+                      <div className="asn-card-role">{a.role}</div>
+                    </div>
+                    <span className={`asn-badge asn-badge-${active ? "active" : "completed"}`}>{a.status}</span>
                   </div>
-                  <span className={`asn-badge asn-badge-${active ? "active" : "completed"}`}>{a.status}</span>
-                </div>
 
-                <div className="asn-card-project">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /></svg>
-                  {a.projectTitle}
-                </div>
+                  <div className="asn-card-project">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /></svg>
+                    {a.projectTitle}
+                  </div>
 
-                <div className="asn-wage">
-                  <strong>{money(a.wageAmount)}</strong>
-                  <span>{wageSuffix(a.wageType)}</span>
-                </div>
+                  <div className="asn-wage">
+                    <strong>{money(a.wageAmount)}</strong>
+                    <span>{wageSuffix(a.wageType)}</span>
+                  </div>
 
-                <div className="asn-dates">
-                  <div><span>FROM</span><strong>{formatDate(a.startDate)}</strong></div>
-                  <div className="asn-arrow">→</div>
-                  <div><span>TO</span><strong>{a.endDate ? formatDate(a.endDate) : "Ongoing"}</strong></div>
-                </div>
+                  <div className="asn-dates">
+                    <div><span>FROM</span><strong>{formatDate(a.startDate)}</strong></div>
+                    <div className="asn-arrow">→</div>
+                    <div><span>TO</span><strong>{a.endDate ? formatDate(a.endDate) : "Ongoing"}</strong></div>
+                  </div>
 
-                <div className="asn-card-actions">
-                  {canEdit && active && (
-                    <button className="asn-btn-end" onClick={() => setConfirmEnd(a)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
-                      End
-                    </button>
-                  )}
-                  {canEdit && (
-                    <button className="asn-btn-edit" onClick={() => setFormModal({ mode: "edit", data: a })}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                      Edit
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button className="asn-btn-delete" onClick={() => setConfirmDelete(a)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                      Delete
-                    </button>
-                  )}
+                  <div className="asn-card-actions">
+                    {canEdit && active && (
+                      <button className="asn-btn-end" onClick={() => setConfirmEnd(a)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
+                        End
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button className="asn-btn-edit" onClick={() => setFormModal({ mode: "edit", data: a })}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button className="asn-btn-delete" onClick={() => setConfirmDelete(a)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <Pagination {...paging} label="assignments" />
+        </>
       )}
 
-      {/* Form modal */}
       {formModal && (
         <AssignmentFormModal
           mode={formModal.mode}
@@ -269,7 +276,7 @@ function Assignments() {
 
       {/* End confirm */}
       {confirmEnd && (
-        <div className="asn-overlay" onClick={(e) => e.target.classList.contains("asn-overlay") && setConfirmEnd(null)}>
+        <ModalOverlay className="asn-overlay" onClose={() => setConfirmEnd(null)}>
           <div className="asn-confirm">
             <div className="asn-confirm-icon end">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
@@ -277,16 +284,16 @@ function Assignments() {
             <h3>End Assignment?</h3>
             <p>Mark <strong>{confirmEnd.employeeName}</strong>'s assignment as Completed with today's date. Attendance up to today stays counted for salary. You can reopen it anytime from Edit.</p>
             <div className="asn-confirm-actions">
-              <button className="asn-confirm-cancel" onClick={() => setConfirmEnd(null)}>Cancel</button>
+              <button className="asn-confirm-cancel" data-close onClick={() => setConfirmEnd(null)}>Cancel</button>
               <button className="asn-confirm-end" onClick={() => handleEnd(confirmEnd.assignmentID)}>End Assignment</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete confirm */}
       {confirmDelete && (
-        <div className="asn-overlay" onClick={(e) => e.target.classList.contains("asn-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="asn-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="asn-confirm">
             <div className="asn-confirm-icon del">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -294,11 +301,11 @@ function Assignments() {
             <h3>Delete this assignment?</h3>
             <p><strong>{confirmDelete.employeeName} → {confirmDelete.projectTitle}</strong> will be permanently removed.</p>
             <div className="asn-confirm-actions">
-              <button className="asn-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="asn-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="asn-confirm-delete" onClick={() => handleDelete(confirmDelete.assignmentID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`asn-toast asn-toast-${toast.type}`}>{toast.text}</div>}

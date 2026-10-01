@@ -1,0 +1,42 @@
+.mdo-confirm-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 17, 21, 0.35);
+    animation: mdofade 0.12s ease;
+}
+.mdo-confirm {
+    width: 100%;
+    max-width: 380px;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 24px 22px 20px;
+    text-align: left;
+}
+.mdo-confirm h3 { font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: var(--color-text); margin: 0 0 6px; }
+.mdo-confirm p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-muted); margin: 0 0 18px; }
+.mdo-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.mdo-keep, .mdo-discard {
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.mdo-keep { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
+.mdo-keep:hover { background: var(--color-hover); }
+.mdo-discard { background: var(--color-error); border: 1px solid var(--color-error); color: #fff; }
+.mdo-discard:hover { filter: brightness(0.95); }
+.mdo-keep:focus-visible, .mdo-discard:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+@keyframes mdofade { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 480px) {
+    .mdo-confirm-actions { flex-direction: column-reverse; }
+    .mdo-keep, .mdo-discard { width: 100%; }
+}
+[role="dialog"][tabindex="-1"]:focus { outline: none; }

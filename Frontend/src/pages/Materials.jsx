@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
@@ -10,6 +10,11 @@ import { formatQty, money, moneyShort, moneyGrouped, amountInWords } from "../ut
 import "./Materials.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
 function Materials() {
   const navigate = useNavigate();
@@ -24,25 +29,21 @@ function Materials() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Filters
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [stockFilter, setStockFilter] = useState("All"); // All | Out
 
-  // Modals
   const [formModal, setFormModal] = useState(null);
   const [stockModal, setStockModal] = useState(null); // { mode, material }
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Toast
   const [toast, setToast] = useState(null);
   const showToast = (text, type = "success") => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadMaterials = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
@@ -67,7 +68,7 @@ function Materials() {
     }
   };
 
-  useEffect(() => { loadMaterials(); loadProjects(); }, []);
+  useLoader(() => { loadMaterials(); loadProjects(); });
 
   useLiveRefresh(["materials", "material-requests"], () => loadMaterials({ quiet: true }));
   useLiveRefresh(["projects"], () => loadProjects());
@@ -103,9 +104,9 @@ function Materials() {
     }
     return list;
   }, [materials, stockFilter, categoryFilter, search]);
-  useHighlight(loading ? null : `${filtered.length}:${search}:${categoryFilter}:${stockFilter}`, () => { setSearch(""); setCategoryFilter("All"); setStockFilter("All"); });
+  const paging = usePagination(filtered, { resetKey: `${search}|${categoryFilter}|${stockFilter}`, getId: (m) => m.materialID });
+  useHighlight(loading ? null : `${filtered.length}:${paging.page}:${search}:${categoryFilter}:${stockFilter}`, () => { setSearch(""); setCategoryFilter("All"); setStockFilter("All"); });
 
-  // ---- Actions ----
   const handleSave = async (data) => {
     if (formModal.mode === "edit") {
       await materialService.update(formModal.data.materialID, data);
@@ -226,7 +227,7 @@ function Materials() {
 
       {/* Cards grid */}
       {loading ? (
-        <div className="mat-empty"><div className="mat-spinner" /><p>Loading materials...</p></div>
+        <SkeletonRows count={6} />
       ) : filtered.length === 0 ? (
         <div className="mat-empty">
           <div className="mat-empty-icon">
@@ -236,73 +237,75 @@ function Materials() {
           <p>{materials.length === 0 ? "Add your first material to get started." : "Try adjusting your search or filters."}</p>
         </div>
       ) : (
-        <div className="mat-grid">
-          {filtered.map((m) => {
-            const low = isLow(m);
-            const out = isOut(m);
-            return (
-              <div key={m.materialID} data-highlight={m.materialID} className={`mat-card ${out ? "out" : low ? "low" : ""}`}>
-                {(low || out) && (
-                  <div className={`mat-card-flag ${out ? "out" : "low"}`}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                    {out ? "Out of Stock" : "Low Stock"}
-                  </div>
-                )}
-
-                <div className="mat-card-top">
-                  <h4 className="mat-card-name">{m.name}</h4>
-                  <span className="mat-card-unit">{m.unit}</span>
-                </div>
-
-                <div className="mat-card-stock">
-                  <div className="mat-card-stock-num">{formatQty(m.currentStock)}</div>
-                  <div className="mat-card-stock-label">{m.unit} in stock</div>
-                </div>
-
-                <div className="mat-card-info">
-                  <div className="mat-card-info-row"><span>Avg Cost</span><strong className="accent">{money(m.avgCost)} / {m.unit}</strong></div>
-                  <div className="mat-card-info-row"><span>Stock Value</span><strong>{money(m.stockValue)}</strong></div>
-                  <div className="mat-card-info-row"><span>Min Alert</span><strong>{formatQty(m.lowStockThreshold)} {m.unit}</strong></div>
-                </div>
-
-                {canManage && (
-                  <div className="mat-card-actions">
-                    <button className="mat-btn-issue" onClick={() => setStockModal({ mode: "issue", material: m })}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                      Issue
-                    </button>
-                    <button className="mat-btn-restock" onClick={() => setStockModal({ mode: "restock", material: m })}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                      Restock
-                    </button>
-                  </div>
-                )}
-
-                <div className="mat-card-footer">
-                  <button className="mat-foot-btn" onClick={() => navigate(`/dashboard/materials/${m.materialID}/history`)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                    History
-                  </button>
-                  {canEdit && (
-                    <button className="mat-foot-btn" onClick={() => setFormModal({ mode: "edit", data: m })}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                      Edit
-                    </button>
+        <>
+          <div className="mat-grid">
+            {paging.pageItems.map((m) => {
+              const low = isLow(m);
+              const out = isOut(m);
+              return (
+                <div key={m.materialID} data-highlight={m.materialID} className={`mat-card ${out ? "out" : low ? "low" : ""}`}>
+                  {(low || out) && (
+                    <div className={`mat-card-flag ${out ? "out" : "low"}`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                      {out ? "Out of Stock" : "Low Stock"}
+                    </div>
                   )}
-                  {canDelete && (
-                    <button className="mat-foot-btn mat-foot-delete" onClick={() => setConfirmDelete(m)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                      Delete
-                    </button>
+
+                  <div className="mat-card-top">
+                    <h4 className="mat-card-name">{m.name}</h4>
+                    <span className="mat-card-unit">{m.unit}</span>
+                  </div>
+
+                  <div className="mat-card-stock">
+                    <div className="mat-card-stock-num">{formatQty(m.currentStock)}</div>
+                    <div className="mat-card-stock-label">{m.unit} in stock</div>
+                  </div>
+
+                  <div className="mat-card-info">
+                    <div className="mat-card-info-row"><span>Avg Cost</span><strong className="accent">{money(m.avgCost)} / {m.unit}</strong></div>
+                    <div className="mat-card-info-row"><span>Stock Value</span><strong>{money(m.stockValue)}</strong></div>
+                    <div className="mat-card-info-row"><span>Min Alert</span><strong>{formatQty(m.lowStockThreshold)} {m.unit}</strong></div>
+                  </div>
+
+                  {canManage && (
+                    <div className="mat-card-actions">
+                      <button className="mat-btn-issue" onClick={() => setStockModal({ mode: "issue", material: m })}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        Issue
+                      </button>
+                      <button className="mat-btn-restock" onClick={() => setStockModal({ mode: "restock", material: m })}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        Restock
+                      </button>
+                    </div>
                   )}
+
+                  <div className="mat-card-footer">
+                    <button className="mat-foot-btn" onClick={() => navigate(`/dashboard/materials/${m.materialID}/history`)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                      History
+                    </button>
+                    {canEdit && (
+                      <button className="mat-foot-btn" onClick={() => setFormModal({ mode: "edit", data: m })}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button className="mat-foot-btn mat-foot-delete" onClick={() => setConfirmDelete(m)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <Pagination {...paging} label="materials" />
+        </>
       )}
 
-      {/* Add/Edit modal */}
       {formModal && (
         <MaterialFormModal
           mode={formModal.mode}
@@ -327,7 +330,7 @@ function Materials() {
 
       {/* Delete confirm */}
       {confirmDelete && (
-        <div className="mat-overlay" onClick={(e) => e.target.classList.contains("mat-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="mat-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="mat-confirm">
             <div className="mat-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -335,14 +338,13 @@ function Materials() {
             <h3>Delete this material?</h3>
             <p><strong>{confirmDelete.name}</strong> and its full transaction history will be permanently deleted. This cannot be undone.</p>
             <div className="mat-confirm-actions">
-              <button className="mat-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="mat-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="mat-confirm-delete" onClick={() => handleDelete(confirmDelete.materialID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Toast */}
       {toast && <div className={`mat-toast mat-toast-${toast.type}`}>{toast.text}</div>}
     </DashboardLayout>
   );

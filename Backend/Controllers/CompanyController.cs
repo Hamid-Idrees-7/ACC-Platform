@@ -31,7 +31,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetAsync());
         }
 
-        // PUT: /api/company  - Admin only
+        // PUT: /api/company  = save the company details (Admin only)
         [HttpPut]
         [AdminOnly]
         public async Task<IActionResult> Save([FromBody] SaveCompanySettingsDto dto)

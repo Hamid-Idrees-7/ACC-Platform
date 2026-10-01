@@ -4,6 +4,6 @@ namespace Backend.Models.DTOs
     public class FieldProgressDto
     {
         public int PhaseID { get; set; }
-        public int Progress { get; set; }   // 0–100
+        public int Progress { get; set; }   // 0 to 100
     }
 }

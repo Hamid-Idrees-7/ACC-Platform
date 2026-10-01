@@ -1,4 +1,4 @@
-/* CONTROL UNIT - users list */
+/* Control Unit: users list */
 .cu-head { margin-bottom: 24px; }
 .cu-head h2 {
     font-family: var(--font-heading);
@@ -41,15 +41,6 @@
 .cu-empty-icon svg { width: 34px; height: 34px; }
 .cu-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .cu-empty p { color: var(--color-text-muted); font-size: 14px; }
-.cu-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: cuspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes cuspin { to { transform: rotate(360deg); } }
 
 .cu-grid {
     display: grid;

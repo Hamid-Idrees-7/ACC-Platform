@@ -1,6 +1,6 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // Used when sending user data OUT to the frontend (never includes the password)
+    // User data sent to the frontend (never the password).
     public class UserDto
     {
         public int UserID { get; set; }

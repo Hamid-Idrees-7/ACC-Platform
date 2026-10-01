@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccLogo } from "./Home";
 import "./Home.css";
+import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
 
 function Privacy() {
+  usePageTitle("Privacy policy", SITE_NAME);
+  usePageDescription("How Anonymous Construction Co. uses the details you send through this website.");
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Open at top instantly
+  // Open at the top straight away (no smooth scroll).
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     const handleScroll = () => setScrolled(window.scrollY > 30);
@@ -16,7 +19,7 @@ function Privacy() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Go to home, then scroll to a specific section
+  // Go to the home page, then scroll to the given section.
   const goToSection = (sectionId) => {
     setMenuOpen(false);
     navigate("/", { state: { scrollTo: sectionId } });

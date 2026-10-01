@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { projectService } from "../services/projectService";
-import { formatDate } from "../components/DatePicker";
-import { money, formatQty, amountInWords } from "../utils/format";
+import { formatDate } from "../utils/dates";
+import { money, formatQty, amountInWords, formatPhone } from "../utils/format";
 import ProjectExpenses from "../components/ProjectExpenses";
 import "./ProjectDetail.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonPage } from "../components/Skeleton";
+import { useLoader } from "../hooks/useLoader";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const PHASE_STATUSES = ["Pending", "In Progress", "Completed"];
@@ -66,7 +69,7 @@ function ProjectDetail() {
     }
   };
 
-  useEffect(() => { load(); }, [id]);
+  useLoader(() => load(), id);
 
   // Refresh after a change (a phase, an expense) without the full-page loader, so the
   // page keeps its scroll position.
@@ -81,7 +84,6 @@ function ProjectDetail() {
   useLiveRefresh(["projects", "assignments", "expenses", "materials", "billing", "attendance", "clients"], refreshQuietly);
 
   const cancelled = project?.status === "Cancelled";
-  const locked = cancelled || !canManage;
 
   const changeStatus = async (status) => {
     setSavingStatus(true);
@@ -150,7 +152,7 @@ function ProjectDetail() {
   if (loading) {
     return (
       <DashboardLayout title="Project">
-        <div className="pd-empty"><div className="pd-spinner" /><p>Loading project...</p></div>
+        <SkeletonPage stats={4} rows={6} />
       </DashboardLayout>
     );
   }
@@ -178,9 +180,9 @@ function ProjectDetail() {
   const engineers = team.filter((m) => LEAD_ROLE.test(m.role || ""));
   const workers = team.filter((m) => !LEAD_ROLE.test(m.role || ""));
 
-  // Labour cost comes from the backend, computed from real data: contract wages (fixed)
-  // plus daily wages earned through marked attendance (present days x wage). Monthly
-  // salaried staff are company payroll and are not charged to this project.
+  // Labour cost comes from the backend: fixed contract wages plus daily wages from
+  // marked attendance (present days x wage). Monthly salaried staff are company payroll
+  // and are not charged to this project.
   const contractLabour = f.contractLabour || 0;
   const dailyLabour = f.dailyLabour || 0;
 
@@ -201,7 +203,7 @@ function ProjectDetail() {
           <div className="pd-banner-left">
             <span className={`pd-badge pd-badge-${slug(project.status)}`}>{project.status}</span>
             <h2>{project.title}</h2>
-            <div className="pd-banner-client">Client: <strong>{project.clientName}</strong>{project.clientPhone ? `, ${project.clientPhone}` : ""}</div>
+            <div className="pd-banner-client">Client: <strong>{project.clientName}</strong>{project.clientPhone ? `, ${formatPhone(project.clientPhone)}` : ""}</div>
             {project.description && <p className="pd-banner-desc">{project.description}</p>}
           </div>
           <div className="pd-banner-right"><ProgressRing value={project.overallProgress} /><span>Overall Progress</span></div>
@@ -352,7 +354,7 @@ function ProjectDetail() {
             )}
           </div>
 
-          {/* Construction site team — live from the Assignments module */}
+          {/* Site team, live from the Assignments module */}
           <div className="pd-team">
             <h3>Construction Site</h3>
             <div className="pd-team-box">
@@ -405,7 +407,7 @@ function ProjectDetail() {
         {/* Project expenses: plot, transfer, taxes, possession... (hidden without Expenses View) */}
         <ProjectExpenses projectId={project.projectID} readOnly={cancelled} onChanged={refreshQuietly} />
 
-        {/* Materials Used — Phase by Phase */}
+        {/* Materials used, phase by phase */}
         {project.materialsByPhase && project.materialsByPhase.length > 0 && (
           <div className="pd-materials">
             <h3>Materials Used — Phase by Phase</h3>
@@ -439,7 +441,7 @@ function ProjectDetail() {
 
       {/* Add phase modal */}
       {addPhaseOpen && (
-        <div className="pd-overlay" onClick={(e) => e.target.classList.contains("pd-overlay") && setAddPhaseOpen(false)}>
+        <ModalOverlay className="pd-overlay" onClose={() => { setAddPhaseOpen(false); setPhaseName(""); }}>
           <div className="pd-modal">
             <h3>Add New Phase</h3>
             <p className="pd-modal-sub">For luxury homes you can add phases like Swimming Pool, Basement, Lift, Home Theater, etc.</p>
@@ -449,16 +451,16 @@ function ProjectDetail() {
               {PHASE_SUGGESTIONS.map((s) => <button key={s} onClick={() => setPhaseName(s)}>{s}</button>)}
             </div>
             <div className="pd-modal-actions">
-              <button className="pd-modal-cancel" onClick={() => { setAddPhaseOpen(false); setPhaseName(""); }}>Cancel</button>
+              <button className="pd-modal-cancel" data-close onClick={() => { setAddPhaseOpen(false); setPhaseName(""); }}>Cancel</button>
               <button className="pd-modal-save" onClick={() => addPhase()}>Add Phase</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Update phase modal */}
       {editPhase && (
-        <div className="pd-overlay" onClick={(e) => e.target.classList.contains("pd-overlay") && setEditPhase(null)}>
+        <ModalOverlay className="pd-overlay" onClose={() => setEditPhase(null)}>
           <div className="pd-modal">
             <h3>Update Phase</h3>
             <p className="pd-modal-sub">{editPhase.name}</p>
@@ -470,25 +472,25 @@ function ProjectDetail() {
             <input type="range" min="0" max="100" value={editPhase.progress} onChange={(e) => setEditPhase({ ...editPhase, progress: e.target.value })} className="pd-range" />
             <div className="pd-range-val">{editPhase.progress}%</div>
             <div className="pd-modal-actions">
-              <button className="pd-modal-cancel" onClick={() => setEditPhase(null)}>Cancel</button>
+              <button className="pd-modal-cancel" data-close onClick={() => setEditPhase(null)}>Cancel</button>
               <button className="pd-modal-save" onClick={saveEditPhase}>Save</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete phase confirm */}
       {confirmPhase && (
-        <div className="pd-overlay" onClick={(e) => e.target.classList.contains("pd-overlay") && setConfirmPhase(null)}>
+        <ModalOverlay className="pd-overlay" onClose={() => setConfirmPhase(null)}>
           <div className="pd-confirm">
             <h3>Delete this phase?</h3>
             <p><strong>{confirmPhase.name}</strong> will be removed from this project.</p>
             <div className="pd-modal-actions">
-              <button className="pd-modal-cancel" onClick={() => setConfirmPhase(null)}>Cancel</button>
+              <button className="pd-modal-cancel" data-close onClick={() => setConfirmPhase(null)}>Cancel</button>
               <button className="pd-confirm-del" onClick={() => deletePhase(confirmPhase.phaseID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`pd-toast pd-toast-${toast.type}`}>{toast.text}</div>}

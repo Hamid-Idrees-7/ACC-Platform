@@ -3,6 +3,7 @@ using Backend.Alerts;
 using Backend.Auth;
 using Backend.Data;
 using Backend.Demo;
+using Backend.Email;
 using Backend.Live;
 using Backend.Repositories;
 using Backend.Services;
@@ -12,10 +13,8 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 
-// OpenAPI / Swagger
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -28,15 +27,17 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<DemoDbFactory>();
 builder.Services.AddSingleton<DemoConnectionResolver>();
 builder.Services.AddSingleton<DemoManager>();
+builder.Services.AddSingleton<StartupWarmUp>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<StartupWarmUp>());
 builder.Services.AddHostedService<DemoPoolService>();
 
-// Register the database context (SQL Server). The connection is chosen per request:
-// the main database normally, or the visitor's own database when the caller holds a demo token.
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<LiveChangeInterceptor>();
 builder.Services.AddSingleton<AlertScheduler>();
 builder.Services.AddHostedService<AlertWorker>();
 
+// SQL Server. The connection is chosen per request: the main database normally, or the
+// visitor's own database when the caller holds a demo token.
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseSqlServer(serviceProvider.GetRequiredService<DemoConnectionResolver>().GetConnectionString())
            .AddInterceptors(serviceProvider.GetRequiredService<LiveChangeInterceptor>()));
@@ -65,17 +66,30 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(10),
                 QueueLimit = 0
             }));
+    // Forgot and reset password: enough for a person, too few to guess links or flood inboxes.
+    options.AddPolicy(SecurityOptions.PasswordResetRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
     options.OnRejected = async (context, cancellationToken) =>
     {
         var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
-        var message = policy == SecurityOptions.LoginRateLimitPolicy
-            ? "Too many sign-in attempts from your network. Please wait a few minutes and try again."
-            : "Too many demo attempts from your network. Please wait a few minutes and try again.";
+        var message = policy switch
+        {
+            SecurityOptions.LoginRateLimitPolicy => "Too many sign-in attempts from your network. Please wait a few minutes and try again.",
+            SecurityOptions.PasswordResetRateLimitPolicy => "Too many password reset attempts from your network. Please wait a few minutes and try again.",
+            _ => "Too many demo attempts from your network. Please wait a few minutes and try again."
+        };
         await context.HttpContext.Response.WriteAsJsonAsync(new { message }, cancellationToken);
     };
 });
 
-// Register our N-tier services (Dependency Injection)
+// Repositories and services, grouped by module (dependency injection)
 
 // Project
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
@@ -98,17 +112,17 @@ builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
 // Weekly off days and holidays (Settings > Calendar)
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
-// Project Expenses (plot, transfer, taxes, possession — feeds project cost and billing)
+// Project expenses (plot, transfer, taxes, possession). They feed project cost and billing.
 builder.Services.AddScoped<IProjectExpenseRepository, ProjectExpenseRepository>();
 builder.Services.AddScoped<IProjectExpenseService, ProjectExpenseService>();
 // Billing
 builder.Services.AddScoped<IBillingRepository, BillingRepository>();
 builder.Services.AddScoped<IBillingService, BillingService>();
-// Reports (aggregates the other modules — no repository of its own)
+// Reports read from the other modules, so no repository of its own
 builder.Services.AddScoped<IReportsService, ReportsService>();
-// Field View (site-engineer scoped — reuses project/attendance services, no repository)
+// Field view for site engineers. Reuses the project and attendance services, no repository.
 builder.Services.AddScoped<IFieldService, FieldService>();
-// Material Requests (field to approval to issue)
+// Material requests (field request, then approval, then issue)
 builder.Services.AddScoped<IMaterialRequestRepository, MaterialRequestRepository>();
 builder.Services.AddScoped<IMaterialRequestService, MaterialRequestService>();
 // Material
@@ -147,8 +161,13 @@ builder.Services.AddScoped<IAlertCheckService, AlertCheckService>();
 // Auth
 builder.Services.AddScoped<Backend.Auth.TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+// Forgot password (email link)
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
-// JWT Authentication setup
+// JWT authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
@@ -179,7 +198,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Allow the React frontend (localhost:5173) to call this API
+// Let the React dev server (localhost:5173) call this API
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -192,7 +211,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -202,7 +221,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowFrontend");   // And we added this line with the local host's permission
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 
@@ -217,6 +236,7 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapHub<LiveHub>("/hubs/live");
 
 app.Run();

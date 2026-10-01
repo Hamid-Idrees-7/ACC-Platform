@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import { profileService } from "../services/profileService";
 import "./Profile.css";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonPage } from "../components/Skeleton";
+import { formatPhone } from "../utils/format";
 
 // A read-only profile view. Editing happens in Settings.
 function Profile() {
@@ -32,7 +34,7 @@ function Profile() {
   if (loading) {
     return (
       <DashboardLayout title="Profile">
-        <div className="pf-loading"><div className="pf-spinner" /></div>
+        <SkeletonPage stats={0} rows={5} />
       </DashboardLayout>
     );
   }
@@ -67,13 +69,13 @@ function Profile() {
             {profile?.phone && (
               <div className="pfv-info-row">
                 <span className="pfv-info-label">Phone</span>
-                <span className="pfv-info-value">{profile.phone}</span>
+                <span className="pfv-info-value">{formatPhone(profile.phone)}</span>
               </div>
             )}
             {profile?.secondaryPhone && (
               <div className="pfv-info-row">
                 <span className="pfv-info-label">Secondary Phone</span>
-                <span className="pfv-info-value">{profile.secondaryPhone}</span>
+                <span className="pfv-info-value">{formatPhone(profile.secondaryPhone)}</span>
               </div>
             )}
           </div>
@@ -86,12 +88,12 @@ function Profile() {
       </div>
 
       {viewPhoto && photo && (
-        <div className="pf-view-overlay" onClick={() => setViewPhoto(false)}>
+        <ModalOverlay className="pf-view-overlay" onClose={() => setViewPhoto(false)} label="Profile photo">
           <button className="pf-view-close" onClick={() => setViewPhoto(false)} aria-label="Close">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
-          <img src={photo} alt="Profile" className="pf-view-img" onClick={(e) => e.stopPropagation()} />
-        </div>
+          <img src={photo} alt="Profile" className="pf-view-img" />
+        </ModalOverlay>
       )}
     </DashboardLayout>
   );

@@ -108,7 +108,7 @@ namespace Backend.Controllers
             return Ok(assignment);
         }
 
-        // DELETE: /api/assignments/5 (or request approval if required)
+        // DELETE: /api/assignments/5  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Assignments", "Delete")]
         public async Task<IActionResult> Delete(int id)

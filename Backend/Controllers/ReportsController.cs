@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Company reports. Base route: /api/reports. Read-only — View permission only.
+    // Company reports. Base route: /api/reports. Read-only, so only View permission is used.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -18,7 +18,7 @@ namespace Backend.Controllers
             _service = service;
         }
 
-        // GET /api/reports — the full company report (financial, projects, materials, workforce)
+        // GET: /api/reports  = the full company report (financial, projects, materials, workforce)
         [HttpGet]
         [RequirePermission("Reports", "View")]
         public async Task<IActionResult> Get()

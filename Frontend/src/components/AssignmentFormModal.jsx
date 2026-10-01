@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
-import DatePicker, { formatDate } from "./DatePicker";
+import { useState, useMemo } from "react";
+import DatePicker from "./DatePicker";
+import { formatDate } from "../utils/dates";
 import { amountInWords, currencySymbol } from "../utils/format";
 import "./AssignmentFormModal.css";
+import ModalOverlay from "./ModalOverlay";
 
 const WAGE_TYPES = [
   { value: "Daily", label: "Daily (Dehari)" },
@@ -14,32 +16,20 @@ const wageLabel = (type) =>
 
 function AssignmentFormModal({ mode, initialData, employees = [], projects = [], assignments = [], onClose, onSave }) {
   const isEdit = mode === "edit";
-  const [role, setRole] = useState("");
-  const [employeeID, setEmployeeID] = useState("");
-  const [projectID, setProjectID] = useState("");
-  const [wageType, setWageType] = useState("Daily");
-  const [wageAmount, setWageAmount] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [status, setStatus] = useState("Active");
-  const [notes, setNotes] = useState("");
+  // The assignment being edited, or nothing for a new one.
+  const start = isEdit && initialData ? initialData : {};
+  const [role, setRole] = useState(start.role || "");
+  const [employeeID, setEmployeeID] = useState(start.employeeID || "");
+  const [projectID, setProjectID] = useState(start.projectID || "");
+  const [wageType, setWageType] = useState(start.wageType || "Daily");
+  const [wageAmount, setWageAmount] = useState(start.wageAmount ?? "");
+  const [startDate, setStartDate] = useState(start.startDate ? start.startDate.split("T")[0] : "");
+  const [endDate, setEndDate] = useState(start.endDate ? start.endDate.split("T")[0] : "");
+  const [status, setStatus] = useState(start.status || "Active");
+  const [notes, setNotes] = useState(start.notes || "");
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  useEffect(() => {
-    if (isEdit && initialData) {
-      setRole(initialData.role || "");
-      setEmployeeID(initialData.employeeID || "");
-      setProjectID(initialData.projectID || "");
-      setWageType(initialData.wageType || "Daily");
-      setWageAmount(initialData.wageAmount ?? "");
-      setStartDate(initialData.startDate ? initialData.startDate.split("T")[0] : "");
-      setEndDate(initialData.endDate ? initialData.endDate.split("T")[0] : "");
-      setStatus(initialData.status || "Active");
-      setNotes(initialData.notes || "");
-    }
-  }, [isEdit, initialData]);
 
   const activeEmployees = useMemo(() => employees.filter((e) => e.status === "Active"), [employees]);
 
@@ -108,14 +98,14 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
   };
 
   return (
-    <div className="afm-overlay" onClick={(e) => e.target.classList.contains("afm-overlay") && onClose()}>
+    <ModalOverlay className="afm-overlay" onClose={onClose}>
       <div className="afm-modal">
         <div className="afm-head">
           <div>
             <h3>{isEdit ? "Edit Assignment" : "New Assignment"}</h3>
             <p>Choose role → employee → project. Wage is set per assignment.</p>
           </div>
-          <button className="afm-close" onClick={onClose} aria-label="Close">
+          <button className="afm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -203,13 +193,13 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
         </div>
 
         <div className="afm-actions">
-          <button className="afm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="afm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="afm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Assignment"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

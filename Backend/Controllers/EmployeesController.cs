@@ -83,7 +83,7 @@ namespace Backend.Controllers
             return CreatedAtAction(nameof(GetById), new { id = employee.EmployeeID }, employee);
         }
 
-        // PUT: /api/employees/5 (also covers enable/disable)
+        // PUT: /api/employees/5  = update an employee (also enable/disable)
         [HttpPut("{id}")]
         [RequirePermission("Employees", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateEmployeeDto dto)
@@ -95,7 +95,7 @@ namespace Backend.Controllers
             return Ok(employee);
         }
 
-        // DELETE: /api/employees/5 (or request approval if required)
+        // DELETE: /api/employees/5  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Employees", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -104,12 +104,12 @@ namespace Backend.Controllers
             if (employee == null)
                 return NotFound(new { message = "Employee not found" });
 
-            // Referential-integrity guard: an employee tied to any assignment must be
-            // kept for history. Recommend Inactive over deletion.
+            // An employee with any assignment is kept for the history;
+            // the message suggests setting them Inactive instead.
             if (await _service.HasAssignmentsAsync(id))
                 return Conflict(new { message = $"\"{employee.FullName}\" has project assignments and cannot be deleted. Set the employee to Inactive instead to keep the assignment history." });
 
-            // Non-admins may need approval before a delete actually runs
+            // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Employees", "Delete"))
             {
                 var created = await _approvalService.CreateAsync(
@@ -128,7 +128,6 @@ namespace Backend.Controllers
                 return Ok(new { requiresApproval = true, message = $"Request to delete \"{employee.FullName}\" sent to administration for approval." });
             }
 
-            // Otherwise delete directly
             var deleted = await _service.DeleteEmployeeAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Employee not found" });

@@ -15,10 +15,15 @@ import Toast, { useToast } from "../components/Toast";
 import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
 import { passwordError } from "../utils/password";
 import "./Settings.css";
+import ModalOverlay from "../components/ModalOverlay";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { SkeletonPage } from "../components/Skeleton";
+import { typePhone, typed } from "../utils/format";
 
 const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "company", "calendar"];
 const ADMIN_TABS = ["alerts", "company", "calendar"];
 const BIO_MAX = 300;
+const PROFILE_FIELDS = ["fullName", "email", "phone", "secondaryPhone", "bio"];
 
 // Same rules as the server. Each returns { field: message }.
 const validateProfile = (f) => {
@@ -66,7 +71,7 @@ function Settings() {
   const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Live demo logins keep a fixed username and password (the role switcher signs in with them)
+  // Live demo logins keep a fixed username and password (the role switcher signs in with them).
   const isDemoAccount = !!user?.demo;
 
   const [profile, setProfile] = useState(null);
@@ -91,41 +96,45 @@ function Settings() {
     nav.scrollTo({ left: left - (nav.clientWidth - active.offsetWidth) / 2 });
   }, [tab, loading]);
 
-  // Leaving Company with unsaved changes asks first.
+  // Leaving a tab with unsaved changes asks first.
   const [companyDirty, setCompanyDirty] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
   const onCompanyDirty = useCallback((d) => setCompanyDirty(d), []);
   const setTab = (key) => {
     if (key === tab) return;
-    if (tab === "company" && companyDirty) { setPendingTab(key); return; }
+    const tabDirty = (tab === "company" && companyDirty) || (tab === "profile" && profileDirty) || (tab === "account" && passwordDirty);
+    if (tabDirty) { setPendingTab(key); return; }
     goToTab(key);
   };
-  const leaveCompany = () => {
+  const leaveTab = () => {
     setCompanyDirty(false);
+    if (tab === "profile" && profile) setForm(Object.fromEntries(PROFILE_FIELDS.map((k) => [k, profile[k] || ""])));
+    if (tab === "account") setPwForm({ current: "", next: "", confirm: "" });
     goToTab(pendingTab);
     setPendingTab(null);
   };
 
-  // Profile form
   const [form, setForm] = useState({ fullName: "", email: "", phone: "", secondaryPhone: "", bio: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileErrors, setProfileErrors] = useState({});
   const [loadError, setLoadError] = useState("");
   const [toast, showToast] = useToast(3500);
 
-  // Password form
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
   const [savingPw, setSavingPw] = useState(false);
   const [pwErrors, setPwErrors] = useState({});
 
-  // Photo
   const [cropSrc, setCropSrc] = useState(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Username (golden re-auth)
+  // Username change modal (asks for the password again)
   const [unlockOpen, setUnlockOpen] = useState(false);
+
+  const profileDirty = !!profile && PROFILE_FIELDS.some((k) => (form[k] || "") !== (profile[k] || ""));
+  const passwordDirty = Object.values(pwForm).some((v) => v !== "");
+  useUnsavedChanges(profileDirty || passwordDirty);
 
   useEffect(() => {
     const load = async () => {
@@ -166,7 +175,6 @@ function Settings() {
     if (first) focusField(`${prefix}-${first}`);
   };
 
-  // ---- Photo ----
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -215,7 +223,6 @@ function Settings() {
     }
   };
 
-  // ---- Save profile ----
   const PROFILE_ORDER = ["fullName", "email", "phone", "secondaryPhone", "bio"];
   const handleSaveProfile = async () => {
     const errs = validateProfile(form);
@@ -243,7 +250,6 @@ function Settings() {
     }
   };
 
-  // ---- Change password ----
   const PW_ORDER = ["current", "next", "confirm"];
   const handleChangePassword = async () => {
     const errs = validatePassword(pwForm);
@@ -277,7 +283,7 @@ function Settings() {
   if (loading && (tab === "profile" || tab === "account")) {
     return (
       <DashboardLayout title="Settings">
-        <div className="st-loading"><div className="st-spinner" /></div>
+        <SkeletonPage stats={0} rows={6} />
       </DashboardLayout>
     );
   }
@@ -306,9 +312,8 @@ function Settings() {
           ))}
         </div>
 
-        {/* Content */}
         <div className="st-content">
-          {/* ============ PROFILE MANAGEMENT ============ */}
+          {/* Profile */}
           {tab === "profile" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -346,12 +351,12 @@ function Settings() {
                 </div>
                 <div className={`st-field ${profileErrors.phone ? "has-err" : ""}`}>
                   <label htmlFor="st-p-phone">Phone <span className="req">*</span></label>
-                  <input id="st-p-phone" type="tel" maxLength={15} placeholder="+92 300 0000000" value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} aria-invalid={!!profileErrors.phone} />
+                  <input id="st-p-phone" type="tel" maxLength={15} placeholder="0300-1234567" value={form.phone} onChange={(e) => handleFormChange("phone", typed(e, typePhone))} aria-invalid={!!profileErrors.phone} />
                   {profileErrors.phone && <span className="st-err">{profileErrors.phone}</span>}
                 </div>
                 <div className={`st-field ${profileErrors.secondaryPhone ? "has-err" : ""}`}>
                   <label htmlFor="st-p-secondaryPhone">Secondary Phone</label>
-                  <input id="st-p-secondaryPhone" type="tel" maxLength={15} placeholder="Optional" value={form.secondaryPhone} onChange={(e) => handleFormChange("secondaryPhone", e.target.value)} aria-invalid={!!profileErrors.secondaryPhone} />
+                  <input id="st-p-secondaryPhone" type="tel" maxLength={15} placeholder="Optional" value={form.secondaryPhone} onChange={(e) => handleFormChange("secondaryPhone", typed(e, typePhone))} aria-invalid={!!profileErrors.secondaryPhone} />
                   {profileErrors.secondaryPhone && <span className="st-err">{profileErrors.secondaryPhone}</span>}
                 </div>
                 <div className={`st-field st-field-full ${profileErrors.bio ? "has-err" : ""}`}>
@@ -372,7 +377,7 @@ function Settings() {
             </div>
           )}
 
-          {/* ACCOUNT MANAGEMENT */}
+          {/* Account */}
           {tab === "account" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -395,7 +400,7 @@ function Settings() {
                 </div>
               )}
 
-              {/* Username - golden locked card */}
+              {/* Username: the gold locked card */}
               <div
                 className={`st-gold-card ${isDemoAccount ? "st-gold-card-disabled" : ""}`}
                 onClick={() => !isDemoAccount && setUnlockOpen(true)}
@@ -459,7 +464,7 @@ function Settings() {
             </div>
           )}
 
-          {/* SECURITY */}
+          {/* Security */}
           {tab === "security" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -490,7 +495,7 @@ function Settings() {
             </div>
           )}
 
-          {/* APPEARANCE */}
+          {/* Appearance */}
           {tab === "appearance" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -501,7 +506,7 @@ function Settings() {
             </div>
           )}
 
-          {/* COMPANY (Admin) */}
+          {/* Company (Admin) */}
           {tab === "company" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -512,7 +517,7 @@ function Settings() {
             </div>
           )}
 
-          {/* CALENDAR (Admin) */}
+          {/* Calendar (Admin) */}
           {tab === "calendar" && (
             <div className="st-panel">
               <div className="st-panel-head">
@@ -529,24 +534,22 @@ function Settings() {
 
       {/* Unsaved company changes */}
       {pendingTab && (
-        <div className="st-modal-overlay" onClick={(e) => e.target.classList.contains("st-modal-overlay") && setPendingTab(null)}>
+        <ModalOverlay className="st-modal-overlay" onClose={() => setPendingTab(null)}>
           <div className="st-modal st-leave" role="dialog" aria-modal="true" aria-labelledby="st-leave-title">
             <div className="st-modal-body">
               <h3 id="st-leave-title">Discard unsaved changes?</h3>
-              <p>The changes you made to the company settings have not been saved yet.</p>
+              <p>The changes you made on this tab have not been saved yet.</p>
               <div className="st-leave-actions">
-                <button className="st-leave-keep" onClick={() => setPendingTab(null)} autoFocus>Keep editing</button>
-                <button className="st-leave-discard" onClick={leaveCompany}>Discard changes</button>
+                <button className="st-leave-keep" data-close onClick={() => setPendingTab(null)} autoFocus>Keep editing</button>
+                <button className="st-leave-discard" onClick={leaveTab}>Discard changes</button>
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Crop modal */}
       {cropSrc && <ImageCropModal imageSrc={cropSrc} onCancel={() => setCropSrc(null)} onCrop={handleCropDone} />}
 
-      {/* Username change (golden re-auth) modal */}
       {unlockOpen && (
         <UsernameChangeModal
           currentUsername={profile?.username}
@@ -558,7 +561,7 @@ function Settings() {
   );
 }
 
-// Username change modal (re-auth -> reveal to change to logout)
+// Username change in two steps: confirm the password, then enter the new username. Saving it signs the user out.
 function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
   const [step, setStep] = useState("auth"); // auth | reveal
   const [password, setPassword] = useState("");
@@ -605,10 +608,10 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
   };
 
   return (
-    <div className="st-modal-overlay" onClick={(e) => e.target.classList.contains("st-modal-overlay") && onClose()}>
+    <ModalOverlay className="st-modal-overlay" onClose={onClose}>
       <div className="st-modal st-modal-gold">
         <div className="st-modal-glow" />
-        <button className="st-modal-close" onClick={onClose}>
+        <button className="st-modal-close" data-close onClick={onClose}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
 
@@ -650,7 +653,7 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

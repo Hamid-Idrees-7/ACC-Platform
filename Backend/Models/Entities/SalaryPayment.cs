@@ -6,7 +6,7 @@ namespace Backend.Models.Entities
     // A single salary payment for one pay line, in one month.
     // Daily/Contract lines are per assignment (per project); Monthly is one per employee
     // per month (a monthly salary is owed by the company, not tied to a project).
-    // A row means paid. Undoing a payment simply deletes the row — back to Pending.
+    // A row means paid. Undoing a payment deletes the row, so it goes back to Pending.
     public class SalaryPayment
     {
         [Key]
@@ -24,7 +24,7 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string SourceType { get; set; } = string.Empty;
 
-        // Set for Daily/Contract (the specific assignment + project). Null for Monthly.
+        // Set for Daily and Contract (the assignment and its project). Null for Monthly.
         public int? AssignmentID { get; set; }
         public int? ProjectID { get; set; }
 

@@ -12,6 +12,5 @@ namespace Backend.Repositories
 
         Task<List<Assignment>> GetByProjectAsync(int projectId);
         Task<bool> AnyForEmployeeAsync(int employeeId);
-        Task<decimal> GetContractLabourForProjectAsync(int projectId);
     }
 }

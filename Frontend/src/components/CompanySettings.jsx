@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { companyService } from "../services/companyService";
-import { useCompany, CURRENCIES } from "../context/CompanyContext";
+import { useCompany } from "../context/CompanyContext";
+import { CURRENCIES } from "../config/companyConfig";
 import { formatDateTime } from "../utils/dates";
 import { isEmail, isPhone, isWebsite, isName, hasLetter, isNtn, isStrn, isIban, focusField } from "../utils/validation";
 import Toast, { useToast } from "./Toast";
 import "./CompanySettings.css";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { SkeletonRows } from "./Skeleton";
 
 // Settings > Company (Admin only): company profile, tax numbers, currency, invoice
 // defaults and bank details. One form, saved together. Problems show under each field.
@@ -29,7 +32,7 @@ const LOGO_BOX = { w: 480, h: 240 };        // largest stored logo size (px)
 const LOGO_MAX_CHARS = 580_000;             // the server accepts up to 600,000
 const LOGO_MAX_FILE = 5 * 1024 * 1024;      // 5 MB before resizing
 
-// Server copy -> form values (nulls become empty strings so inputs stay controlled).
+// Server copy to form values (nulls become empty strings so inputs stay controlled).
 const toForm = (s) => {
   const f = { ...EMPTY };
   Object.keys(EMPTY).forEach((k) => {
@@ -39,7 +42,7 @@ const toForm = (s) => {
   return f;
 };
 
-// Form values -> what the server expects.
+// Form values in the shape the server expects.
 const toPayload = (f) => ({
   ...f,
   invoicePrefix: f.invoicePrefix.trim().toUpperCase(),
@@ -174,13 +177,8 @@ function CompanySettings({ onDirtyChange }) {
   // Let the Settings page know, so it can warn before switching tabs.
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
-  // Warn before closing or reloading the tab with unsaved changes.
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  // Warn before leaving the page, closing or reloading the tab with unsaved changes.
+  useUnsavedChanges(dirty);
 
   // Editing a field clears its message.
   const set = (key, value) => {
@@ -240,7 +238,7 @@ function CompanySettings({ onDirtyChange }) {
     }
   };
 
-  if (loading) return <div className="cps-state"><div className="cps-spinner" /></div>;
+  if (loading) return <SkeletonRows count={4} />;
   if (loadError) return <div className="st-msg st-msg-error">{loadError}</div>;
 
   const termsLen = form.invoiceTerms.length;

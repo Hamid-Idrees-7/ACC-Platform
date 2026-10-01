@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Demo
 {
     // Builds AppDbContext instances for a specific database (the main one or a visitor's) and
-    // creates/drops visitor databases. Used by the demo infrastructure outside normal requests.
+    // creates or drops visitor databases. The demo code uses it outside normal requests.
     public class DemoDbFactory
     {
         public const string DatabasePrefix = "ACC_Demo_";

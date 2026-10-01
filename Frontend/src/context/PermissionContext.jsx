@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { permissionService } from "../services/permissionService";
 import { useLiveRefresh } from "../hooks/useLive";
+import { useLoader } from "../hooks/useLoader";
 
 const PermissionContext = createContext();
 
@@ -26,7 +27,7 @@ export function PermissionProvider({ children }) {
     }
     if (!quiet) setLoading(true);
     const myId = user.userID ?? user.userId ?? user.id;
-    // When a different person signs in (e.g. a demo role switch), never show the previous
+    // When a different person signs in (eg a demo role switch), never show the previous
     // person's access while the new permissions load. A simple reload keeps them visible.
     const identity = `${myId}:${user.username}`;
     if (loadedFor.current !== identity) setPermissions([]);
@@ -41,7 +42,7 @@ export function PermissionProvider({ children }) {
     }
   }, [user]);
 
-  useEffect(() => { loadPermissions(); }, [loadPermissions]);
+  useLoader(() => loadPermissions(), user ? `${user.userID}:${user.username}:${user.role}` : "guest");
 
   useLiveRefresh(["permissions", "users"], () => loadPermissions({ quiet: true }));
 

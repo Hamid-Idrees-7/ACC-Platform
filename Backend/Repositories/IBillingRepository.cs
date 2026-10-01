@@ -4,12 +4,11 @@ namespace Backend.Repositories
 {
     public interface IBillingRepository
     {
-        // Invoices
         Task<List<Invoice>> GetAllInvoicesAsync();
         Task<List<Invoice>> GetInvoicesByProjectAsync(int projectId);
         Task<Invoice?> GetInvoiceByIdAsync(int invoiceId);
 
-        // Line items + payments (loaded in bulk for a set of invoices)
+        // Line items and payments, loaded in bulk for a set of invoices
         Task<List<InvoiceItem>> GetItemsByInvoiceIdsAsync(List<int> invoiceIds);
         Task<List<InvoicePayment>> GetPaymentsByInvoiceIdsAsync(List<int> invoiceIds);
 
@@ -22,7 +21,6 @@ namespace Backend.Repositories
         // Removes the invoice with its items and payments.
         Task<bool> DeleteInvoiceAsync(int invoiceId);
 
-        // Payments
         Task AddPaymentAsync(InvoicePayment payment);
         Task<InvoicePayment?> GetPaymentByIdAsync(int paymentId);
         Task<bool> DeletePaymentAsync(int paymentId);

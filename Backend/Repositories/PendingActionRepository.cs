@@ -13,7 +13,7 @@ namespace Backend.Repositories
             _context = context;
         }
 
-        // All actions (newest first)
+        // Newest first
         public async Task<List<PendingAction>> GetAllAsync()
         {
             return await _context.PendingActions
@@ -21,7 +21,7 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
-        // Only pending ones (newest first)
+        // Pending only, newest first
         public async Task<List<PendingAction>> GetPendingAsync()
         {
             return await _context.PendingActions
@@ -57,7 +57,6 @@ namespace Backend.Repositories
             return true;
         }
 
-        // Delete all (for the delete all button)
         public async Task DeleteAllAsync()
         {
             var all = await _context.PendingActions.ToListAsync();
@@ -68,14 +67,14 @@ namespace Backend.Repositories
             }
         }
 
-        // Count of pending requests (for the dashboard card badge)
+        // For the dashboard card badge
         public async Task<int> GetPendingCountAsync()
         {
             return await _context.PendingActions
                 .CountAsync(p => p.Status == "Pending");
         }
 
-        // Check if a pending request already exists for this exact item (prevents duplicates)
+        // Stops a second request for the same item
         public async Task<bool> HasPendingAsync(string module, int targetID)
         {
             return await _context.PendingActions

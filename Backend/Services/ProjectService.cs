@@ -82,9 +82,9 @@ namespace Backend.Services
             var issues = await _materialRepository.GetIssuesByProjectAsync(id);
             decimal materialCost = issues.Sum(t => t.Quantity * t.Rate);
 
-            // Labour cost = contract wages (fixed) + daily wages earned through attendance.
-            // Daily labour is present-days x wage, from real marked attendance. Monthly
-            // salaried staff are company payroll and are not charged to a single project.
+            // Labour cost is contract wages (fixed) plus daily wages from marked attendance
+            // (present days x wage). Monthly salaried staff are company payroll and are not
+            // charged to a single project.
             var assignments = await _assignmentRepository.GetByProjectAsync(id);
             var dailyAssignments = assignments.Where(a => a.WageType == "Daily").ToList();
             var presentDays = await _attendanceRepository.GetPresentDayCountsAsync(
@@ -136,7 +136,7 @@ namespace Backend.Services
                 .OrderByDescending(pm => pm.Subtotal)
                 .ToList();
 
-            // Site team — everyone assigned to this project, with their employee names resolved.
+            // Site team: everyone assigned to this project, with employee names filled in.
             var employees = await _employeeRepository.GetAllAsync();
             var employeeNames = employees.ToDictionary(e => e.EmployeeID, e => e.FullName);
             var team = assignments.Select(a => new AssignmentDto

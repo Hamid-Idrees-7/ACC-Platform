@@ -39,7 +39,8 @@ namespace Backend.Repositories
         {
             return await _context.LoginActivities
                 .AsNoTracking()
-                .Where(a => a.Username == username && a.IpAddress == ipAddress && a.Result == LoginResults.SignedIn)
+                .Where(a => a.Username == username && a.IpAddress == ipAddress &&
+                            (a.Result == LoginResults.SignedIn || a.Result == LoginResults.PasswordReset))
                 .OrderByDescending(a => a.CreatedAt)
                 .Select(a => (DateTime?)a.CreatedAt)
                 .FirstOrDefaultAsync();

@@ -35,7 +35,13 @@
 /* List section */
 .projects-list-section {
     padding: var(--section-padding);
+    padding-bottom: 40px;
     background: var(--white);
+}
+
+/* The call to action comes right after the list, so it needs less space above it */
+.projects-list-section + .about-cta-section {
+    padding-top: 40px;
 }
 
 /* Filters */

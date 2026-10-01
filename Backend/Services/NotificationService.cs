@@ -54,7 +54,7 @@ namespace Backend.Services
             return await _repository.GetUnreadAlertCountAsync(userId);
         }
 
-        // Create a personal notification for one user (their own activity / approval updates)
+        // A personal notification for one user (their own activity or approval updates).
         public async Task NotifyPersonalAsync(int userId, string category, string title, string message, string? reason = null, string? link = null)
         {
             if ((await MutedForAsync(new[] { userId }, category)).Contains(userId)) return;
@@ -103,7 +103,7 @@ namespace Backend.Services
 
         // Send a personal (action needed) notification to every active admin and every user who
         // holds a given permission (module+action, and the module's View baseline).
-        // excludeUserId skips one user (e.g. the person who raised the request).
+        // excludeUserId skips one user (eg the person who raised the request).
         public async Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null, string? link = null)
         {
             var perms = await _permissionRepository.GetAllAsync();

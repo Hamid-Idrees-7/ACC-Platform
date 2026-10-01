@@ -1,6 +1,5 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // A notification sent OUT to the frontend
     public class NotificationDto
     {
         public int NotificationID { get; set; }

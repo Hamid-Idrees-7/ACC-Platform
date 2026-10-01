@@ -6,11 +6,6 @@ export const materialService = {
     return response.data;
   },
 
-  getById: async (id) => {
-    const response = await api.get(`/materials/${id}`);
-    return response.data;
-  },
-
   create: async (data) => {
     const response = await api.post("/materials", data);
     return response.data;
@@ -38,13 +33,13 @@ export const materialService = {
     return response.data;
   },
 
-  // Full transaction ledger + summary for one material
+  // Transaction ledger and summary for one material
   getHistory: async (id) => {
     const response = await api.get(`/materials/${id}/history`);
     return response.data;
   },
 
-  // Reverse a transaction (returns/removes stock; record kept as cancelled)
+  // Reverses a transaction (stock is put back or taken out again); the record is kept as cancelled.
   cancelTransaction: async (txId) => {
     const response = await api.post(`/materials/transactions/${txId}/cancel`);
     return response.data;

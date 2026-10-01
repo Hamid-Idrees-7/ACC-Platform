@@ -91,8 +91,8 @@ namespace Backend.Services
 
             var project = await _projectRepository.GetByIdAsync(request.ProjectID);
 
-            // Issue the stock to the project — this reuses the material module's issue logic,
-            // including its negative-stock block and automatic weighted-average costing.
+            // Issue the stock with the material module's own logic, which blocks negative
+            // stock and applies weighted average costing.
             var result = await _materialService.IssueAsync(request.MaterialID, new IssueDto
             {
                 ProjectName = project?.Title ?? "",
@@ -103,7 +103,7 @@ namespace Backend.Services
             });
 
             if (!result.Success)
-                return (false, result.Error);   // Only 40 Bags available
+                return (false, result.Error);   // eg "Only 40 Bags available"
 
             request.Status = "Approved";
             request.ResolvedByUserID = adminUserId;
@@ -163,7 +163,7 @@ namespace Backend.Services
             return (true, null);
         }
 
-        //  shared mapping (batch-loads the reference data once)
+        // Loads the reference data once for the whole list.
         private async Task<List<MaterialRequestDto>> MapManyAsync(List<MaterialRequest> requests)
         {
             if (requests.Count == 0) return new List<MaterialRequestDto>();

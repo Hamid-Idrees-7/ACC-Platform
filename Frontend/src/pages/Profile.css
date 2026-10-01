@@ -1,14 +1,4 @@
-/* PROFILE VIEW PAGE  */
-
-.pf-loading { display: flex; align-items: center; justify-content: center; padding: 80px; }
-.pf-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: pfspin 0.8s linear infinite;
-}
-@keyframes pfspin { to { transform: rotate(360deg); } }
+/* Profile view page */
 
 .pfv-wrap {
     display: flex;

@@ -1,4 +1,4 @@
-/* ASSIGNMENTS PAGE */
+/* Assignments page */
 
 /* Stat cards */
 .asn-stats {
@@ -132,16 +132,6 @@
 .asn-empty-icon svg { width: 34px; height: 34px; }
 .asn-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .asn-empty p { color: var(--color-text-muted); font-size: 14px; }
-.asn-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: asnspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes asnspin { to { transform: rotate(360deg); } }
 
 /* Cards grid */
 .asn-grid {
@@ -223,12 +213,12 @@
     align-items: baseline;
     gap: 8px;
     background: var(--color-warning-soft);
-    border: 1px solid var(--color-warning-border);   /* soft amber to highlight money, intentional */
+    border: 1px solid var(--color-warning-border);   /* soft amber on purpose, so the wage stands out */
     border-radius: var(--radius-md);
     padding: 10px 14px;
     margin-bottom: 14px;
 }
-.asn-wage strong { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--color-warning-strong); }   /* amber-800, intentional */
+.asn-wage strong { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--color-warning-strong); }   /* amber-800 on purpose */
 .asn-wage span { font-size: 12.5px; color: var(--color-text-muted); }
 
 /* Dates */

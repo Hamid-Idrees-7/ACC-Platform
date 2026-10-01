@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // Manages approval requests, base route: /api/approvals
+    // Approval requests (eg a delete waiting for an admin). Base route: /api/approvals
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -32,7 +32,7 @@ namespace Backend.Controllers
         private string GetUserRole() =>
             User.FindFirst(ClaimTypes.Role)?.Value ?? "";
 
-        // GET: /api/approvals  - all requests (needs View access)
+        // GET: /api/approvals  = all requests (needs View)
         [HttpGet]
         [RequirePermission("Approvals", "View")]
         public async Task<IActionResult> GetAll()
@@ -41,7 +41,7 @@ namespace Backend.Controllers
             return Ok(list);
         }
 
-        // GET: /api/approvals/count  - pending count (needs View access, for the dashboard card)
+        // GET: /api/approvals/count  = pending count for the dashboard card (needs View)
         [HttpGet("count")]
         [RequirePermission("Approvals", "View")]
         public async Task<IActionResult> GetCount()
@@ -50,8 +50,8 @@ namespace Backend.Controllers
             return Ok(new { count });
         }
 
-        // POST: /api/approvals  - create a request (any authenticated user - this is how
-        // a delete request gets queued; not a Control Unit action)
+        // POST: /api/approvals  = create a request. Any signed-in user can, because this is how
+        // a delete waits for approval; it is not a Control Unit action.
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePendingActionDto dto)
         {
@@ -62,7 +62,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Request sent to administration for approval." });
         }
 
-        // PUT: /api/approvals/5/resolve  - approve or reject (needs Manage access)
+        // PUT: /api/approvals/5/resolve  = approve or reject (needs Manage)
         [HttpPut("{id}/resolve")]
         [RequirePermission("Approvals", "Manage")]
         public async Task<IActionResult> Resolve(int id, [FromBody] ResolvePendingActionDto dto)
@@ -74,7 +74,7 @@ namespace Backend.Controllers
             return Ok(new { message = $"Request {dto.Status.ToLower()}." });
         }
 
-        // DELETE: /api/approvals/5  - delete one request (needs Delete access)
+        // DELETE: /api/approvals/5  = delete one request (needs Delete)
         [HttpDelete("{id}")]
         [RequirePermission("Approvals", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -86,7 +86,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Request deleted." });
         }
 
-        // DELETE: /api/approvals  - delete all requests (needs Delete access)
+        // DELETE: /api/approvals  = delete all requests (needs Delete)
         [HttpDelete]
         [RequirePermission("Approvals", "Delete")]
         public async Task<IActionResult> DeleteAll()

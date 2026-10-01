@@ -1,4 +1,4 @@
-/* CLIENTS PAGE */
+/* Clients page */
 
 /* Stat cards */
 .cl-stats {
@@ -142,17 +142,8 @@
 .cl-empty-icon svg { width: 34px; height: 34px; }
 .cl-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .cl-empty p { color: var(--color-text-muted); font-size: 14px; }
-.cl-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: clspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes clspin { to { transform: rotate(360deg); } }
 
-/* Cards grid (CU-style) */
+/* Cards grid (same style as Control Unit) */
 .cl-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

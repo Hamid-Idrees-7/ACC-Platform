@@ -10,7 +10,8 @@ namespace Backend.Repositories
         // Wrong-password attempts for this username from this IP since the given time, newest first.
         Task<List<DateTime>> GetFailureTimesAsync(string username, string? ipAddress, DateTime sinceUtc);
 
-        // The last successful sign-in for this username from this IP (resets the failure count).
+        // The last successful sign-in or password reset for this username from this IP
+        // (resets the failure count).
         Task<DateTime?> GetLastSuccessAsync(string username, string? ipAddress);
 
         // Sign-in history of one user, newest first.

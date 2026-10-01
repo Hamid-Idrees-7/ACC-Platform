@@ -1,6 +1,5 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // Data needed to register a new user
     public class RegisterDto
     {
         public string Username { get; set; } = string.Empty;

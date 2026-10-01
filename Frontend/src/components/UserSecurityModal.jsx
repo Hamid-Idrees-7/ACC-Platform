@@ -3,6 +3,7 @@ import { userService } from "../services/userService";
 import Toast, { useToast } from "./Toast";
 import { SessionList, ActivityList, ConfirmDialog } from "./SecurityOverview";
 import "./UserSecurityModal.css";
+import { SkeletonRows } from "./Skeleton";
 
 // Users > a user > Sign-in activity: where the user is signed in and their sign-in history,
 // with "Sign out of all devices" (a lost phone, someone leaving the company...). Prefix: usm-
@@ -78,7 +79,7 @@ function UserSecurityModal({ user, onClose }) {
 
         <div className="usm-body">
           {loading ? (
-            <div className="usm-state"><div className="usm-spinner" /></div>
+            <SkeletonRows count={3} />
           ) : error ? (
             <div className="usm-error">
               <span>{error}</span>

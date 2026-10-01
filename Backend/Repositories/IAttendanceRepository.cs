@@ -8,7 +8,7 @@ namespace Backend.Repositories
         // and to read the selected date's status in memory)
         Task<List<Attendance>> GetByAssignmentIdsAsync(List<int> assignmentIds);
 
-        // A single assignment's record for one date — used to upsert
+        // One assignment's record for one date, used for the upsert
         Task<Attendance?> GetByAssignmentAndDateAsync(int assignmentId, DateTime date);
 
         Task AddAsync(Attendance attendance);

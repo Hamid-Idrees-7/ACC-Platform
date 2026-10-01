@@ -31,7 +31,7 @@ namespace Backend.Models.DTOs
         public string SourceType { get; set; } = string.Empty;   // Daily / Contract / Monthly
         public int? AssignmentID { get; set; }
         public int? ProjectID { get; set; }
-        public string ProjectName { get; set; } = string.Empty;   //  for Monthly (company payroll)
+        public string ProjectName { get; set; } = string.Empty;   // empty for Monthly (company payroll)
 
         public decimal Rate { get; set; }        // per-day rate, monthly salary, or contract amount
         public int PresentDays { get; set; }     // daily only

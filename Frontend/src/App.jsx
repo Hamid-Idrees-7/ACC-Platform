@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -9,65 +9,37 @@ import DemoTransition from "./components/DemoTransition";
 import SessionWatch from "./components/SessionWatch";
 import LiveConnection from "./components/LiveConnection";
 
-// Public pages
 import Home from "./pages/Home";
-import About from "./pages/About";
-import Projects from "./pages/Projects";
-import Privacy from "./pages/Privacy";
 import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+import PageLoader from "./components/PageLoader";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ConnectionBanner from "./components/ConnectionBanner";
+import { pages, prefetchDashboardPages } from "./routes/lazyPages";
 
+const {
+  About, Projects, Privacy, ResetPassword, Dashboard, Queries, Profile, Settings, ControlUnit, ManageAccess, Approvals,
+  Notifications, Alerts, Clients, Employees, Users, Materials, MaterialHistory, ProjectManagement,
+  ProjectDetail, Assignments, Attendance, MarkAttendance, Salaries, Payslip, Billing, ProjectBilling,
+  InvoicePrint, Reports, FieldView, MaterialRequests, UnderConstruction,
+} = pages;
 
-// Dashboard pages
-import Dashboard from "./pages/Dashboard";
-import Queries from "./pages/Queries";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import ControlUnit from "./pages/ControlUnit";
-import ManageAccess from "./pages/ManageAccess";
-import Approvals from "./pages/Approvals";
-import Notifications from "./pages/Notifications";
-import Alerts from "./pages/Alerts";
-
-
-// Modules
-import Clients from "./pages/Clients";
-import Employees from "./pages/Employees";
-import Users from "./pages/Users";
-import Materials from "./pages/Materials";
-import MaterialHistory from "./pages/MaterialHistory";
-import ProjectManagement from "./pages/ProjectManagement";
-import ProjectDetail from "./pages/ProjectDetail";
-import Assignments from "./pages/Assignments";
-import Attendance from "./pages/Attendance";
-import MarkAttendance from "./pages/MarkAttendance";
-import Salaries from "./pages/Salaries";
-import Payslip from "./pages/Payslip";
-import Billing from "./pages/Billing";
-import ProjectBilling from "./pages/ProjectBilling";
-import InvoicePrint from "./pages/InvoicePrint";
-import Reports from "./pages/Reports";
-import FieldView from "./pages/FieldView";
-import MaterialRequests from "./pages/MaterialRequests";
-
-import UnderConstruction from "./pages/UnderConstruction";
-
-// Remounts the dashboard pages whenever the signed-in person changes (eg a live demo role
-// switch), so every page and the notification bell reload their data for the new user
-// instead of keeping what the previous user saw.
-// It also redraws them once if the saved number or date format, or the company currency,
-// arrives from the server and differs from the cached one. Changes made in Settings > Appearance do NOT remount (that
-// would reload the page and jump it back to the top): the Settings page updates itself and
-// every other page picks up the new format when it opens.
-// Dashboard pages need a signed-in user: anyone else goes to the sign-in page, which
-// brings them back to the page they asked for afterwards.
+// Dashboard pages need a signed-in user. Anyone else goes to the sign-in page, which sends
+// them back to the page they asked for afterwards.
+// The pages remount when the signed-in person changes (eg a live demo role switch), so they
+// reload their data for the new user. They also redraw once if the number or date format, or
+// the company currency, from the server differs from the cached one. Changes in
+// Settings > Appearance don't remount, so the page doesn't jump back to the top.
 function SignedInBoundary() {
-  const { user, loading, exitTo } = useAuth();
+  const { user, exitTo } = useAuth();
   const { formatVersion } = usePreferences();
   const { companyVersion } = useCompany();
   const location = useLocation();
+  const signedIn = !!user;
 
-  // Wait for the saved sign-in to be read, so pages mount once (not first as a guest).
-  if (loading) return null;
+  useEffect(() => {
+    if (signedIn) prefetchDashboardPages();
+  }, [signedIn]);
 
   if (!user) {
     if (exitTo) return <Navigate to={exitTo} replace />;
@@ -85,6 +57,11 @@ function SignedInBoundary() {
   );
 }
 
+function RouteErrorBoundary({ children }) {
+  const location = useLocation();
+  return <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -94,17 +71,21 @@ function App() {
       {/* Live demo role-change card: lives above the routes so it survives page changes */}
       <DemoTransition />
       <LiveConnection />
+      <ConnectionBanner />
       <BrowserRouter>
+        <RouteErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* ===== Public website ===== */}
+          {/* Public website */}
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route element={<SignedInBoundary />}>
-            {/* ===== Dashboard ===== */}
+            {/* Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/queries" element={<Queries />} />
             <Route path="/dashboard/profile" element={<Profile />} />
@@ -115,7 +96,7 @@ function App() {
             <Route path="/dashboard/notifications" element={<Notifications />} />
             <Route path="/dashboard/alerts" element={<Alerts />} />
 
-            {/* ===== Modules ===== */}
+            {/* Modules */}
             <Route path="/dashboard/clients" element={<Clients />} />
             <Route path="/dashboard/employees" element={<Employees />} />
             <Route path="/dashboard/users" element={<Users />} />
@@ -137,9 +118,10 @@ function App() {
             <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
           </Route>
 
-          {/* ===== Fallback ===== */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
+        </RouteErrorBoundary>
       </BrowserRouter>
       </PermissionProvider>
       </CompanyProvider>

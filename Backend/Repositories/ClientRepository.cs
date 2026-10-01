@@ -4,19 +4,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Repositories
 {
-    // The actual implementation of client database operations.
-    // This is the ONLY layer that talks directly to the database (via DbContext).
+    // Database access for clients. Only this layer talks to the DbContext.
     public class ClientRepository : IClientRepository
     {
         private readonly AppDbContext _context;
 
-        // The database context is injected here (Dependency Injection)
         public ClientRepository(AppDbContext context)
         {
             _context = context;
         }
 
-        // Return all clients, newest first
+        // Newest first
         public async Task<IEnumerable<Client>> GetAllAsync()
         {
             return await _context.Clients
@@ -24,13 +22,11 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
-        // Find one client by ID
         public async Task<Client?> GetByIdAsync(int id)
         {
             return await _context.Clients.FindAsync(id);
         }
 
-        // Add a new client to the database
         public async Task<Client> AddAsync(Client client)
         {
             _context.Clients.Add(client);
@@ -38,13 +34,11 @@ namespace Backend.Repositories
             return client;
         }
 
-        // Update an existing client
         public async Task<Client?> UpdateAsync(Client client)
         {
             var existing = await _context.Clients.FindAsync(client.ClientID);
             if (existing == null) return null;
 
-            // Copy new values onto the existing record
             existing.FullName = client.FullName;
             existing.Email = client.Email;
             existing.Phone = client.Phone;
@@ -60,7 +54,6 @@ namespace Backend.Repositories
             return existing;
         }
 
-        // Delete a client by ID
         public async Task<bool> DeleteAsync(int id)
         {
             var client = await _context.Clients.FindAsync(id);

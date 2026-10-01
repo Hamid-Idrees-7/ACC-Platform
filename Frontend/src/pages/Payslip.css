@@ -1,4 +1,4 @@
-/* SALARY PAYSLIP */
+/* Salary payslip */
 
 .psl-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
 .psl-back {
@@ -28,9 +28,6 @@
 .psl-print.ghost:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-surface); }
 .psl-print:disabled { opacity: 0.7; cursor: wait; }
 
-.psl-loading { display: flex; justify-content: center; padding: 80px; }
-.psl-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: pslspin 0.8s linear infinite; }
-@keyframes pslspin { to { transform: rotate(360deg); } }
 .psl-error { background: var(--color-error-soft); color: var(--color-error); padding: 12px 16px; border-radius: var(--radius-md); }
 
 /* Document */
@@ -122,13 +119,13 @@
     .psl-bar { gap: 10px; flex-wrap: wrap; }
 }
 
-/* Print — show only the payslip document */
+/* Print: show only the payslip document */
 @media print {
     body * { visibility: hidden; }
     #psl-print-area, #psl-print-area * { visibility: visible; }
     #psl-print-area { position: absolute; top: 0; left: 0; width: 100%; border: none; margin: 0; padding: 20px; }
     .psl-bar { display: none; }
     .psl-doc-scroll { overflow: visible; margin: 0; padding: 0; }
-    /* Force highlight colours to actually print */
+    /* Make the highlight colours print too */
     #psl-print-area, #psl-print-area * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

@@ -10,11 +10,11 @@ namespace Backend.Models.DTOs
 
         // Company-borne project expenses (plot, transfer, taxes, possession...). Part of ActualCost.
         public decimal ExpenseCost { get; set; }
-        // Expenses paid on the client's behalf. Billed back, so NOT part of ActualCost.
+        // Expenses paid on the client's behalf. Billed back, so not part of ActualCost.
         public decimal RecoverableTotal { get; set; }
         public decimal RecoverableInvoiced { get; set; }
 
-        // Material + labour + company expenses
+        // Material, labour and company expenses
         public decimal ActualCost { get; set; }
         public decimal Profit { get; set; }
         public decimal MarginPercent { get; set; }

@@ -42,7 +42,6 @@ namespace Backend.Services
             if (string.IsNullOrWhiteSpace(dto.Password))
                 return (false, "Password is required for a new user.", null);
 
-            // Username must be unique
             if (await _repository.UsernameExistsAsync(dto.Username.Trim()))
                 return (false, "That username is already taken.", null);
 
@@ -74,7 +73,6 @@ namespace Backend.Services
             var user = await _repository.GetByIdAsync(id);
             if (user == null) return (false, "User not found.", null);
 
-            // Username must be unique (ignoring this same user)
             if (await _repository.UsernameExistsAsync(dto.Username.Trim(), id))
                 return (false, "That username is already taken.", null);
 
@@ -107,7 +105,6 @@ namespace Backend.Services
             user.IsActive = dto.IsActive;
             user.UpdatedAt = DateTime.Now;
 
-            // Only change the password if a new one was provided
             if (newPassword)
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password!);
 
@@ -121,7 +118,7 @@ namespace Backend.Services
 
         public async Task<(bool, string?)> DeleteUserAsync(int id, int currentUserId)
         {
-            // Safety: a user cannot delete their own account
+            // Nobody can delete their own account.
             if (id == currentUserId)
                 return (false, "You cannot delete your own account.");
 
@@ -135,7 +132,7 @@ namespace Backend.Services
 
         public async Task<(bool, string?)> ToggleStatusAsync(int id, int currentUserId)
         {
-            // Safety: a user cannot disable their own account
+            // Nobody can disable their own account.
             if (id == currentUserId)
                 return (false, "You cannot disable your own account.");
 
@@ -174,7 +171,7 @@ namespace Backend.Services
         private static bool IsAdminRole(string? role) =>
             string.Equals(role?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase);
 
-        // Convert entity to DTO (never exposes the password hash)
+        // The password hash never leaves this service.
         private UserDto ToDto(User u)
         {
             return new UserDto

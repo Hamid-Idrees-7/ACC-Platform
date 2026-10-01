@@ -1,4 +1,4 @@
-/* MATERIAL REQUESTS — admin approval of field requests */
+/* Material requests: admin approval of field requests */
 
 .mrq-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .mrq-filter {
@@ -59,8 +59,6 @@
 .mrq-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 20px; text-align: center; }
 .mrq-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .mrq-empty p { color: var(--color-text-muted); font-size: 14px; }
-.mrq-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: mrqspin 0.8s linear infinite; margin-bottom: 14px; }
-@keyframes mrqspin { to { transform: rotate(360deg); } }
 
 /* Reject modal */
 .mrq-overlay { position: fixed; inset: 0; background: var(--color-overlay); display: flex; align-items: center; justify-content: center; z-index: 1500; padding: 20px; animation: mrqfade 0.15s ease; }

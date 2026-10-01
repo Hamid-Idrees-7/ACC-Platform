@@ -11,7 +11,7 @@ namespace Backend.Services
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IAttendanceRepository _attendanceRepository;
 
-        // Roles that lead a site — used to pick the Site Incharge
+        // Roles that lead a site, used to pick the site incharge
         private static readonly string[] LeadKeywords =
             { "engineer", "supervisor", "manager", "incharge", "architect", "foreman" };
 
@@ -70,7 +70,7 @@ namespace Backend.Services
             var day = date.Date;
             var today = DateTime.Now.Date;
 
-            // Contract workers are a fixed lump sum — no attendance is tracked for them
+            // Contract workers get a fixed lump sum, so no attendance is tracked for them
             var assignments = (await _assignmentRepository.GetByProjectAsync(projectId))
                 .Where(a => a.WageType != "Contract")
                 .ToList();
@@ -170,7 +170,7 @@ namespace Backend.Services
             return await GetSheetAsync(projectId, dto.Date);
         }
 
-        // The site incharge is the project's lead assignment (engineer/supervisor/etc.),
+        // The site incharge is the project's lead assignment (engineer, supervisor and so on),
         // preferring an active one, otherwise the most recent.
         private static string ResolveIncharge(List<Assignment> list, Dictionary<int, string> employeeNames)
         {
@@ -185,7 +185,7 @@ namespace Backend.Services
                 : "Not assigned";
         }
 
-        // Build one worker row: on-site flag for the selected date, that date's status,
+        // One worker row: the on-site flag for the selected date, that date's status,
         // and a day-by-day timeline from start up to the earlier of end date and today.
         private static AttendanceWorkerDto BuildWorker(Assignment a, List<Attendance> recs, string name, DateTime day, DateTime today)
         {

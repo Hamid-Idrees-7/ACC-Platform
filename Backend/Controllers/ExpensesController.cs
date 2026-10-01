@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // API endpoints for project expenses (plot fees, transfer fees, taxes, possession charges)
+    // Project expenses (plot fees, transfer fees, taxes, possession charges).
     // Base route: /api/expenses
     [ApiController]
     [Route("api/[controller]")]
@@ -46,7 +46,7 @@ namespace Backend.Controllers
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
-        // GET /api/expenses/project/5 — all expenses of a project with totals
+        // GET: /api/expenses/project/5  = all expenses of a project, with totals
         [HttpGet("project/{projectId}")]
         [RequirePermission("Expenses", "View")]
         public async Task<IActionResult> GetForProject(int projectId)
@@ -57,7 +57,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // POST /api/expenses/project/5 — add an expense to a project
+        // POST: /api/expenses/project/5  = add an expense to a project
         [HttpPost("project/{projectId}")]
         [RequirePermission("Expenses", "Add")]
         public async Task<IActionResult> Create(int projectId, [FromBody] SaveProjectExpenseDto dto)
@@ -79,7 +79,7 @@ namespace Backend.Controllers
             return Ok(result.Expense);
         }
 
-        // PUT /api/expenses/9 — edit an expense
+        // PUT: /api/expenses/9  = edit an expense
         [HttpPut("{id}")]
         [RequirePermission("Expenses", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] SaveProjectExpenseDto dto)
@@ -99,7 +99,7 @@ namespace Backend.Controllers
             return Ok(result.Expense);
         }
 
-        // DELETE /api/expenses/9 — delete an expense (or request approval if required)
+        // DELETE: /api/expenses/9  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Expenses", "Delete")]
         public async Task<IActionResult> Delete(int id)

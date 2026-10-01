@@ -8,6 +8,9 @@ import { formatDateTime } from "../utils/dates";
 import { useLiveRefresh } from "../hooks/useLive";
 import { ALERT_GROUPS, ALERT_SEVERITY } from "../config/alertConfig";
 import "./Alerts.css";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
 
 const GROUP_ICONS = {
   Money: <><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>,
@@ -74,6 +77,7 @@ function Alerts() {
   const groups = ALERT_GROUPS.filter((g) => items.some((a) => a.group === g));
   const activeGroup = group !== "All" && groups.includes(group) ? group : "All";
   const shown = activeGroup === "All" ? items : items.filter((a) => a.group === activeGroup);
+  const paging = usePagination(shown, { resetKey: `${tab}|${activeGroup}` });
 
   const open = (a) => {
     if (a.link) navigate(a.link);
@@ -152,7 +156,7 @@ function Alerts() {
       {error && <div className="al-error">{error}</div>}
 
       {loading ? (
-        <div className="al-empty"><div className="al-spinner" /><p>Loading...</p></div>
+        <SkeletonRows count={5} />
       ) : shown.length === 0 ? (
         <div className="al-empty">
           <div className={`al-empty-icon ${tab === "Open" ? "ok" : ""}`}>
@@ -166,58 +170,61 @@ function Alerts() {
           <p>{tab === "Open" ? "No open alerts right now. When the system finds a problem it shows up here and the Alerts button gets an orange dot." : "Alerts resolved in the last 30 days appear here."}</p>
         </div>
       ) : (
-        <div className="al-list">
-          {shown.map((a) => {
-            const severity = ALERT_SEVERITY[a.severity] || ALERT_SEVERITY.Info;
-            const resolved = a.status === "Resolved";
-            return (
-              <article
-                key={a.alertID}
-                className={`al-item ${severityClass(a.severity)} ${resolved ? "resolved" : ""} ${a.link ? "al-link" : ""}`}
-                role={a.link ? "link" : undefined}
-                tabIndex={a.link ? 0 : undefined}
-                onClick={a.link ? () => open(a) : undefined}
-                onKeyDown={a.link ? (e) => { if (e.key === "Enter") open(a); } : undefined}
-              >
-                <div className="al-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{GROUP_ICONS[a.group] || GROUP_ICONS.Projects}</svg>
-                </div>
-                <div className="al-body">
-                  <div className="al-meta">
-                    {resolved ? <span className="al-badge al-badge-done">Resolved</span> : <span className="al-badge">{severity.label}</span>}
-                    <span className="al-group">{a.group}</span>
-                    <time className="al-time" dateTime={resolved ? a.resolvedAt : a.createdAt}>
-                      {resolved ? `Resolved ${formatDateTime(a.resolvedAt)}` : `Since ${formatDateTime(a.createdAt)}`}
-                    </time>
+        <>
+          <div className="al-list">
+            {paging.pageItems.map((a) => {
+              const severity = ALERT_SEVERITY[a.severity] || ALERT_SEVERITY.Info;
+              const resolved = a.status === "Resolved";
+              return (
+                <article
+                  key={a.alertID}
+                  className={`al-item ${severityClass(a.severity)} ${resolved ? "resolved" : ""} ${a.link ? "al-link" : ""}`}
+                  role={a.link ? "link" : undefined}
+                  tabIndex={a.link ? 0 : undefined}
+                  onClick={a.link ? () => open(a) : undefined}
+                  onKeyDown={a.link ? (e) => { if (e.key === "Enter") open(a); } : undefined}
+                >
+                  <div className="al-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{GROUP_ICONS[a.group] || GROUP_ICONS.Projects}</svg>
                   </div>
-                  <strong className="al-title">{a.title}</strong>
-                  <p className="al-message">{a.message}</p>
-                  {(a.link || a.canResolve) && (
-                    <div className="al-actions">
-                      {a.link && (
-                        <span className="al-open">
-                          Open
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
-                        </span>
-                      )}
-                      {a.canResolve && (
-                        <button
-                          type="button"
-                          className="al-resolve"
-                          disabled={resolving === a.alertID}
-                          onClick={(e) => { e.stopPropagation(); resolve(a); }}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        >
-                          {resolving === a.alertID ? "Saving..." : "It was me, mark resolved"}
-                        </button>
-                      )}
+                  <div className="al-body">
+                    <div className="al-meta">
+                      {resolved ? <span className="al-badge al-badge-done">Resolved</span> : <span className="al-badge">{severity.label}</span>}
+                      <span className="al-group">{a.group}</span>
+                      <time className="al-time" dateTime={resolved ? a.resolvedAt : a.createdAt}>
+                        {resolved ? `Resolved ${formatDateTime(a.resolvedAt)}` : `Since ${formatDateTime(a.createdAt)}`}
+                      </time>
                     </div>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                    <strong className="al-title">{a.title}</strong>
+                    <p className="al-message">{a.message}</p>
+                    {(a.link || a.canResolve) && (
+                      <div className="al-actions">
+                        {a.link && (
+                          <span className="al-open">
+                            Open
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                          </span>
+                        )}
+                        {a.canResolve && (
+                          <button
+                            type="button"
+                            className="al-resolve"
+                            disabled={resolving === a.alertID}
+                            onClick={(e) => { e.stopPropagation(); resolve(a); }}
+                            onKeyDown={(e) => e.stopPropagation()}
+                          >
+                            {resolving === a.alertID ? "Saving..." : "It was me, mark resolved"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <Pagination {...paging} label="alerts" />
+        </>
       )}
 
       <Toast toast={toast} />

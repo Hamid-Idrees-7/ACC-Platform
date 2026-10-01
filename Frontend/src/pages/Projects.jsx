@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { AccLogo } from "./Home";
 import "./Home.css";
 import "./Projects.css";
+import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
+import LazyBackground from "../components/LazyBackground";
 
 const projectList = [
   {
@@ -23,7 +25,7 @@ const projectList = [
     category: "Infrastructure",
     location: "Ghari Shahu, Lahore",
     year: "2024",
-    images: ["/images/proj-railway-1.jpg"],
+    images: ["/images/proj-railway-1.webp"],
     summary: "Reconstruction of a diesel engine shed facility for Pakistan Railways, delivered to strict operational standards.",
     story: "Commissioned by Pakistan Railways, this project involved the reconstruction of a diesel engine shed facility near Ghari Shahu, Lahore. A project of this scale demanded precise engineering, durable materials, and strict adherence to safety and operational requirements. Our team handled structural reconstruction while keeping the facility's functional needs at the center of every decision. The result was delivered to specification and on schedule.",
     highlights: ["Government contract", "Heavy structural work", "Delivered on time"],
@@ -77,6 +79,8 @@ const projectList = [
 const categories = ["All", "Residential", "Commercial", "Infrastructure"];
 
 function Projects() {
+  usePageTitle("Our projects", SITE_NAME);
+  usePageDescription("Homes, commercial buildings and infrastructure delivered by Anonymous Construction Co., with photos and project details.");
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -194,7 +198,7 @@ function Projects() {
   );
 }
 
-// Single project row: image gallery on left, details on right
+// One project row: image gallery on the left, details on the right.
 function ProjectRow({ project }) {
   const [imgIndex, setImgIndex] = useState(0);
   const hasImages = project.images.length > 0;
@@ -207,10 +211,7 @@ function ProjectRow({ project }) {
     <div className={`project-row ${project.featured ? "featured" : ""}`}>
       <div className="project-row-media">
         {project.featured && <span className="project-row-flag">Featured</span>}
-        <div
-          className="project-row-image"
-          style={hasImages ? { backgroundImage: `url('${project.images[imgIndex]}')` } : {}}
-        >
+        <LazyBackground className="project-row-image" src={hasImages ? project.images[imgIndex] : null}>
           {!hasImages && <span className="project-row-badge">{project.category}</span>}
           {multiple && (
             <>
@@ -227,7 +228,7 @@ function ProjectRow({ project }) {
               </div>
             </>
           )}
-        </div>
+        </LazyBackground>
       </div>
 
       <div className="project-row-info">

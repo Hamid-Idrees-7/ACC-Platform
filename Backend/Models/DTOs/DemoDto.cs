@@ -1,6 +1,6 @@
 namespace Backend.Models.DTOs
 {
-    // Visitor picks a role when starting the demo or switching inside it: admin / manager / engineer.
+    // Visitor picks a role when starting the demo or switching inside it: admin, manager or engineer.
     public class DemoRoleDto
     {
         public string? Role { get; set; }
@@ -11,10 +11,10 @@ namespace Backend.Models.DTOs
     {
         public bool IsDemo { get; set; } = true;
 
-        // "admin" / "manager" / "engineer", or "custom" when viewing as a visitor-created user.
+        // "admin", "manager" or "engineer", or "custom" when viewing as a visitor-created user.
         public string DemoRole { get; set; } = string.Empty;
 
-        // Display name for the role (e.g. "Manager", or the custom user's full name).
+        // Display name for the role (eg "Manager", or the custom user's full name).
         public string DemoRoleLabel { get; set; } = string.Empty;
 
         // Seconds left in the session. Sent as a duration (not a clock time) so the countdown

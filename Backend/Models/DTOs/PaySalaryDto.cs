@@ -1,7 +1,7 @@
 namespace Backend.Models.DTOs
 {
-    // Pay one line. The server recomputes CalculatedAmount itself — only the final paid
-    // amount (which may differ) and an optional note are taken from the client.
+    // Pay one line. The server works out CalculatedAmount itself; only the final paid
+    // amount (which may differ) and an optional note come from the client.
     public class PaySalaryDto
     {
         public int EmployeeID { get; set; }

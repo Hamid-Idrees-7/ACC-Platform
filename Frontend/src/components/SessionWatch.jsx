@@ -9,11 +9,11 @@ import {
 } from "../config/sessionConfig";
 import "./SessionWatch.css";
 
-// Lives around every dashboard page while someone is signed in.
-//   - Automatic sign-out after the inactivity time chosen in Settings > Security, with a
-//     one-minute warning. Activity in any open tab counts (shared through localStorage).
-//   - When the server ends the session (signed out on another device, password changed,
-//     account disabled, expired), signs out here and shows the reason on the sign-in page.
+// Wraps every dashboard page while someone is signed in.
+// Signs out after the inactivity time chosen in Settings > Security, with a one-minute
+// warning. Activity in any open tab counts (shared through localStorage).
+// When the server ends the session (signed out on another device, password changed,
+// account disabled, expired), it signs out here too and shows the reason on the sign-in page.
 
 const ACTIVITY_EVENTS = ["pointerdown", "keydown", "wheel", "touchstart", "mousemove", "scroll"];
 const WRITE_EVERY_MS = 5000;

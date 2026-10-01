@@ -17,7 +17,7 @@ namespace Backend.Services
         Task RecordAsync(int? userId, string username, string result, ClientInfo client);
 
         // A successful sign-in: creates the session the token will point to.
-        Task<LoginActivity> StartAsync(User user, ClientInfo client);
+        Task<LoginActivity> StartAsync(User user, ClientInfo client, bool keepSignedIn);
 
         // Is the session behind a token still valid? Also keeps "last active" up to date.
         Task<SessionCheck> CheckAsync(int loginId, int userId);

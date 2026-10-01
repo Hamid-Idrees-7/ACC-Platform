@@ -1,6 +1,5 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // Represents one permission sent OUT to the frontend
     public class PermissionDto
     {
         public string Module { get; set; } = string.Empty;

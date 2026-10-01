@@ -1,4 +1,4 @@
-/* PROJECTS PAGE */
+/* Projects page */
 
 /* Stat cards */
 .proj-stats {
@@ -150,16 +150,6 @@
 .proj-empty-icon svg { width: 34px; height: 34px; }
 .proj-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .proj-empty p { color: var(--color-text-muted); font-size: 14px; }
-.proj-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: projspin 0.8s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes projspin { to { transform: rotate(360deg); } }
 
 /* Cards grid */
 .proj-grid {

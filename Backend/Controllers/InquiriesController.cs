@@ -24,8 +24,8 @@ namespace Backend.Controllers
         private string GetUserName() =>
             User.FindFirst("FullName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "";
 
-        // PUBLIC - the website contact form posts here (no login needed).
-        // Always saved to the real database, even if the visitor is also exploring the demo.
+        // POST: /api/inquiries  = the website contact form (public, no sign-in needed).
+        // Always saved to the real database, even if the visitor is also in the demo.
         [HttpPost]
         [AllowAnonymous]
         [UseMainDatabase]
@@ -47,7 +47,7 @@ namespace Backend.Controllers
             return Ok(new { message });
         }
 
-        // Read all inquiries (needs Messages View access)
+        // GET: /api/inquiries  = all inquiries (needs Messages View)
         [HttpGet]
         [Authorize]
         [RequirePermission("Messages", "View")]
@@ -57,7 +57,7 @@ namespace Backend.Controllers
             return Ok(inquiries);
         }
 
-        // Unread count for the badge (needs Messages View access)
+        // GET: /api/inquiries/unread-count  = unread count for the badge (needs Messages View)
         [HttpGet("unread-count")]
         [Authorize]
         [RequirePermission("Messages", "View")]
@@ -67,7 +67,7 @@ namespace Backend.Controllers
             return Ok(new { count });
         }
 
-        // Mark one as read (needs Messages View access - reading action)
+        // PUT: /api/inquiries/5/read  = mark one as read (reading, so Messages View is enough)
         [HttpPut("{id}/read")]
         [Authorize]
         [RequirePermission("Messages", "View")]
@@ -78,7 +78,7 @@ namespace Backend.Controllers
             return Ok(result);
         }
 
-        // Delete one (needs Messages Delete access)
+        // DELETE: /api/inquiries/5  = delete one (needs Messages Delete)
         [HttpDelete("{id}")]
         [Authorize]
         [RequirePermission("Messages", "Delete")]
@@ -96,7 +96,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Inquiry deleted." });
         }
 
-        // Delete all (needs Messages Delete access)
+        // DELETE: /api/inquiries  = delete all (needs Messages Delete)
         [HttpDelete]
         [Authorize]
         [RequirePermission("Messages", "Delete")]

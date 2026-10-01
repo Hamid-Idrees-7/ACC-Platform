@@ -3,9 +3,9 @@ using Backend.Repositories;
 
 namespace Backend.Services
 {
-    // Aggregates data from every module into one company report. Where a figure already
-    // has an owner elsewhere (project profit/cost, billing totals, payroll), this service
-    // reuses that exact logic so the numbers match the rest of the app.
+    // Brings every module together into one company report. Where a figure is already
+    // worked out elsewhere (project profit and cost, billing totals, payroll), the same
+    // logic is reused so the numbers match the rest of the app.
     public class ReportsService : IReportsService
     {
         private readonly IProjectService _projectService;
@@ -57,11 +57,11 @@ namespace Backend.Services
         {
             var report = new ReportsDto();
 
-            // Billing overview (per-project billed/received/outstanding + overdue).
+            // Billing overview (billed, received and outstanding per project, plus overdue).
             var billing = await _billingService.GetOverviewAsync();
             var billByProject = billing.Projects.ToDictionary(p => p.ProjectID);
 
-            // Projects + their financials (reused project logic → consistent profit/cost).
+            // Projects and their financials, from the project service so profit and cost match.
             var projects = await _projectService.GetAllProjectsAsync();
 
             decimal totalBudget = 0, totalMaterial = 0, totalLabour = 0, totalExpense = 0, totalProfit = 0;
@@ -83,9 +83,9 @@ namespace Backend.Services
                 decimal cost = fin?.ActualCost ?? 0m;
                 decimal profit = fin?.Profit ?? (budget - cost);
 
-                // A cancelled project's budget is never realised, so it must not inflate the
-                // company's budget/cost/profit totals. It still appears in the projects table
-                // and the status breakdown as a record.
+                // A cancelled project's budget is never earned, so it stays out of the company's
+                // budget, cost and profit totals. It still shows in the projects table and the
+                // status breakdown.
                 bool isCancelled = p.Status == "Cancelled";
                 if (!isCancelled)
                 {

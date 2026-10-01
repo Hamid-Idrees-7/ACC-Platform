@@ -55,11 +55,10 @@ namespace Backend.Services
             return await _repository.GetPendingCountAsync();
         }
 
-        // Create a new pending request (RequestedBy comes from the token - secure).
-        // Returns false if a pending request already exists for this exact item (prevents duplicates).
+        // RequestedBy comes from the token, not from the request body.
+        // Returns false if this item already has a pending request, so there are no duplicates.
         public async Task<bool> CreateAsync(CreatePendingActionDto dto, int requestedByUserId, string requestedByName, string requestedByRole)
         {
-            // Prevent duplicates: skip if this item already has a pending request
             var alreadyPending = await _repository.HasPendingAsync(dto.Module.Trim(), dto.TargetID);
             if (alreadyPending) return false;
 
@@ -77,7 +76,7 @@ namespace Backend.Services
             };
             await _repository.AddAsync(action);
 
-            // Notify the requester that their request was sent
+            // Tell the requester it was sent.
             await _notificationService.NotifyPersonalAsync(
                 requestedByUserId, "Approval", "Request sent",
                 $"You sent a request to {dto.Action.ToLower()} {dto.Module.TrimEnd('s').ToLower()}: {dto.TargetName}.",
@@ -107,7 +106,6 @@ namespace Backend.Services
             if (status != "Approved" && status != "Rejected")
                 return (false, "Invalid status.");
 
-            // If approved, run the actual action now
             if (status == "Approved")
             {
                 var performError = await PerformActionAsync(action);
@@ -120,7 +118,7 @@ namespace Backend.Services
             action.ResolvedAt = DateTime.Now;
             await _repository.UpdateAsync(action);
 
-            // Notify the original requester of the outcome
+            // Tell the requester the outcome.
             var verb = status == "Approved" ? "approved" : "rejected";
             await _notificationService.NotifyPersonalAsync(
                 action.RequestedByUserID, "Approval", $"Request {verb}",
@@ -158,7 +156,7 @@ namespace Backend.Services
         {
             const string gone = "Could not complete the action. The item may no longer exist.";
 
-            // Currently only Delete is supported for approval
+            // Only Delete goes through approval for now.
             if (action.Action != "Delete") return gone;
 
             switch (action.Module)

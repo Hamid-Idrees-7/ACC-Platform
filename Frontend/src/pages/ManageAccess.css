@@ -1,4 +1,4 @@
-/* MANAGE ACCESS - permission toggles */
+/* Manage access: permission toggles */
 .ma-back {
     display: inline-flex;
     align-items: center;
@@ -16,16 +16,6 @@
     margin-bottom: 20px;
 }
 .ma-back:hover { border-color: var(--color-primary); color: var(--color-primary); }
-
-.ma-empty { display: flex; align-items: center; justify-content: center; padding: 80px; }
-.ma-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: maspin 0.8s linear infinite;
-}
-@keyframes maspin { to { transform: rotate(360deg); } }
 
 /* User header */
 .ma-user-head {

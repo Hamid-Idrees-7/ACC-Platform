@@ -2,7 +2,7 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when creating or updating an employee (data coming in)
+    // Sent when creating or updating an employee.
     public class CreateEmployeeDto
     {
         [Required]

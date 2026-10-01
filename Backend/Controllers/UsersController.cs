@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Backend.Controllers
 {
     // API endpoints for managing users. Base route: /api/users
-    // Users management is an admin-only area - never delegated through permissions.
+    // Users management is admin only and is never given out through permissions.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -23,7 +23,6 @@ namespace Backend.Controllers
             _service = service;
         }
 
-        // Get the ID of the currently logged-in user from the JWT token
         private int GetCurrentUserId()
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -112,7 +111,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Status updated" });
         }
 
-        // GET: /api/users/5/security   sessions and sign-in history of one user
+        // GET: /api/users/5/security  = one user's sessions and sign-in history
         [HttpGet("{id}/security")]
         public async Task<IActionResult> GetSecurity(int id)
         {
@@ -123,7 +122,7 @@ namespace Backend.Controllers
             return Ok(overview);
         }
 
-        // POST: /api/users/5/sign-out   sign the user out of every device (lost phone, and so on)
+        // POST: /api/users/5/sign-out  = sign the user out of every device (eg a lost phone)
         [HttpPost("{id}/sign-out")]
         public async Task<IActionResult> SignOutEverywhere(int id)
         {

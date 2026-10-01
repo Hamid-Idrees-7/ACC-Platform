@@ -20,7 +20,7 @@ namespace Backend.Models.Entities
         [MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
-        // SignedIn, WrongPassword, Blocked or Disabled (see LoginResults)
+        // SignedIn, WrongPassword, Blocked, Disabled or PasswordReset (see LoginResults)
         [Required]
         [MaxLength(20)]
         public string Result { get; set; } = string.Empty;
@@ -39,6 +39,10 @@ namespace Backend.Models.Entities
         public DateTime? LastSeenAt { get; set; }
         public DateTime? EndedAt { get; set; }
 
+        // "Keep me signed in" was ticked: the session lasts 30 days instead of ending
+        // when the browser is closed.
+        public bool KeepSignedIn { get; set; }
+
         // Why the session ended: SignedOut, TimedOut, SignedOutRemotely, PasswordChanged,
         // AccountChanged or RoleSwitched (see SessionEndReasons)
         [MaxLength(30)]
@@ -51,6 +55,9 @@ namespace Backend.Models.Entities
         public const string WrongPassword = "WrongPassword";
         public const string Blocked = "Blocked";
         public const string Disabled = "Disabled";
+        // Not a sign-in: the password was reset with an email link. Wrong passwords
+        // typed before it no longer count towards the pause.
+        public const string PasswordReset = "PasswordReset";
     }
 
     public static class SessionEndReasons

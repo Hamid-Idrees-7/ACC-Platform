@@ -7,19 +7,18 @@ using System.Text;
 
 namespace Backend.Auth
 {
-    // Creates JWT tokens for users after successful login.
+    // Creates the JWT a user gets after signing in.
     public class TokenService
     {
         private readonly IConfiguration _config;
 
-        // IConfiguration lets us read settings (like the JWT key) from configuration
         public TokenService(IConfiguration config)
         {
             _config = config;
         }
 
-        // Builds a signed JWT token for the given user. loginId is the session (LoginActivity row)
-        // the token belongs to; it expires together with that session.
+        // Normal sign-in token. loginId is the session (LoginActivity row) the token belongs to,
+        // and the token expires together with that session.
         public string CreateToken(User user, int loginId, DateTime expiresAtUtc)
         {
             var claims = BuildClaims(user);
@@ -40,7 +39,7 @@ namespace Backend.Auth
             return WriteToken(claims, DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc));
         }
 
-        // Claims are pieces of info stored inside the token (who this user is)
+        // Identity claims shared by normal and demo tokens.
         private static List<Claim> BuildClaims(User user) => new()
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
@@ -51,16 +50,14 @@ namespace Backend.Auth
 
         private string WriteToken(List<Claim> claims, DateTime expiresUtc)
         {
-            // Read JWT settings from configuration (key comes from User Secrets)
+            // The signing key comes from User Secrets.
             var jwtKey = _config["Jwt:Key"]!;
             var jwtIssuer = _config["Jwt:Issuer"];
             var jwtAudience = _config["Jwt:Audience"];
 
-            // Create the signing key and credentials using our secret key (the stamp)
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Build the token with claims, expiry, issuer, audience and the signature
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
                 audience: jwtAudience,
@@ -69,7 +66,6 @@ namespace Backend.Auth
                 signingCredentials: credentials
             );
 
-            // Convert the token object into a string that can be sent to the client
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }

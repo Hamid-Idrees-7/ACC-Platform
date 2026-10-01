@@ -1,6 +1,6 @@
 namespace Backend.Demo
 {
-    // Settings for the public visitor demo (appsettings.json to Demo).
+    // Settings for the public visitor demo (the "Demo" section of appsettings.json).
     public class DemoOptions
     {
         // Master switch. When false the visitor buttons are hidden and no demo databases are built.
@@ -41,7 +41,7 @@ namespace Backend.Demo
     }
 
     // Marks an endpoint that must always use the real (main) database, even when the caller
-    // still carries a demo token, e.g. the public contact form and the normal sign-in.
+    // still carries a demo token, eg the public contact form and the normal sign-in.
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class UseMainDatabaseAttribute : Attribute
     {

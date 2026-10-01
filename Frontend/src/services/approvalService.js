@@ -19,13 +19,11 @@ export const approvalService = {
     return response.data;
   },
 
-  // Delete one request
   delete: async (id) => {
     const response = await api.delete(`/approvals/${id}`);
     return response.data;
   },
 
-  // Delete all requests
   deleteAll: async () => {
     const response = await api.delete("/approvals");
     return response.data;

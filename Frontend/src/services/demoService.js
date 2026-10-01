@@ -8,7 +8,7 @@ export const demoService = {
     return response.data;
   },
 
-  // Login as Visitor. role: admin | "manager" | "engineer"
+  // Signs in as a demo visitor. role: "admin" | "manager" | "engineer"
   start: async (role) => {
     const response = await api.post("/demo/start", { role });
     return response.data;

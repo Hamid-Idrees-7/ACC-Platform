@@ -1,37 +1,34 @@
 import api from "./api";
 
 export const profileService = {
-  // Get my profile
   get: async () => {
     const response = await api.get("/profile");
     return response.data;
   },
 
-  // Update my profile info
   update: async (data) => {
     const response = await api.put("/profile", data);
     return response.data;
   },
 
-  // Update profile picture (Base64 string, or null to remove)
+  // Base64 string, or null to remove the picture
   updatePicture: async (profilePicture) => {
     const response = await api.put("/profile/picture", { profilePicture });
     return response.data;
   },
 
-  // Change my password
   changePassword: async (currentPassword, newPassword) => {
     const response = await api.put("/profile/password", { currentPassword, newPassword });
     return response.data;
   },
 
-  // Change my username (requires current password for re-authentication)
+  // Needs the current password again
   changeUsername: async (currentPassword, newUsername) => {
     const response = await api.put("/profile/username", { currentPassword, newUsername });
     return response.data;
   },
 
-  // Verify the current password (for sensitive-action re-authentication)
+  // Checks the current password before a sensitive action
   verifyPassword: async (password) => {
     const response = await api.post("/profile/verify-password", { password });
     return response.data;

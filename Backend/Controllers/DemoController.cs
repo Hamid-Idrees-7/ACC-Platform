@@ -22,7 +22,7 @@ namespace Backend.Controllers
             _tokens = tokens;
         }
 
-        // GET /api/demo/status — should the login page offer the demo, and is a seat free?
+        // GET: /api/demo/status  = should the login page offer the demo, and is a seat free?
         [HttpGet("status")]
         [AllowAnonymous]
         [UseMainDatabase]
@@ -37,7 +37,7 @@ namespace Backend.Controllers
             });
         }
 
-        // POST /api/demo/start — "Login as Visitor". No password; rate limited per IP.
+        // POST: /api/demo/start  = "Login as Visitor". No password; rate limited per IP.
         [HttpPost("start")]
         [AllowAnonymous]
         [UseMainDatabase]
@@ -51,7 +51,7 @@ namespace Backend.Controllers
             return Ok(BuildResponse(result));
         }
 
-        // POST /api/demo/switch — switch between Admin / Manager / Site Engineer in the same demo.
+        // POST: /api/demo/switch  = switch between Admin, Manager and Site Engineer in the same demo
         [HttpPost("switch")]
         [Authorize]
         public async Task<IActionResult> Switch([FromBody] DemoRoleDto dto, CancellationToken ct)
@@ -71,8 +71,8 @@ namespace Backend.Controllers
             return Ok(BuildResponse(result));
         }
 
-        // POST /api/demo/view-as/7 — see the system as another user in the visitor's own demo
-        // (e.g. one they created and gave permissions to). Only works inside a demo session, and
+        // POST: /api/demo/view-as/7  = see the system as another user in the visitor's own demo
+        // (eg one they created and gave permissions to). Only works inside a demo session, and
         // only ever looks up users in that visitor's private database.
         [HttpPost("view-as/{userId:int}")]
         [Authorize]
@@ -94,7 +94,7 @@ namespace Backend.Controllers
             return Ok(BuildResponse(result));
         }
 
-        // POST /api/demo/end — "Exit demo": frees the seat and deletes the visitor's database.
+        // POST: /api/demo/end  = "Exit demo": frees the seat and deletes the visitor's database.
         [HttpPost("end")]
         [Authorize]
         public async Task<IActionResult> End(CancellationToken ct)

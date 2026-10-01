@@ -25,12 +25,6 @@ namespace Backend.Repositories
             return await _context.Users.FindAsync(id);
         }
 
-        public async Task<User?> GetByUsernameAsync(string username)
-        {
-            return await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == username);
-        }
-
         public async Task<User> AddAsync(User user)
         {
             _context.Users.Add(user);
@@ -54,7 +48,7 @@ namespace Backend.Repositories
             return true;
         }
 
-        // Check if a username is already taken (optionally ignoring one user, for edits)
+        // excludeUserId skips one user, for edits
         public async Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null)
         {
             return await _context.Users

@@ -1,8 +1,8 @@
 namespace Backend.Models.DTOs
 {
-    // The complete company report — everything the Reports page needs in one payload.
-    // All figures are computed server-side and reuse the same logic as the individual
-    // modules (project financials, billing overview), so numbers match across the app.
+    // The company report: everything the Reports page needs in one response.
+    // The server reuses the logic of the modules (project financials, billing overview),
+    // so the numbers match across the app.
     public class ReportsDto
     {
         public FinancialReportDto Financial { get; set; } = new();
@@ -12,15 +12,14 @@ namespace Backend.Models.DTOs
         public DateTime GeneratedAt { get; set; } = DateTime.Now;
     }
 
-    // Financial
     public class FinancialReportDto
     {
         public decimal TotalBudget { get; set; }     // sum of project budgets (the agreed prices)
         public decimal MaterialCost { get; set; }
         public decimal LabourCost { get; set; }
         public decimal ExpenseCost { get; set; }      // company-borne project expenses (plot, fees, taxes...)
-        public decimal TotalCost { get; set; }        // material + labour + expenses
-        public decimal TotalProfit { get; set; }      // budget - cost
+        public decimal TotalCost { get; set; }        // material, labour and expenses
+        public decimal TotalProfit { get; set; }      // budget minus cost
         public decimal MarginPercent { get; set; }
 
         public decimal TotalBilled { get; set; }      // from billing
@@ -47,7 +46,7 @@ namespace Backend.Models.DTOs
 
     public class MonthPointDto
     {
-        public string Label { get; set; } = string.Empty;  // e.g. "Aug 26"
+        public string Label { get; set; } = string.Empty;  // eg "Aug 26"
         public decimal Billed { get; set; }
         public decimal Received { get; set; }
     }
@@ -58,7 +57,6 @@ namespace Backend.Models.DTOs
         public decimal Value { get; set; }
     }
 
-    // Projects
     public class ProjectReportRowDto
     {
         public int ProjectID { get; set; }
@@ -75,13 +73,12 @@ namespace Backend.Models.DTOs
         public decimal Outstanding { get; set; }
     }
 
-    // Materials
     public class MaterialsReportDto
     {
         public int TotalMaterials { get; set; }
         public int LowStock { get; set; }
         public int OutOfStock { get; set; }
-        public decimal InventoryValue { get; set; }   // current stock valued at weighted-avg cost
+        public decimal InventoryValue { get; set; }   // current stock valued at weighted average cost
         public decimal TotalPurchased { get; set; }   // total money spent restocking
         public decimal TotalIssued { get; set; }      // value issued out to projects
         public List<MaterialReportRowDto> TopMaterials { get; set; } = new();
@@ -102,7 +99,6 @@ namespace Backend.Models.DTOs
         public string StockState { get; set; } = "OK";   // OK / Low / Out
     }
 
-    // Workforce
     public class WorkforceReportDto
     {
         public int TotalEmployees { get; set; }
@@ -114,7 +110,7 @@ namespace Backend.Models.DTOs
         public int AbsentCount { get; set; }
         public decimal PresentRate { get; set; }         // present / (present + absent) * 100
 
-        public string PayrollPeriod { get; set; } = string.Empty;   // e.g. "August 2026"
+        public string PayrollPeriod { get; set; } = string.Empty;   // eg "August 2026"
         public decimal PayrollTotal { get; set; }
         public decimal PayrollPaid { get; set; }
         public decimal PayrollPending { get; set; }

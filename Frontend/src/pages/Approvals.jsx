@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { approvalService } from "../services/approvalService";
@@ -6,8 +6,13 @@ import { formatDate, formatTime } from "../utils/dates";
 import "./Approvals.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
+import ModalOverlay from "../components/ModalOverlay";
+import { SkeletonRows } from "../components/Skeleton";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../hooks/usePagination";
+import { useLoader } from "../hooks/useLoader";
 
-// Full date with time, e.g. "23 September 2026, 2:20 PM" (follows Settings > Appearance).
+// Full date with time, eg "23 September 2026, 2:20 PM" (follows Settings > Appearance).
 const formatDateTime = (value) => (value ? `${formatDate(value)}, ${formatTime(value)}` : "");
 
 function Approvals() {
@@ -33,8 +38,7 @@ function Approvals() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // The first load shows the spinner. Reloads after a change ({ quiet: true }) keep the
-  // page on screen, so it never jumps back to the top.
+  // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true);
     setError("");
@@ -49,7 +53,7 @@ function Approvals() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLoader(() => load());
 
   useLiveRefresh(["approvals"], () => load({ quiet: true }));
 
@@ -64,7 +68,8 @@ function Approvals() {
     if (filter === "All") return requests;
     return requests.filter((r) => r.status === filter);
   }, [requests, filter]);
-  useHighlight(loading ? null : `${filtered.length}:${filter}`, () => setFilter("All"));
+  const paging = usePagination(filtered, { resetKey: filter, getId: (r) => r.pendingActionID });
+  useHighlight(loading ? null : `${filtered.length}:${paging.page}:${filter}`, () => setFilter("All"));
 
   const openDetail = (req) => {
     setDetail(req);
@@ -135,7 +140,6 @@ function Approvals() {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="ap-tabs">
         {tabs.map((t) => (
           <button key={t.key} className={filter === t.key ? "active" : ""} onClick={() => setFilter(t.key)}>{t.label}</button>
@@ -145,7 +149,7 @@ function Approvals() {
       {error && <div className="ap-error">{error}</div>}
 
       {loading ? (
-        <div className="ap-empty"><div className="ap-spinner" /><p>Loading requests...</p></div>
+        <SkeletonRows count={5} />
       ) : filtered.length === 0 ? (
         <div className="ap-empty">
           <div className="ap-empty-icon">
@@ -155,34 +159,37 @@ function Approvals() {
           <p>Requests that need your approval will appear here.</p>
         </div>
       ) : (
-        <div className="ap-list">
-          {filtered.map((r) => (
-            <div key={r.pendingActionID} data-highlight={r.pendingActionID} className="ap-card" onClick={() => openDetail(r)}>
-              <div className="ap-card-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-              </div>
-              <div className="ap-card-body">
-                <div className="ap-card-title">
-                  <strong>{r.requestedByName}</strong>
-                  <span className="ap-card-role">{r.requestedByRole}</span>
-                  {statusBadge(r.status)}
+        <>
+          <div className="ap-list">
+            {paging.pageItems.map((r) => (
+              <div key={r.pendingActionID} data-highlight={r.pendingActionID} className="ap-card" onClick={() => openDetail(r)}>
+                <div className="ap-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </div>
-                <p className="ap-card-text">
-                  Requested to <strong>{r.action}</strong> {r.module.replace(/s$/, "").toLowerCase()}: <strong>{r.targetName}</strong>
-                </p>
-                <span className="ap-card-time">{formatDateTime(r.createdAt)}</span>
+                <div className="ap-card-body">
+                  <div className="ap-card-title">
+                    <strong>{r.requestedByName}</strong>
+                    <span className="ap-card-role">{r.requestedByRole}</span>
+                    {statusBadge(r.status)}
+                  </div>
+                  <p className="ap-card-text">
+                    Requested to <strong>{r.action}</strong> {r.module.replace(/s$/, "").toLowerCase()}: <strong>{r.targetName}</strong>
+                  </p>
+                  <span className="ap-card-time">{formatDateTime(r.createdAt)}</span>
+                </div>
+                <svg className="ap-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
               </div>
-              <svg className="ap-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination {...paging} label="requests" />
+        </>
       )}
 
       {/* Detail modal */}
       {detail && (
-        <div className="ap-overlay" onClick={(e) => e.target.classList.contains("ap-overlay") && setDetail(null)}>
+        <ModalOverlay className="ap-overlay" onClose={() => setDetail(null)}>
           <div className="ap-detail">
-            <button className="ap-detail-close" onClick={() => setDetail(null)} aria-label="Close">
+            <button className="ap-detail-close" data-close onClick={() => setDetail(null)} aria-label="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
 
@@ -236,12 +243,12 @@ function Approvals() {
               </div>
             )}
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
-      {/* Confirm delete single */}
+      {/* Confirm delete: one request */}
       {confirmDelete && (
-        <div className="ap-overlay" onClick={(e) => e.target.classList.contains("ap-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="ap-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="ap-confirm">
             <div className="ap-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -249,16 +256,16 @@ function Approvals() {
             <h3>Delete this request?</h3>
             <p>This request record will be permanently removed.</p>
             <div className="ap-confirm-actions">
-              <button className="ap-confirm-cancel" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="ap-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="ap-confirm-delete" onClick={() => handleDelete(confirmDelete.pendingActionID)}>Delete</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Confirm delete all */}
       {confirmDeleteAll && (
-        <div className="ap-overlay" onClick={(e) => e.target.classList.contains("ap-overlay") && setConfirmDeleteAll(false)}>
+        <ModalOverlay className="ap-overlay" onClose={() => setConfirmDeleteAll(false)}>
           <div className="ap-confirm">
             <div className="ap-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -266,11 +273,11 @@ function Approvals() {
             <h3>Delete all requests?</h3>
             <p>All approval request records will be permanently removed. This cannot be undone.</p>
             <div className="ap-confirm-actions">
-              <button className="ap-confirm-cancel" onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
+              <button className="ap-confirm-cancel" data-close onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
               <button className="ap-confirm-delete" onClick={handleDeleteAll}>Delete All</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`ap-toast ap-toast-${toast.type}`}>{toast.text}</div>}

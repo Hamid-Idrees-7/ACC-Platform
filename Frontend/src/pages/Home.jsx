@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import "./Home.css";
+import { usePageTitle, SITE_NAME } from "../hooks/usePageTitle";
+import { typePhone, typed } from "../utils/format";
+import LazyBackground from "../components/LazyBackground";
 
-// Reusable navbar logo (with "by Hamid Idrees" tag) — used on all pages
+// Navbar logo with the "by Hamid Idrees" tag, used on every page.
 export function AccLogo({ onClick }) {
   return (
     <button className="navbar-logo" onClick={onClick}>
@@ -18,13 +21,14 @@ export function AccLogo({ onClick }) {
 }
 
 function Home() {
+  usePageTitle(SITE_NAME, null);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If we arrived from another page with a section to scroll to, do it
+  // Coming from another page with a section to scroll to: scroll to it.
   useEffect(() => {
     if (location.state && location.state.scrollTo) {
       const id = location.state.scrollTo;
@@ -41,7 +45,6 @@ function Home() {
     }
   }, [location]);
 
-  // Contact form state
   const [form, setForm] = useState({ name: "", phone: "", email: "", service: "", message: "", website: "" });
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
@@ -99,13 +102,13 @@ function Home() {
   };
 
   const handleContactSubmit = async () => {
-    // Required: name, phone, service, message
+    // Required: name, phone, service and message.
     if (!form.name.trim() || !form.phone.trim() || !form.service.trim() || !form.message.trim()) {
       showError("Please fill in your name, phone, service, and message.");
       return;
     }
 
-    // Phone validation: starts with 0 or +92, and has 11 digits (after normalizing +92 to 0)
+    // Pakistani phone: 11 digits starting with 0 (+92 counts as the 0).
     const rawPhone = form.phone.trim().replace(/[\s-]/g, "");
     const normalized = rawPhone.startsWith("+92") ? "0" + rawPhone.slice(3) : rawPhone;
     if (!/^0\d{10}$/.test(normalized)) {
@@ -113,7 +116,7 @@ function Home() {
       return;
     }
 
-    // Email validation (only if provided, since it's optional)
+    // Email is optional, so check it only when given.
     if (form.email.trim()) {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(form.email.trim())) {
@@ -138,7 +141,7 @@ function Home() {
       setFormSuccess(response.data.message || "Thank you! Your message has been sent.");
       setForm({ name: "", phone: "", email: "", service: "", message: "", website: "" });
     } catch (err) {
-      // Show the backend's message (e.g. rate limit) if available
+      // Show the server's message (eg rate limit) when there is one.
       showError(err.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
@@ -147,7 +150,7 @@ function Home() {
 
   return (
     <div className="acc-site">
-      {/* NAVBAR */}
+      {/* Navbar */}
       <header className={`navbar ${scrolled ? "scrolled" : ""}`}>
         <div className="navbar-container">
           <AccLogo onClick={() => scrollTo("home")} />
@@ -171,9 +174,9 @@ function Home() {
       </header>
 
       <main>
-        {/* HERO */}
+        {/* Hero */}
         <section id="home" className="hero-section">
-          {/* IMAGE: hero background ~1920x1080. In Home.css .hero-section set background-image: url('/images/hero.jpg') */}
+          {/* Hero photo (roughly 1920x1080): set background-image on .hero-section in Home.css, eg url('/images/hero.jpg') */}
           <div className="hero-overlay" />
           <div className="hero-content">
             <span className="hero-badge">Registered &amp; Licensed Contractor</span>
@@ -190,11 +193,11 @@ function Home() {
           </div>
         </section>
 
-        {/* ABOUT (white) */}
+        {/* About (white) */}
         <section id="about" className="about-section">
           <div className="about-grid">
             <div className="about-visual reveal">
-              {/* IMAGE: about photo ~700x500. In Home.css set .about-visual background-image */}
+              {/* About photo (roughly 700x500): set background-image on .about-visual in Home.css */}
               <div className="about-visual-content">
                 <div className="about-visual-year">15+</div>
                 <div className="about-visual-text">Years of Excellence</div>
@@ -228,7 +231,7 @@ function Home() {
           </div>
         </section>
 
-        {/* SERVICES (yellow) */}
+        {/* Services (yellow) */}
         <section id="services" className="services-section">
           <div className="section-header reveal">
             <span className="section-tag">What We Do</span>
@@ -259,7 +262,7 @@ function Home() {
           </div>
         </section>
 
-        {/* PROJECTS (white) */}
+        {/* Projects (white) */}
         <section id="projects" className="projects-section">
           <div className="section-header reveal">
             <span className="section-tag">Our Work</span>
@@ -268,7 +271,7 @@ function Home() {
           </div>
           <div className="projects-grid">
             <div className="project-card reveal">
-              <div className="project-card-image" style={{ backgroundImage: "url('/images/home-railway-cover.jpg')" }}><span className="project-card-badge">Infrastructure</span></div>
+              <LazyBackground className="project-card-image" src="/images/home-railway-cover.webp"><span className="project-card-badge">Infrastructure</span></LazyBackground>
               <div className="project-card-body">
                 <h3>Railway Engine Shed Facility</h3>
                 <div className="project-card-location"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>Ghari Shahu, Lahore</div>
@@ -297,7 +300,7 @@ function Home() {
           </div>
         </section>
 
-        {/* WHY US (yellow) */}
+        {/* Why us (yellow) */}
         <section className="why-us-section why-us-cream">
           <div className="section-header reveal">
             <span className="section-tag">Why Choose Us</span>
@@ -328,7 +331,7 @@ function Home() {
           </div>
         </section>
 
-        {/* CONTACT (white) */}
+        {/* Contact (white) */}
         <section id="contact" className="contact-section">
           <div className="contact-wrapper">
             <div className="contact-left">
@@ -377,7 +380,7 @@ function Home() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Phone <span className="req">*</span></label>
-                    <input type="text" className="form-input" placeholder="+92 300 0000000" maxLength={15} value={form.phone} onChange={(e) => handleFormChange("phone", e.target.value)} />
+                    <input type="text" className="form-input" placeholder="0300-1234567" maxLength={15} value={form.phone} onChange={(e) => handleFormChange("phone", typed(e, typePhone))} />
                   </div>
                 </div>
                 <div className="form-group">
@@ -433,7 +436,7 @@ function Home() {
           </div>
         </section>
 
-        {/* FOOTER (dark) */}
+        {/* Footer (dark) */}
         <footer className="footer">
           <div className="footer-grid">
             <div className="footer-brand">

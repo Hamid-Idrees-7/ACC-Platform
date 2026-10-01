@@ -31,7 +31,7 @@ export const CUSTOM_DEMO_ROLE = {
 export const getDemoRole = (key) =>
   key === CUSTOM_DEMO_ROLE.key ? CUSTOM_DEMO_ROLE : DEMO_ROLES.find((r) => r.key === key) || DEMO_ROLES[0];
 
-// The built-in demo login behind a username (demo.admin -> admin), or null for any other user.
+// The built-in demo login behind a username (eg demo.admin gives admin), or null for any other user.
 export const builtInDemoRoleFor = (username) =>
   DEMO_ROLES.find((r) => username === `demo.${r.key}`) || null;
 

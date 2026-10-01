@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./ClientFormModal.css";
+import ModalOverlay from "./ModalOverlay";
+import { formatCnic, formatPhone, typeCnic, typePhone, typed } from "../utils/format";
 
-// Validation helpers
+// Pakistani phone: 11 digits starting with 0 (+92 counts as 0). CNIC: 13 digits, dashes optional.
 const isValidPhone = (phone) => {
   const raw = phone.trim().replace(/[\s-]/g, "");
   const normalized = raw.startsWith("+92") ? "0" + raw.slice(3) : raw;
@@ -18,26 +20,23 @@ const emptyForm = {
   email: "", city: "", address: "", clientType: "External",
 };
 
+// The form filled in with the client being edited.
+const formFrom = (data) => ({
+  fullName: data.fullName || "",
+  phone: formatPhone(data.phone) || "",
+  secondaryPhone: formatPhone(data.secondaryPhone) || "",
+  cnic: formatCnic(data.cnic) || "",
+  email: data.email || "",
+  city: data.city || "",
+  address: data.address || "",
+  clientType: data.clientType || "External",
+});
+
 function ClientFormModal({ mode, initialData, onClose, onSave }) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => (mode === "edit" && initialData ? formFrom(initialData) : emptyForm));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
-
-  useEffect(() => {
-    if (mode === "edit" && initialData) {
-      setForm({
-        fullName: initialData.fullName || "",
-        phone: initialData.phone || "",
-        secondaryPhone: initialData.secondaryPhone || "",
-        cnic: initialData.cnic || "",
-        email: initialData.email || "",
-        city: initialData.city || "",
-        address: initialData.address || "",
-        clientType: initialData.clientType || "External",
-      });
-    }
-  }, [mode, initialData]);
 
   const setField = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -89,14 +88,14 @@ function ClientFormModal({ mode, initialData, onClose, onSave }) {
   };
 
   return (
-    <div className="cfm-overlay" onClick={(e) => e.target.classList.contains("cfm-overlay") && onClose()}>
+    <ModalOverlay className="cfm-overlay" onClose={onClose}>
       <div className="cfm-modal">
         <div className="cfm-head">
           <div>
             <h3>{mode === "edit" ? "Edit Client" : "Add New Client"}</h3>
             <p>Add an external client or internal company project</p>
           </div>
-          <button className="cfm-close" onClick={onClose} aria-label="Close">
+          <button className="cfm-close" data-close onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -115,17 +114,17 @@ function ClientFormModal({ mode, initialData, onClose, onSave }) {
             </div>
             <div className="cfm-field">
               <label>Phone <span className="req">*</span></label>
-              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", e.target.value)} className={errors.phone ? "err" : ""} placeholder="+92 300 0000000" autoComplete="new-client-field" />
+              <input type="text" maxLength={15} value={form.phone} onChange={(e) => setField("phone", typed(e, typePhone))} className={errors.phone ? "err" : ""} placeholder="0300-1234567" autoComplete="new-client-field" />
               {errors.phone ? <span className="cfm-err">{errors.phone}</span> : <span className="cfm-hint">11 digits, starting with 0 or +92</span>}
             </div>
             <div className="cfm-field">
               <label>Secondary Phone</label>
-              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", e.target.value)} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-client-field" />
+              <input type="text" maxLength={15} value={form.secondaryPhone} onChange={(e) => setField("secondaryPhone", typed(e, typePhone))} className={errors.secondaryPhone ? "err" : ""} placeholder="Optional" autoComplete="new-client-field" />
               {errors.secondaryPhone ? <span className="cfm-err">{errors.secondaryPhone}</span> : <span className="cfm-hint">Alternate contact number</span>}
             </div>
             <div className="cfm-field">
               <label>CNIC <span className="req">*</span></label>
-              <input type="text" maxLength={15} value={form.cnic} onChange={(e) => setField("cnic", e.target.value)} className={errors.cnic ? "err" : ""} placeholder="ID card number" autoComplete="new-client-field" />
+              <input type="text" maxLength={15} value={form.cnic} onChange={(e) => setField("cnic", typed(e, typeCnic))} className={errors.cnic ? "err" : ""} placeholder="35202-1234567-1" autoComplete="new-client-field" />
               {errors.cnic ? <span className="cfm-err">{errors.cnic}</span> : <span className="cfm-hint">13 digits (dashes optional)</span>}
             </div>
             <div className="cfm-field">
@@ -153,13 +152,13 @@ function ClientFormModal({ mode, initialData, onClose, onSave }) {
         </div>
 
         <div className="cfm-actions">
-          <button className="cfm-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="cfm-cancel" data-close onClick={onClose} disabled={saving}>Cancel</button>
           <button className="cfm-save" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Add Client"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

@@ -45,6 +45,8 @@ const describeAttempt = (a) => {
       return { label: "Blocked", tone: "amber", detail: "Too many failed attempts" };
     case "Disabled":
       return { label: "Account disabled", tone: "grey", detail: "Sign-in refused" };
+    case "PasswordReset":
+      return { label: "Password reset", tone: "amber", detail: "With the email link" };
     default:
       return { label: a.result, tone: "grey", detail: "" };
   }

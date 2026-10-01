@@ -1,9 +1,8 @@
 import "./DocLetterhead.css";
+import { companyInitials } from "../config/companyConfig";
 
 // Company letterhead for printed documents (invoice, payslip), from Settings > Company.
 // Shows the logo (or the company initials), name, tagline, contact line and tax numbers.
-export const companyInitials = (name) =>
-  (name || "").split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 3).map((w) => w[0]).join("").toUpperCase() || "CO";
 
 function DocLetterhead({ company, subtitle }) {
   const c = company || {};

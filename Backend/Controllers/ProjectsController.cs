@@ -162,7 +162,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Phases reordered" });
         }
 
-        // DELETE: /api/projects/5 (or request approval if required)
+        // DELETE: /api/projects/5  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Projects", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -171,7 +171,7 @@ namespace Backend.Controllers
             if (project == null)
                 return NotFound(new { message = "Project not found" });
 
-            // Protect money history: a project with issued materials, expenses or invoices can't be deleted.
+            // A project with issued materials, expenses or invoices can't be deleted (money history).
             var blocker = await _service.GetDeleteBlockerAsync(id);
             if (blocker != null)
                 return BadRequest(new { message = blocker });

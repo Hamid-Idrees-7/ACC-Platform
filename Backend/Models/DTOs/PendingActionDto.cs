@@ -1,6 +1,5 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // Represents a pending action sent OUT to the frontend
     public class PendingActionDto
     {
         public int PendingActionID { get; set; }

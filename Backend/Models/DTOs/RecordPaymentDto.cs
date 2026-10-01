@@ -1,6 +1,6 @@
 namespace Backend.Models.DTOs
 {
-    // Payload for recording a (possibly partial) payment against an invoice.
+    // Records a payment (full or partial) against an invoice.
     public class RecordPaymentDto
     {
         public int InvoiceID { get; set; }
@@ -9,7 +9,7 @@ namespace Backend.Models.DTOs
 
         public string Method { get; set; } = "Cash";
 
-        // Cheque number, transaction id, etc Optional
+        // Optional: cheque number, transaction ID and so on.
         public string? Reference { get; set; }
     }
 }

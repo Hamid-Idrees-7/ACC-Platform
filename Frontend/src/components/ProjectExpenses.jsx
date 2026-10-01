@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo } from "react";
-import DatePicker, { formatDate } from "./DatePicker";
+import { useState, useMemo } from "react";
+import DatePicker from "./DatePicker";
+import { formatDate } from "../utils/dates";
 import { usePermissions } from "../context/PermissionContext";
 import { projectExpenseService } from "../services/projectExpenseService";
 import { money, amountInWords, currencySymbol } from "../utils/format";
 import "./ProjectExpenses.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import ModalOverlay from "./ModalOverlay";
+import { SkeletonRows } from "./Skeleton";
+import { useLoader } from "../hooks/useLoader";
+import Pagination from "./Pagination";
+import { usePagination } from "../hooks/usePagination";
 
 // Example text per category, so the description field shows what fits.
 const HINTS = {
@@ -44,7 +50,7 @@ const emptyForm = () => ({
   isRecoverable: false,
 });
 
-// The Project Expenses section on a projects page: one-off costs such as plot fees,
+// The Project Expenses section on a project's page: one-off costs such as plot fees,
 // transfer fees, taxes and possession charges. Company costs add to the project cost;
 // recoverable ones are billed back to the client from Billing.
 function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
@@ -83,12 +89,11 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
     }
   };
 
-  useEffect(() => {
+  useLoader(() => {
     if (!canView) return;
     setLoading(true);
     load();
-   
-  }, [projectId, canView]);
+  }, `${projectId}|${canView}`);
 
   useLiveRefresh(["expenses", "billing"], () => { if (canView) load(); });
 
@@ -97,7 +102,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
     if (onChanged) onChanged();
   };
 
-  const items = data?.items || [];
+  const items = useMemo(() => data?.items || [], [data]);
   const counts = useMemo(() => ({
     all: items.length,
     company: items.filter((e) => !e.isRecoverable).length,
@@ -107,10 +112,11 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
   const visible = items.filter((e) =>
     filter === "all" ? true : filter === "company" ? !e.isRecoverable : e.isRecoverable
   );
+  const paging = usePagination(visible, { resetKey: `${projectId}|${filter}` });
 
   if (!canView) return null;
 
-  // Form 
+  // Add / edit form
   const openAdd = () => {
     setForm(emptyForm());
     setFormError("");
@@ -188,7 +194,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
     }
   };
 
-  //  Delete 
+  // Delete
   const doDelete = async () => {
     setBusy(true);
     try {
@@ -232,7 +238,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
       </div>
 
       {loading ? (
-        <div className="pex-state"><div className="pex-spinner" />Loading expenses...</div>
+        <SkeletonRows count={3} />
       ) : loadError ? (
         <div className="pex-error">{loadError}</div>
       ) : (
@@ -278,60 +284,63 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
           ) : visible.length === 0 ? (
             <div className="pex-empty"><span>No {filter === "company" ? "company cost" : "recoverable"} expenses.</span></div>
           ) : (
-            <div className="pex-list">
-              {visible.map((e) => {
-                const d = new Date(e.expenseDate);
-                const meta = [
-                  e.phaseName,
-                  e.paidTo ? `Paid to ${e.paidTo}` : null,
-                  e.reference ? `Ref ${e.reference}` : null,
-                ].filter(Boolean);
-                return (
-                  <div key={e.expenseID} className={`pex-row ${e.isRecoverable ? "rec" : ""}`}>
-                    <div className="pex-date">
-                      <strong>{isNaN(d) ? "—" : d.getDate()}</strong>
-                      <span>{isNaN(d) ? "" : `${MON[d.getMonth()]} ${d.getFullYear()}`}</span>
-                    </div>
-                    <div className="pex-main">
-                      <span className="pex-cat">{e.category}</span>
-                      <div className="pex-desc">{e.description}</div>
-                      <div className="pex-meta">{meta.join(" · ")}</div>
-                    </div>
-                    <div className="pex-amt">
-                      <strong>{money(e.amount)}</strong>
-                      <em className="pex-amt-words">{amountInWords(e.amount)}</em>
-                      {!e.isRecoverable ? (
-                        <span className="pex-tag company">Company cost</span>
-                      ) : e.isInvoiced ? (
-                        <span className="pex-tag billed">Billed · {e.invoiceNumber}</span>
-                      ) : (
-                        <span className="pex-tag tobill">Recoverable · to bill</span>
-                      )}
-                    </div>
-                    {(canEdit || canDelete) && (
-                      <div className="pex-actions">
-                        {canEdit && (
-                          <button onClick={() => openEdit(e)} aria-label="Edit expense" title="Edit">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            className="pex-del"
-                            onClick={() => setConfirmDel(e)}
-                            disabled={e.isInvoiced}
-                            aria-label="Delete expense"
-                            title={e.isInvoiced ? `Billed on ${e.invoiceNumber} — remove it from that invoice first` : "Delete"}
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                          </button>
+            <>
+              <div className="pex-list">
+                {paging.pageItems.map((e) => {
+                  const d = new Date(e.expenseDate);
+                  const meta = [
+                    e.phaseName,
+                    e.paidTo ? `Paid to ${e.paidTo}` : null,
+                    e.reference ? `Ref ${e.reference}` : null,
+                  ].filter(Boolean);
+                  return (
+                    <div key={e.expenseID} className={`pex-row ${e.isRecoverable ? "rec" : ""}`}>
+                      <div className="pex-date">
+                        <strong>{isNaN(d) ? "—" : d.getDate()}</strong>
+                        <span>{isNaN(d) ? "" : `${MON[d.getMonth()]} ${d.getFullYear()}`}</span>
+                      </div>
+                      <div className="pex-main">
+                        <span className="pex-cat">{e.category}</span>
+                        <div className="pex-desc">{e.description}</div>
+                        <div className="pex-meta">{meta.join(" · ")}</div>
+                      </div>
+                      <div className="pex-amt">
+                        <strong>{money(e.amount)}</strong>
+                        <em className="pex-amt-words">{amountInWords(e.amount)}</em>
+                        {!e.isRecoverable ? (
+                          <span className="pex-tag company">Company cost</span>
+                        ) : e.isInvoiced ? (
+                          <span className="pex-tag billed">Billed · {e.invoiceNumber}</span>
+                        ) : (
+                          <span className="pex-tag tobill">Recoverable · to bill</span>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {(canEdit || canDelete) && (
+                        <div className="pex-actions">
+                          {canEdit && (
+                            <button onClick={() => openEdit(e)} aria-label="Edit expense" title="Edit">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              className="pex-del"
+                              onClick={() => setConfirmDel(e)}
+                              disabled={e.isInvoiced}
+                              aria-label="Delete expense"
+                              title={e.isInvoiced ? `Billed on ${e.invoiceNumber} — remove it from that invoice first` : "Delete"}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <Pagination {...paging} label="expenses" />
+            </>
           )}
 
           {data.recoverablePending > 0 && (
@@ -344,7 +353,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
 
       {/* Add / edit modal */}
       {modal && (
-        <div className="pex-overlay" onClick={(ev) => ev.target.classList.contains("pex-overlay") && closeModal()}>
+        <ModalOverlay className="pex-overlay" onClose={closeModal}>
           <div className="pex-modal" role="dialog" aria-modal="true">
             <h3>{modal.mode === "edit" ? "Edit Expense" : "Add Expense"}</h3>
             <p className="pex-modal-sub">A one-off cost paid for this project.</p>
@@ -425,18 +434,18 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
             {formError && <div className="pex-form-error">{formError}</div>}
 
             <div className="pex-modal-actions">
-              <button className="pex-btn-cancel" onClick={closeModal} disabled={busy}>Cancel</button>
+              <button className="pex-btn-cancel" data-close onClick={closeModal} disabled={busy}>Cancel</button>
               <button className="pex-btn-save" onClick={save} disabled={busy}>
                 {busy ? "Saving..." : modal.mode === "edit" ? "Save Changes" : "Add Expense"}
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Delete confirm */}
       {confirmDel && (
-        <div className="pex-overlay" onClick={(ev) => ev.target.classList.contains("pex-overlay") && !busy && setConfirmDel(null)}>
+        <ModalOverlay className="pex-overlay" onClose={() => !busy && setConfirmDel(null)}>
           <div className="pex-modal pex-confirm" role="dialog" aria-modal="true">
             <h3>Delete this expense?</h3>
             <p>
@@ -444,11 +453,11 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
               {confirmDel.isRecoverable ? "." : " and the project cost will go down by this amount."}
             </p>
             <div className="pex-modal-actions">
-              <button className="pex-btn-cancel" onClick={() => setConfirmDel(null)} disabled={busy}>Cancel</button>
+              <button className="pex-btn-cancel" data-close onClick={() => setConfirmDel(null)} disabled={busy}>Cancel</button>
               <button className="pex-btn-del" onClick={doDelete} disabled={busy}>{busy ? "..." : "Delete"}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {toast && <div className={`pex-toast pex-toast-${toast.type}`}>{toast.text}</div>}

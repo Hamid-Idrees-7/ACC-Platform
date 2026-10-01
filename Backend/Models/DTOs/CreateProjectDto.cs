@@ -31,7 +31,7 @@ namespace Backend.Models.DTOs
 
         public decimal Budget { get; set; }
 
-        // Only used on create: seed the standard construction phases
+        // Create only: add the standard construction phases
         public bool CreateStandardPhases { get; set; }
     }
 }

@@ -4,6 +4,7 @@ import { ALERT_GROUPS, ALERT_SEVERITY } from "../config/alertConfig";
 import { useLiveRefresh } from "../hooks/useLive";
 import Toast, { useToast } from "./Toast";
 import "./AlertRules.css";
+import { SkeletonRows } from "./Skeleton";
 
 function Switch({ id, checked, onChange, label }) {
   return (
@@ -121,7 +122,7 @@ function AlertRules() {
   };
 
   if (loadError) return <div className="alr-error">{loadError}</div>;
-  if (!rules) return <div className="alr-loading"><div className="alr-spinner" />Loading...</div>;
+  if (!rules) return <SkeletonRows count={4} />;
 
   const offCount = rules.filter((r) => !r.enabled).length;
 

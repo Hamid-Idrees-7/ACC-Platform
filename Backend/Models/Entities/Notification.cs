@@ -20,7 +20,7 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string Type { get; set; } = "Personal";
 
-        // Category for the icon/colour, e.g. "Login", "Client", "Employee", "Approval"
+        // Category for the icon and colour, eg Login, Client, Employee, Approval
         [MaxLength(30)]
         public string Category { get; set; } = "General";
 
@@ -32,7 +32,7 @@ namespace Backend.Models.Entities
         [MaxLength(400)]
         public string Message { get; set; } = string.Empty;
 
-        // Optional reason (e.g. an admin's note when approving/rejecting)
+        // Optional reason, eg the admin's note when approving or rejecting
         [MaxLength(300)]
         public string? Reason { get; set; }
 

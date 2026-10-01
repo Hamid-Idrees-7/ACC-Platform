@@ -5,6 +5,7 @@ import { IDLE_CHOICES, DEFAULT_IDLE_MINUTES } from "../config/sessionConfig";
 import Toast, { useToast } from "./Toast";
 import { SessionList, ActivityList, ConfirmDialog } from "./SecurityOverview";
 import "./SecuritySettings.css";
+import { SkeletonRows } from "./Skeleton";
 
 // Settings > Security: automatic sign-out, signed-in devices and sign-in history.
 // Prefix: scs- (the lists come from SecurityOverview, prefix sov-)
@@ -128,7 +129,7 @@ function SecuritySettings() {
         </div>
 
         {loading ? (
-          <div className="scs-state"><div className="scs-spinner" /></div>
+          <SkeletonRows count={3} />
         ) : loadError ? (
           <div className="scs-error">
             <span>{loadError}</span>

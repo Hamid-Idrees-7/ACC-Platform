@@ -7,7 +7,7 @@ namespace Backend.Models.DTOs
         public CompanyBrandDto Company { get; set; } = new();
         public int Year { get; set; }
         public int Month { get; set; }
-        public string PeriodLabel { get; set; } = string.Empty;   // July 2026
+        public string PeriodLabel { get; set; } = string.Empty;   // eg July 2026
 
         public int EmployeeID { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
@@ -18,7 +18,7 @@ namespace Backend.Models.DTOs
 
         public List<SalaryLineDto> Lines { get; set; } = new();
         public decimal TotalCalculated { get; set; }
-        public decimal NetPaid { get; set; }   // net payable/paid: paid amount where paid, else calculated
+        public decimal NetPaid { get; set; }   // the paid amount if paid, otherwise the calculated amount
         public DateTime GeneratedAt { get; set; }
     }
 }

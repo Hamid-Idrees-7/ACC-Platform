@@ -49,7 +49,7 @@ namespace Backend.Controllers
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
-        // GET: /api/clients  = get all clients
+        // GET: /api/clients  = all clients
         [HttpGet]
         [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetAll()
@@ -58,7 +58,7 @@ namespace Backend.Controllers
             return Ok(clients);
         }
 
-        // GET: /api/clients/5  = get one client by ID
+        // GET: /api/clients/5  = one client
         [HttpGet("{id}")]
         [RequirePermission("Clients", "View")]
         public async Task<IActionResult> GetById(int id)
@@ -70,14 +70,14 @@ namespace Backend.Controllers
             return Ok(client);
         }
 
-        // POST: /api/clients = create a new client
+        // POST: /api/clients  = create a client
         [HttpPost]
         [RequirePermission("Clients", "Add")]
         public async Task<IActionResult> Create([FromBody] ClientDto dto)
         {
             var client = await _service.CreateClientAsync(dto);
 
-            // Notifications: personal (to the actor) + activity (to admins)
+            // Tell the user who added it, and post it to the admins' activity feed.
             await _notificationService.NotifyPersonalAsync(
                 GetUserId(), "Client", "Client added", $"You added client: {client.FullName}.",
                 link: NotificationLinks.Client(client.ClientID));
@@ -88,7 +88,7 @@ namespace Backend.Controllers
             return CreatedAtAction(nameof(GetById), new { id = client.ClientID }, client);
         }
 
-        // PUT: /api/clients/5 = update a client (also covers enable/disable)
+        // PUT: /api/clients/5  = update a client (also enable/disable)
         [HttpPut("{id}")]
         [RequirePermission("Clients", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] ClientDto dto)
@@ -100,7 +100,7 @@ namespace Backend.Controllers
             return Ok(client);
         }
 
-        // DELETE: /api/clients/5  = delete a client (or request approval if required)
+        // DELETE: /api/clients/5  = delete, or ask for approval when required
         [HttpDelete("{id}")]
         [RequirePermission("Clients", "Delete")]
         public async Task<IActionResult> Delete(int id)
@@ -109,11 +109,11 @@ namespace Backend.Controllers
             if (client == null)
                 return NotFound(new { message = "Client not found" });
 
-            // Protect project links: a client with projects can't be deleted.
+            // A client with projects can't be deleted.
             if (await _projectRepository.AnyForClientAsync(id))
                 return BadRequest(new { message = "This client has projects and can't be deleted. Reassign or remove those projects first, or set the client Inactive." });
 
-            // Non-admins may need approval before a delete actually runs
+            // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Clients", "Delete"))
             {
                 var created = await _approvalService.CreateAsync(
@@ -132,7 +132,6 @@ namespace Backend.Controllers
                 return Ok(new { requiresApproval = true, message = $"Request to delete \"{client.FullName}\" sent to administration for approval." });
             }
 
-            // Otherwise delete directly
             var deleted = await _service.DeleteClientAsync(id);
             if (!deleted)
                 return NotFound(new { message = "Client not found" });

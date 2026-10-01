@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    // API endpoints for Billing & Invoices. Base route: /api/billing
-    // Reading needs View; anything that changes data needs "Manage".
+    // Billing and invoices. Base route: /api/billing
+    // Reading needs View; anything that changes data needs Manage.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -37,7 +37,7 @@ namespace Backend.Controllers
             await _notifications.NotifyAdminsActivityAsync(NotificationCategories.Billing, activityTitle, $"{GetUserName()} {activityText}", link: link);
         }
 
-        // GET /api/billing — overview stats + a card per project
+        // GET: /api/billing  = overview stats and a card per project
         [HttpGet]
         [RequirePermission("Billing", "View")]
         public async Task<IActionResult> GetOverview()
@@ -45,7 +45,7 @@ namespace Backend.Controllers
             return Ok(await _service.GetOverviewAsync());
         }
 
-        // GET /api/billing/project/5 — one project's invoices + phase options
+        // GET: /api/billing/project/5  = one project's invoices and phase options
         [HttpGet("project/{projectId}")]
         [RequirePermission("Billing", "View")]
         public async Task<IActionResult> GetProject(int projectId)
@@ -56,7 +56,7 @@ namespace Backend.Controllers
             return Ok(data);
         }
 
-        // POST /api/billing/invoices — create an invoice
+        // POST: /api/billing/invoices  = create an invoice
         [HttpPost("invoices")]
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceDto dto)
@@ -76,7 +76,7 @@ namespace Backend.Controllers
             return Ok(new { invoiceId = id });
         }
 
-        // PUT /api/billing/invoices/5 — edit an invoice
+        // PUT: /api/billing/invoices/5  = edit an invoice
         [HttpPut("invoices/{id}")]
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> UpdateInvoice(int id, [FromBody] CreateInvoiceDto dto)
@@ -98,7 +98,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Invoice updated" });
         }
 
-        // DELETE /api/billing/invoices/5 — delete an invoice (with its items + payments)
+        // DELETE: /api/billing/invoices/5  = delete an invoice with its items and payments
         [HttpDelete("invoices/{id}")]
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> DeleteInvoice(int id)
@@ -118,7 +118,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Invoice deleted" });
         }
 
-        // POST /api/billing/payments — record a (partial) payment
+        // POST: /api/billing/payments  = record a payment (can be partial)
         [HttpPost("payments")]
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> RecordPayment([FromBody] RecordPaymentDto dto)
@@ -138,7 +138,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Payment recorded" });
         }
 
-        // DELETE /api/billing/payments/5 — remove a payment
+        // DELETE: /api/billing/payments/5  = remove a payment
         [HttpDelete("payments/{id}")]
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> DeletePayment(int id)
@@ -159,7 +159,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Payment deleted" });
         }
 
-        // GET /api/billing/invoices/5/print — printable invoice payload
+        // GET: /api/billing/invoices/5/print  = invoice data for printing
         [HttpGet("invoices/{id}/print")]
         [RequirePermission("Billing", "View")]
         public async Task<IActionResult> Print(int id)

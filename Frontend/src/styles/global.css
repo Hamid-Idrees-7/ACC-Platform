@@ -1,6 +1,6 @@
 @import './theme.css';
 
-/* ===== Reset (clear browser defaults) ===== */
+/* Reset browser defaults */
 * {
   margin: 0;
   padding: 0;

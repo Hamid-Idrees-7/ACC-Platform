@@ -15,7 +15,7 @@ namespace Backend.Models.Entities
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
-        // Display order changed by drag-and-drop reordering on the detail page
+        // Display order, set by drag and drop on the detail page
         public int OrderNo { get; set; }
 
         // Pending, In Progress, Completed
@@ -23,7 +23,7 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
 
-        // Completion percentage, 0–100
+        // Completion percentage, 0 to 100
         public int Progress { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

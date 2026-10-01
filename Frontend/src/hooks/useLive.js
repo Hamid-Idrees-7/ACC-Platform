@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { onLive, isLiveConnected } from "../services/live";
+import { useEffect, useRef } from "react";
+import { onLive } from "../services/live";
 
 export function useLiveRefresh(modules, refresh, { delay = 350, paused = false } = {}) {
   const refreshRef = useRef(refresh);
@@ -56,10 +56,4 @@ export function useLiveNotifications(handler) {
       offSync();
     };
   }, []);
-}
-
-export function useLiveConnected() {
-  const [connected, setConnected] = useState(isLiveConnected);
-  useEffect(() => onLive("status", (value) => setConnected(!!value)), []);
-  return connected;
 }

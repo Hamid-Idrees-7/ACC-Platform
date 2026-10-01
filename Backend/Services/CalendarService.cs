@@ -81,8 +81,6 @@ namespace Backend.Services
             return await GetAsync();
         }
 
-        // Helpers
-
         private async Task<(CompanyHoliday? Clean, string? Error, string? Field)> ValidateAsync(SaveHolidayDto dto, int? exceptId)
         {
             var name = string.IsNullOrWhiteSpace(dto.Name) ? "" : Regex.Replace(dto.Name.Trim(), @"\s+", " ");

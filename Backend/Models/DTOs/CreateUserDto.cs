@@ -2,15 +2,15 @@
 
 namespace Backend.Models.DTOs
 {
-    // Used when an admin creates or updates a user (data coming IN)
+    // Sent when an admin creates or updates a user.
     public class CreateUserDto
     {
         [Required]
         [MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
-        // Plain password from the admin - will be hashed before saving.
-        // Optional on edit: if left empty, the existing password is kept.
+        // Plain password from the admin, hashed before saving.
+        // Optional on edit: left empty, the current password stays.
         public string? Password { get; set; }
 
         [Required]

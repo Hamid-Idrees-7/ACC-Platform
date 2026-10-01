@@ -1,4 +1,4 @@
-/* PROJECT BILLING — invoices for one project */
+/* Project billing: invoices for one project */
 
 /* Top bar */
 .pbl-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -196,10 +196,8 @@
 .pbl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
 .pbl-empty h3 { font-size: 18px; color: var(--color-text); margin-bottom: 6px; }
 .pbl-empty p { color: var(--color-text-muted); font-size: 14px; max-width: 420px; }
-.pbl-spinner { width: 40px; height: 40px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: pblspin 0.8s linear infinite; margin-bottom: 14px; }
-@keyframes pblspin { to { transform: rotate(360deg); } }
 
-/*  Modals  */
+/* Modals */
 .pbl-overlay {
     position: fixed; inset: 0;
     background: var(--color-overlay);

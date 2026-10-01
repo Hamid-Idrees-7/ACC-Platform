@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
@@ -7,6 +7,8 @@ import { permissionService } from "../services/permissionService";
 import { ALL_MODULES } from "../config/moduleConfig";
 import "./ControlUnit.css";
 import { useLiveRefresh } from "../hooks/useLive";
+import { SkeletonCards } from "../components/Skeleton";
+import { useLoader } from "../hooks/useLoader";
 
 function ControlUnit() {
   const { user: currentUser } = useAuth();
@@ -26,7 +28,7 @@ function ControlUnit() {
         userService.getAll(),
         permissionService.getCounts(),
       ]);
-      // Exclude the admin's own account - admin always has full access
+      // Leave out your own account and other admins: admins always have full access.
       const myId = currentUser?.userID ?? currentUser?.userId;
       const others = userData.filter((u) => u.userID !== myId && u.role?.toLowerCase() !== "admin");
       others.sort((a, b) => b.userID - a.userID);
@@ -39,7 +41,7 @@ function ControlUnit() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useLoader(() => load());
 
   useLiveRefresh(["users", "permissions"], async () => {
     try {
@@ -66,7 +68,7 @@ function ControlUnit() {
       {error && <div className="cu-error">{error}</div>}
 
       {loading ? (
-        <div className="cu-empty"><div className="cu-spinner" /><p>Loading users...</p></div>
+        <SkeletonCards count={6} />
       ) : users.length === 0 ? (
         <div className="cu-empty">
           <div className="cu-empty-icon">

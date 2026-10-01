@@ -7,6 +7,7 @@ import { hasLetter, focusField } from "../utils/validation";
 import Toast, { useToast } from "./Toast";
 import "./CompanySettings.css";
 import "./CalendarSettings.css";
+import ModalOverlay from "./ModalOverlay";
 
 // Settings > Calendar (Admin only): weekly off days and company holidays.
 // Every change is saved straight away. Attendance shows these days as off.
@@ -204,7 +205,7 @@ function CalendarSettings() {
     setView({ y: d.getFullYear(), m: d.getMonth() });
   };
 
-  // Clicking days picks the dates: first click = first day, second click = last day.
+  // Clicking days picks the dates: the first click sets the first day, the second the last day.
   const pickDay = (day) => {
     setErrors((e) => ({ ...e, startDate: "", endDate: "" }));
     setForm((f) => {
@@ -375,18 +376,18 @@ function CalendarSettings() {
       </section>
 
       {confirmDelete && (
-        <div className="st-modal-overlay" onClick={(e) => e.target.classList.contains("st-modal-overlay") && setConfirmDelete(null)}>
+        <ModalOverlay className="st-modal-overlay" onClose={() => setConfirmDelete(null)}>
           <div className="st-modal st-leave" role="dialog" aria-modal="true" aria-labelledby="cal-del-title">
             <div className="st-modal-body">
               <h3 id="cal-del-title">Remove this holiday?</h3>
               <p><strong>{confirmDelete.name}</strong> ({rangeText(confirmDelete.startDate, confirmDelete.endDate)}) will become a normal working day again.</p>
               <div className="st-leave-actions">
-                <button className="st-leave-keep" onClick={() => setConfirmDelete(null)} autoFocus>Keep it</button>
+                <button className="st-leave-keep" data-close onClick={() => setConfirmDelete(null)} autoFocus>Keep it</button>
                 <button className="st-leave-discard" onClick={deleteHoliday}>Remove</button>
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       <Toast toast={toast} />

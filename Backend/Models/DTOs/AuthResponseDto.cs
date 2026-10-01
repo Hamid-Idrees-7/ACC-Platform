@@ -1,6 +1,6 @@
 ﻿namespace Backend.Models.DTOs
 {
-    // What we send back after a successful login/register
+    // Sent back after a successful login or register.
     public class AuthResponseDto
     {
         public string Token { get; set; } = string.Empty;
