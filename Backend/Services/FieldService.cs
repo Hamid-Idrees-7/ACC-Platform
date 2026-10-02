@@ -1,4 +1,5 @@
 using Backend.Models.DTOs;
+using Backend.Models.Entities;
 using Backend.Repositories;
 
 namespace Backend.Services
@@ -31,20 +32,25 @@ namespace Backend.Services
             _materialRequestService = materialRequestService;
         }
 
-        // The projects this user may work on: the ones their linked employee is assigned to.
-        // All scoping in this service goes through here.
+        // The projects this user may work on: the ones their linked employee is assigned to today.
+        // An ended assignment gives no access to the old site. All scoping in this service goes through here.
         private async Task<List<int>> GetMyProjectIdsAsync(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user?.EmployeeID == null) return new List<int>();
 
+            var today = DateTime.Now.Date;
             var assignments = await _assignmentRepository.GetAllAsync();
             return assignments
-                .Where(a => a.EmployeeID == user.EmployeeID.Value)
+                .Where(a => a.EmployeeID == user.EmployeeID.Value && IsCurrent(a, today))
                 .Select(a => a.ProjectID)
                 .Distinct()
                 .ToList();
         }
+
+        // An active assignment whose period includes the given day.
+        public static bool IsCurrent(Assignment a, DateTime day) =>
+            a.Status == "Active" && a.StartDate.Date <= day && (a.EndDate == null || a.EndDate.Value.Date >= day);
 
         public async Task<FieldSiteDto> GetMySiteAsync(int userId)
         {
@@ -100,7 +106,15 @@ namespace Backend.Services
             var myProjectIds = await GetMyProjectIdsAsync(userId);
             if (!myProjectIds.Contains(projectId)) return null;   // not their site
 
-            return await _attendanceService.GetSheetAsync(projectId, date);
+            return WithoutWages(await _attendanceService.GetSheetAsync(projectId, date));
+        }
+
+        // Field users see who is on site, never what anyone is paid.
+        private static AttendanceSheetDto? WithoutWages(AttendanceSheetDto? sheet)
+        {
+            if (sheet == null) return null;
+            foreach (var w in sheet.MonthlyStaff.Concat(sheet.DailyWorkers)) w.WageAmount = 0;
+            return sheet;
         }
 
         public async Task<AttendanceSheetDto?> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto)
@@ -108,7 +122,7 @@ namespace Backend.Services
             var myProjectIds = await GetMyProjectIdsAsync(userId);
             if (!myProjectIds.Contains(projectId)) return null;   // not their site
 
-            return await _attendanceService.SaveAsync(projectId, dto);
+            return WithoutWages(await _attendanceService.SaveAsync(projectId, dto));
         }
 
         public async Task<List<ProjectPhaseDto>?> GetPhasesAsync(int userId, int projectId)
@@ -150,7 +164,10 @@ namespace Backend.Services
             var detail = await _projectService.GetProjectDetailAsync(projectId);
             return new FieldRequestOptionsDto
             {
-                Materials = materials.Where(m => m.Status == "Active").ToList(),
+                // Name, unit and stock only: purchase costs stay in the office.
+                Materials = materials.Where(m => m.Status == "Active")
+                    .Select(m => { m.AvgCost = 0; m.StockValue = 0; return m; })
+                    .ToList(),
                 Phases = detail?.Phases ?? new List<ProjectPhaseDto>()
             };
         }

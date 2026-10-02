@@ -3,12 +3,9 @@ using Backend.Models.DTOs;
 
 namespace Backend.Services
 {
-    // Authentication: register, sign in, renew the token and sign out.
+    // Authentication: sign in, renew the token and sign out.
     public interface IAuthService
     {
-        // Register a new user (admin only); returns the new user's ID, or an error message
-        Task<(bool Success, string? Error, int UserId)> RegisterAsync(RegisterDto dto);
-
         // Sign in; the result carries the auth data, or the status code and message to show
         Task<LoginResult> LoginAsync(LoginDto dto, ClientInfo client);
 

@@ -5,6 +5,7 @@ using Backend.Models.Entities;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace Backend.Controllers
@@ -44,11 +45,14 @@ namespace Backend.Controllers
             return Ok(profile);
         }
 
-        // PUT: /api/profile  = update my profile
+        // PUT: /api/profile  = update my profile (limited like the other password checks, because
+        // a new email is confirmed with the current password)
         [HttpPut]
+        [EnableRateLimiting(SecurityOptions.PasswordCheckRateLimitPolicy)]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var (success, message, field) = await _service.UpdateProfileAsync(GetUserId(), dto);
+            // Demo logins have no password anyone knows, and their email never receives reset links.
+            var (success, message, field) = await _service.UpdateProfileAsync(GetUserId(), dto, emailNeedsPassword: !IsDemoAccount());
             if (!success) return BadRequest(new { message, field });
             return Ok(new { message });
         }
@@ -58,6 +62,7 @@ namespace Backend.Controllers
 
         // PUT: /api/profile/username  = change my username
         [HttpPut("username")]
+        [EnableRateLimiting(SecurityOptions.PasswordCheckRateLimitPolicy)]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto dto)
         {
             if (IsDemoAccount())
@@ -72,6 +77,7 @@ namespace Backend.Controllers
 
         // POST: /api/profile/verify-password
         [HttpPost("verify-password")]
+        [EnableRateLimiting(SecurityOptions.PasswordCheckRateLimitPolicy)]
         public async Task<IActionResult> VerifyPassword([FromBody] VerifyPasswordDto dto)
         {
             var ok = await _service.VerifyPasswordAsync(GetUserId(), dto.Password);
@@ -83,6 +89,7 @@ namespace Backend.Controllers
 
         // PUT: /api/profile/password  = change my password
         [HttpPut("password")]
+        [EnableRateLimiting(SecurityOptions.PasswordCheckRateLimitPolicy)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
             if (IsDemoAccount())

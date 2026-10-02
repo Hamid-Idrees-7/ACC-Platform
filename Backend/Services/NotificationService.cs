@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using Backend.Demo;
 using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
@@ -27,8 +28,20 @@ namespace Backend.Services
             _http = http;
         }
 
-        private int? ActingUserId =>
-            int.TryParse(_http.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+        // The signed-in user behind this request. Public endpoints pinned to the real database
+        // (eg the website contact form) aren't done as that user, even if the browser holds a token
+        // (it may even be a demo token from another database), so they have no acting user.
+        private int? ActingUserId
+        {
+            get
+            {
+                var context = _http.HttpContext;
+                if (context == null) return null;
+                if (context.GetEndpoint()?.Metadata.GetMetadata<UseMainDatabaseAttribute>() != null)
+                    return null;
+                return int.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+            }
+        }
 
         private async Task<HashSet<int>> MutedForAsync(IEnumerable<int> userIds, string category)
         {
@@ -79,7 +92,7 @@ namespace Backend.Services
         public async Task NotifyAdminsActivityAsync(string category, string title, string message, int? excludeUserId = null, bool includeActingUser = false, string? link = null)
         {
             var exclude = excludeUserId ?? (includeActingUser ? null : ActingUserId);
-            var users = await _userRepository.GetAllAsync();
+            var users = await _userRepository.GetAllLightAsync();
             var admins = users.Where(u => u.Role != null &&
                                           u.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
                                           u.IsActive &&
@@ -114,7 +127,7 @@ namespace Backend.Services
                                .Select(p => p.UserID).ToHashSet();
             var eligibleIds = canAct.Where(id => canView.Contains(id)).ToHashSet();
 
-            var users = await _userRepository.GetAllAsync();
+            var users = await _userRepository.GetAllLightAsync();
             var recipients = users.Where(u => u.IsActive &&
                                               u.UserID != excludeUserId &&
                                               (eligibleIds.Contains(u.UserID) ||

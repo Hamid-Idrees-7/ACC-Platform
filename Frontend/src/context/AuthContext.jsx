@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import api from "../services/api";
+import { API_BASE_URL } from "../config/apiConfig";
 import { tokenExpiresAt } from "../utils/token";
 import { DEMO_NOTE_KEY } from "../config/demoConfig";
 import {
@@ -190,6 +192,19 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
 
+  // Before another sign-in or demo starts in this browser: end the one it still holds on the
+  // server too, so an old demo doesn't keep a seat and an old sign-in doesn't stay open.
+  // Plain axios, so an already-ended session can't trigger the "signed out" handling.
+  const dropSession = useCallback(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const url = user?.demo ? "/demo/end" : "/auth/logout";
+      axios.post(`${API_BASE_URL}${url}`, {}, { timeout: 8000, headers: { Authorization: `Bearer ${token}` } })
+        .catch(() => {});
+    }
+    logout();
+  }, [user, logout]);
+
   const runDemoTransition = useCallback(async (role, title, action, label = null) => {
     setDemoTransition({ role, title, label, phase: "in" });
     try {
@@ -206,7 +221,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, logout, signOut, exitTo, updateUser, demoTransition, runDemoTransition }}
+      value={{ user, login, logout, signOut, dropSession, exitTo, updateUser, demoTransition, runDemoTransition }}
     >
       {children}
     </AuthContext.Provider>

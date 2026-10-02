@@ -23,21 +23,6 @@ namespace Backend.Controllers
             _passwordReset = passwordReset;
         }
 
-        // POST: /api/auth/register  = create a new user
-        // Admin only: there is no public sign-up. An admin creates every account and its role,
-        // so nobody can register themselves with a higher role.
-        [HttpPost("register")]
-        [Authorize]
-        [AdminOnly]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
-        {
-            var (success, error, userId) = await _authService.RegisterAsync(dto);
-            if (!success)
-                return BadRequest(new { message = error });
-
-            return Ok(new { message = "User created.", userID = userId });
-        }
-
         // POST: /api/auth/login  = sign in and get a token
         // Always checks the real accounts, even if the browser still holds a demo token.
         // Also rate limited per IP address, on top of the per-username pause in AuthService.
@@ -71,6 +56,12 @@ namespace Backend.Controllers
 
             return Ok(data);
         }
+
+        // GET: /api/auth/ping  = the open app saying the user is still active, so the server
+        // doesn't treat the session as idle while someone reads or types without saving.
+        [HttpGet("ping")]
+        [Authorize]
+        public IActionResult Ping() => NoContent();
 
         // POST: /api/auth/logout  = end this session on the server. Always answers OK, even when
         // the session had already ended, so signing out never fails.

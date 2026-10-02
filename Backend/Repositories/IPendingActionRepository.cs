@@ -9,6 +9,8 @@ namespace Backend.Repositories
         Task<PendingAction?> GetByIdAsync(int id);
         Task AddAsync(PendingAction action);
         Task UpdateAsync(PendingAction action);
+        Task<bool> TryClaimAsync(int id);
+        Task ReleaseClaimAsync(int id);
         Task<bool> DeleteAsync(int id);
         Task DeleteAllAsync();
         Task<int> GetPendingCountAsync();

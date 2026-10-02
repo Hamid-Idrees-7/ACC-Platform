@@ -263,14 +263,14 @@ namespace Backend.Services
         {
             var issues = await _materialRepository.GetIssuesByProjectAsync(id);
             if (issues.Any())
-                return "This project has issued materials. Cancel those issues first (stock returns), or set its status to Cancelled.";
+                return "This project has issued materials, so it can't be deleted. Set its status to Cancelled instead, or cancel those issues first (the stock comes back).";
 
             if (await _expenseRepository.AnyForProjectAsync(id))
-                return "This project has recorded expenses. Delete those expenses first, or set its status to Cancelled.";
+                return "This project has recorded expenses, so it can't be deleted. Set its status to Cancelled instead, or delete those expenses first.";
 
             var invoices = await _billingRepository.GetInvoicesByProjectAsync(id);
             if (invoices.Count > 0)
-                return "This project has invoices. Delete those invoices first, or set its status to Cancelled.";
+                return "This project has invoices, so it can't be deleted. Set its status to Cancelled instead, or delete those invoices first.";
 
             return null;
         }

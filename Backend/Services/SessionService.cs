@@ -9,12 +9,14 @@ namespace Backend.Services
     {
         private readonly ILoginActivityRepository _repository;
         private readonly IUserRepository _users;
+        private readonly IPreferenceRepository _preferences;
         private readonly TimeSpan _tokenLifetime;
 
-        public SessionService(ILoginActivityRepository repository, IUserRepository users, IConfiguration config)
+        public SessionService(ILoginActivityRepository repository, IUserRepository users, IPreferenceRepository preferences, IConfiguration config)
         {
             _repository = repository;
             _users = users;
+            _preferences = preferences;
             _tokenLifetime = TimeSpan.FromMinutes(double.TryParse(config["Jwt:ExpiryMinutes"], out var minutes) ? minutes : 120);
         }
 
@@ -97,16 +99,28 @@ namespace Backend.Services
             if (session.ExpiresAt == null || session.ExpiresAt <= now)
                 return SessionCheck.Ended(SessionCheck.Expired);
 
-            var user = await _users.GetByIdAsync(userId);
-            if (user == null)
+            var isActive = await _users.GetIsActiveAsync(userId);
+            if (isActive == null)
                 return SessionCheck.Ended(SessionCheck.Missing);
 
-            if (!user.IsActive)
+            if (isActive == false)
             {
                 session.EndedAt = now;
                 session.EndReason = SessionEndReasons.AccountChanged;
                 await _repository.SaveChangesAsync();
                 return SessionCheck.Ended(SessionCheck.Disabled);
+            }
+
+            // The browser signs out an idle tab itself. This catches a token used again after
+            // a long silence (eg copied from another device), using the same setting plus a margin.
+            // "Remember me" sessions are meant to survive a closed browser, so they are left out.
+            var idleLimit = session.KeepSignedIn ? null : await IdleLimitAsync(userId);
+            if (idleLimit != null && session.LastSeenAt != null && now - session.LastSeenAt.Value > idleLimit.Value)
+            {
+                session.EndedAt = now;
+                session.EndReason = SessionEndReasons.TimedOut;
+                await _repository.SaveChangesAsync();
+                return SessionCheck.Ended(SessionEndReasons.TimedOut);
             }
 
             if (session.LastSeenAt == null || now - session.LastSeenAt.Value >= SecurityOptions.LastSeenInterval)
@@ -116,6 +130,13 @@ namespace Backend.Services
             }
 
             return SessionCheck.Ok;
+        }
+
+        private async Task<TimeSpan?> IdleLimitAsync(int userId)
+        {
+            var minutes = (await _preferences.GetAsync(userId))?.IdleMinutes ?? SecurityOptions.DefaultIdleMinutes;
+            if (minutes <= 0) return null;
+            return TimeSpan.FromMinutes(minutes) + SecurityOptions.IdleServerMargin;
         }
 
         public async Task<DateTime?> RenewAsync(int loginId, int userId)

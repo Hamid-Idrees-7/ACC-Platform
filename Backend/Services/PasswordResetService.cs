@@ -99,10 +99,12 @@ namespace Backend.Services
             if (BCrypt.Net.BCrypt.Verify(newPassword, user.PasswordHash))
                 return (false, "New password must be different from your current password.", "password");
 
-            var now = DateTime.UtcNow;
+            // Two requests with the same link at the same moment: only the first one goes through.
+            if (!await _repository.TryUseAsync(reset.PasswordResetID, DateTime.UtcNow))
+                return (false, "This link has expired or was already used. Please ask for a new one.", "code");
+
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.UpdatedAt = DateTime.Now;
-            reset.UsedAt = now;
             await _repository.SaveChangesAsync();
 
             // Whoever knew the old password is signed out everywhere.
@@ -145,7 +147,9 @@ namespace Backend.Services
             }
         }
 
-        private string FrontendUrl() => (_config["App:FrontendUrl"] ?? "http://localhost:5173").TrimEnd('/');
+        // The first address when several are configured (the rest are only for CORS).
+        private string FrontendUrl() =>
+            (_config["App:FrontendUrl"] ?? "http://localhost:5173").Split(',')[0].Trim().TrimEnd('/');
 
         private static string Hash(string code) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(code)));

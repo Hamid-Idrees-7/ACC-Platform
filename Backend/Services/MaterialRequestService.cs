@@ -174,7 +174,7 @@ namespace Backend.Services
             var projById = projects.ToDictionary(p => p.ProjectID, p => p.Title);
             var phases = await _projectRepository.GetAllPhasesAsync();
             var phaseById = phases.ToDictionary(p => p.PhaseID, p => p.Name);
-            var users = await _userRepository.GetAllAsync();
+            var users = await _userRepository.GetAllLightAsync();
             var userById = users.ToDictionary(u => u.UserID, u => u.FullName);
 
             return requests.Select(r =>

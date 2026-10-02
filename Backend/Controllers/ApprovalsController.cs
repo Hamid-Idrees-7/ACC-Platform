@@ -50,17 +50,8 @@ namespace Backend.Controllers
             return Ok(new { count });
         }
 
-        // POST: /api/approvals  = create a request. Any signed-in user can, because this is how
-        // a delete waits for approval; it is not a Control Unit action.
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreatePendingActionDto dto)
-        {
-            var created = await _service.CreateAsync(dto, GetUserId(), GetUserName(), GetUserRole());
-            if (!created)
-                return Ok(new { alreadyPending = true, message = "A request for this item is already awaiting approval." });
-
-            return Ok(new { message = "Request sent to administration for approval." });
-        }
+        // Requests are only created by each module's own delete endpoint, which checks the
+        // permission and reads the item's name from the database. There is no public create.
 
         // PUT: /api/approvals/5/resolve  = approve or reject (needs Manage)
         [HttpPut("{id}/resolve")]

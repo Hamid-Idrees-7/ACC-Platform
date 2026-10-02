@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePreferences } from "../context/PreferencesContext";
+import api from "../services/api";
 import { demoService } from "../services/demoService";
 import { DEMO_NOTE_KEY } from "../config/demoConfig";
 import {
@@ -17,6 +18,11 @@ import "./SessionWatch.css";
 
 const ACTIVITY_EVENTS = ["pointerdown", "keydown", "wheel", "touchstart", "mousemove", "scroll"];
 const WRITE_EVERY_MS = 5000;
+
+// While someone is active, the server hears from this browser at least this often, so it never
+// treats a session as idle while the person reads or types without saving (shared by all tabs).
+const PING_EVERY_MS = 3 * 60 * 1000;
+const PING_KEY = "acc-last-ping";
 
 const readLastActivity = () => Number(localStorage.getItem(ACTIVITY_KEY)) || 0;
 
@@ -42,6 +48,10 @@ function SessionWatch() {
     lastWrite.current = now;
     try {
       localStorage.setItem(ACTIVITY_KEY, String(now));
+      if (now - (Number(localStorage.getItem(PING_KEY)) || 0) >= PING_EVERY_MS) {
+        localStorage.setItem(PING_KEY, String(now));
+        api.get("/auth/ping").catch(() => {});
+      }
     } catch {
       // storage blocked: this tab still keeps its own time
     }

@@ -46,7 +46,7 @@ function Login() {
   // Why the user was signed out (inactivity, another device, password changed...)
   const [sessionNote, setSessionNote] = useState(() => sessionStorage.getItem(LOGIN_NOTE_KEY) || "");
 
-  const { login, logout, runDemoTransition } = useAuth();
+  const { login, dropSession, runDemoTransition } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -83,7 +83,7 @@ function Login() {
     setDemoNote("");
     setSessionNote("");
     // A new demo never carries an older session (or a signed-in account) with it.
-    logout();
+    dropSession();
     try {
       await runDemoTransition(roleKey, "Preparing your private demo", async () => {
         const data = await demoService.start(roleKey);
@@ -113,6 +113,7 @@ function Login() {
     setSessionNote("");
 
     try {
+      if (localStorage.getItem("token")) dropSession();
       const data = await authService.login(username, password, keepSignedIn);
       login(data, { keepSignedIn });
       setSuccess("Login successful. Redirecting to your dashboard...");

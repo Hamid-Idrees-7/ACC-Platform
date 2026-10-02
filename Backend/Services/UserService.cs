@@ -11,17 +11,22 @@ namespace Backend.Services
         private readonly IPermissionRepository _permissionRepository;
         private readonly INotificationRepository _notificationRepository;
         private readonly ISessionService _sessions;
+        private readonly IPasswordResetRepository _passwordResets;
+
+        private const string OneAdminOnly = "There can be only one Admin. Choose another role, eg Manager.";
 
         public UserService(
             IUserRepository repository,
             IPermissionRepository permissionRepository,
             INotificationRepository notificationRepository,
-            ISessionService sessions)
+            ISessionService sessions,
+            IPasswordResetRepository passwordResets)
         {
             _repository = repository;
             _permissionRepository = permissionRepository;
             _notificationRepository = notificationRepository;
             _sessions = sessions;
+            _passwordResets = passwordResets;
         }
 
         public async Task<List<UserDto>> GetAllUsersAsync()
@@ -44,6 +49,9 @@ namespace Backend.Services
 
             if (await _repository.UsernameExistsAsync(dto.Username.Trim()))
                 return (false, "That username is already taken.", null);
+
+            if (IsAdminRole(dto.Role))
+                return (false, OneAdminOnly, null);
 
             var passwordError = PasswordPolicy.Validate(dto.Password);
             if (passwordError != null)
@@ -68,10 +76,18 @@ namespace Backend.Services
             return (true, null, ToDto(created));
         }
 
-        public async Task<(bool, string?, UserDto?)> UpdateUserAsync(int id, CreateUserDto dto, int? keepLoginId)
+        public async Task<(bool, string?, UserDto?)> UpdateUserAsync(int id, CreateUserDto dto, int currentUserId, int? keepLoginId)
         {
             var user = await _repository.GetByIdAsync(id);
             if (user == null) return (false, "User not found.", null);
+
+            // The Admin can't remove their own access, and nobody else can be made Admin.
+            if (id == currentUserId && IsAdminRole(user.Role) && !IsAdminRole(dto.Role))
+                return (false, "You can't remove your own Admin role.", null);
+            if (id == currentUserId && !dto.IsActive)
+                return (false, "You cannot disable your own account.", null);
+            if (IsAdminRole(dto.Role) && !IsAdminRole(user.Role))
+                return (false, OneAdminOnly, null);
 
             if (await _repository.UsernameExistsAsync(dto.Username.Trim(), id))
                 return (false, "That username is already taken.", null);
@@ -95,6 +111,7 @@ namespace Backend.Services
                           IsAdminRole(user.Role) != IsAdminRole(dto.Role) ||
                           (user.IsActive && !dto.IsActive);
 
+            var oldEmail = user.Email;
             user.Username = dto.Username.Trim();
             user.Email = dto.Email.Trim();
             user.FullName = dto.FullName.Trim();
@@ -112,6 +129,10 @@ namespace Backend.Services
 
             if (signOut)
                 await _sessions.EndAllAsync(id, keepLoginId, SessionEndReasons.AccountChanged);
+
+            // A reset link sent before the password or email changed must not work any more.
+            if (newPassword || !string.Equals(oldEmail, user.Email, StringComparison.OrdinalIgnoreCase))
+                await _passwordResets.DeleteUnusedAsync(id);
 
             return (true, null, ToDto(user));
         }

@@ -76,6 +76,7 @@ function UserFormModal({ mode, initialData, existingRoles = [], onClose, onSave 
     else if (!isValidEmail(form.email)) e.email = "Enter a valid email address.";
 
     if (!form.role.trim()) e.role = "Role is required.";
+    else if (form.role.trim().toLowerCase() === "admin") e.role = "There can be only one Admin. Choose another role, eg Manager.";
 
     if (form.phone.trim() && !isValidPhone(form.phone))
       e.phone = "Enter 11 digits, starting with 0 or +92.";

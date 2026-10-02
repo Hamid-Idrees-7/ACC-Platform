@@ -14,6 +14,8 @@ namespace Backend.Services
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IProjectService _projectService;
         private readonly IProjectExpenseService _expenseService;
+        private readonly IEmployeeService _employeeService;
+        private readonly IMaterialService _materialService;
         private readonly INotificationService _notificationService;
 
         public PendingActionService(
@@ -25,6 +27,8 @@ namespace Backend.Services
             IAssignmentRepository assignmentRepository,
             IProjectService projectService,
             IProjectExpenseService expenseService,
+            IEmployeeService employeeService,
+            IMaterialService materialService,
             INotificationService notificationService)
         {
             _repository = repository;
@@ -35,6 +39,8 @@ namespace Backend.Services
             _assignmentRepository = assignmentRepository;
             _projectService = projectService;
             _expenseService = expenseService;
+            _employeeService = employeeService;
+            _materialService = materialService;
             _notificationService = notificationService;
         }
 
@@ -70,7 +76,7 @@ namespace Backend.Services
                 Module = dto.Module.Trim(),
                 Action = dto.Action.Trim(),
                 TargetID = dto.TargetID,
-                TargetName = dto.TargetName?.Trim() ?? "",
+                TargetName = Shorten(dto.TargetName?.Trim() ?? "", 150),
                 Status = "Pending",
                 CreatedAt = DateTime.Now
             };
@@ -106,11 +112,18 @@ namespace Backend.Services
             if (status != "Approved" && status != "Rejected")
                 return (false, "Invalid status.");
 
+            // Claim the request first, so two people resolving it at the same moment can't both act on it.
+            if (!await _repository.TryClaimAsync(id))
+                return (false, "This request has already been resolved.");
+
             if (status == "Approved")
             {
                 var performError = await PerformActionAsync(action);
                 if (performError != null)
+                {
+                    await _repository.ReleaseClaimAsync(id);
                     return (false, performError);
+                }
             }
 
             action.Status = status;
@@ -162,10 +175,16 @@ namespace Backend.Services
             switch (action.Module)
             {
                 case "Clients":
+                    if (await _projectRepository.AnyForClientAsync(action.TargetID))
+                        return "This client now has projects and can't be deleted. Remove those projects first.";
                     return await _clientRepository.DeleteAsync(action.TargetID) ? null : gone;
                 case "Employees":
+                    if (await _employeeService.HasAssignmentsAsync(action.TargetID))
+                        return "This employee now has project assignments and can't be deleted. Remove those assignments first.";
                     return await _employeeRepository.DeleteAsync(action.TargetID) ? null : gone;
                 case "Materials":
+                    if (await _materialService.HasIssuesAsync(action.TargetID))
+                        return "This material has now been issued to projects and can't be deleted. Cancel those issues first.";
                     return await _materialRepository.DeleteAsync(action.TargetID) ? null : gone;
                 case "Projects":
                 {
@@ -185,6 +204,8 @@ namespace Backend.Services
                     return gone;
             }
         }
+
+        private static string Shorten(string text, int max) => text.Length <= max ? text : text[..(max - 3)] + "...";
 
         private static string ModuleCategory(string module) => module switch
         {

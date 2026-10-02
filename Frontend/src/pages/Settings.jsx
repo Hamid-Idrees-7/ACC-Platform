@@ -132,6 +132,9 @@ function Settings() {
   // Username change modal (asks for the password again)
   const [unlockOpen, setUnlockOpen] = useState(false);
 
+  // A new email needs the password too (reset links go there)
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
+
   const profileDirty = !!profile && PROFILE_FIELDS.some((k) => (form[k] || "") !== (profile[k] || ""));
   const passwordDirty = Object.values(pwForm).some((v) => v !== "");
   useUnsavedChanges(profileDirty || passwordDirty);
@@ -224,10 +227,18 @@ function Settings() {
   };
 
   const PROFILE_ORDER = ["fullName", "email", "phone", "secondaryPhone", "bio"];
+  const emailChanged = !!profile && form.email.trim().toLowerCase() !== (profile.email || "").trim().toLowerCase();
+
   const handleSaveProfile = async () => {
     const errs = validateProfile(form);
     if (Object.keys(errs).length) return showFieldErrors(errs, setProfileErrors, PROFILE_ORDER, "st-p");
 
+    if (emailChanged && !isDemoAccount) return setEmailConfirmOpen(true);
+    await saveProfile();
+  };
+
+  // Returns the password error for the confirm modal, if the server rejected the password.
+  const saveProfile = async (currentPassword) => {
     setSavingProfile(true);
     try {
       const res = await profileService.update({
@@ -236,12 +247,16 @@ function Settings() {
         phone: form.phone.trim(),
         secondaryPhone: form.secondaryPhone.trim(),
         bio: form.bio.trim(),
+        currentPassword,
       });
       setProfileErrors({});
+      setEmailConfirmOpen(false);
       showToast(res.message || "Profile updated.");
       updateUser({ fullName: form.fullName.trim() });
       setProfile({ ...profile, ...form });
     } catch (err) {
+      if (err.response?.data?.field === "currentPassword") return err.response.data.message;
+      setEmailConfirmOpen(false);
       const fieldErrs = serverFieldErrors(err, { fullname: "fullName", email: "email", phone: "phone", secondaryphone: "secondaryPhone", bio: "bio" });
       if (fieldErrs) showFieldErrors(fieldErrs, setProfileErrors, PROFILE_ORDER, "st-p");
       else showToast(err.response?.data?.message || "Could not update your profile. Please try again.", "error");
@@ -550,6 +565,15 @@ function Settings() {
 
       {cropSrc && <ImageCropModal imageSrc={cropSrc} onCancel={() => setCropSrc(null)} onCrop={handleCropDone} />}
 
+      {emailConfirmOpen && (
+        <EmailConfirmModal
+          newEmail={form.email.trim()}
+          busy={savingProfile}
+          onClose={() => setEmailConfirmOpen(false)}
+          onConfirm={saveProfile}
+        />
+      )}
+
       {unlockOpen && (
         <UsernameChangeModal
           currentUsername={profile?.username}
@@ -558,6 +582,42 @@ function Settings() {
         />
       )}
     </DashboardLayout>
+  );
+}
+
+// Asks for the current password before a new email is saved.
+function EmailConfirmModal({ newEmail, busy, onClose, onConfirm }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const confirm = async () => {
+    if (busy) return;
+    if (!password) return setError("Enter your password to continue.");
+    const problem = await onConfirm(password);
+    if (problem) setError(problem);
+  };
+
+  return (
+    <ModalOverlay className="st-modal-overlay" onClose={onClose}>
+      <div className="st-modal st-modal-gold" role="dialog" aria-modal="true" aria-labelledby="st-email-title">
+        <div className="st-modal-glow" />
+        <button className="st-modal-close" data-close onClick={onClose} aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+        <div className="st-modal-body">
+          <div className="st-modal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          </div>
+          <h3 id="st-email-title">Confirm it's you</h3>
+          <p>Password reset links will go to <strong>{newEmail}</strong>. Enter your current password to save the new email.</p>
+          <div className={`st-pw-wrap st-modal-input ${error ? "has-err" : ""}`}>
+            <input type="password" placeholder="Current password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} autoComplete="current-password" onKeyDown={(e) => e.key === "Enter" && confirm()} />
+          </div>
+          {error && <span className="st-err st-modal-err" role="alert">{error}</span>}
+          <button className="st-modal-btn" onClick={confirm} disabled={busy}>{busy ? "Saving..." : "Save changes"}</button>
+        </div>
+      </div>
+    </ModalOverlay>
   );
 }
 

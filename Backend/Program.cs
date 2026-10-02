@@ -1,3 +1,5 @@
+using System.Net;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Backend.Alerts;
 using Backend.Auth;
@@ -7,11 +9,43 @@ using Backend.Email;
 using Backend.Live;
 using Backend.Repositories;
 using Backend.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// No request needs more than this (the largest is a company logo of about 600 KB).
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 2 * 1024 * 1024);
+
+// Behind a hosting proxy every request arrives from the proxy's address. When this is turned on
+// (ForwardedHeaders:Enabled), the visitor's real address is read from the last X-Forwarded-For
+// entry, which the proxy itself adds, so a header sent by the visitor can't fake it.
+var forwarded = builder.Configuration.GetSection("ForwardedHeaders");
+var useForwardedHeaders = forwarded.GetValue<bool>("Enabled");
+if (useForwardedHeaders)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 1;
+        var proxies = forwarded.GetSection("KnownProxies").Get<string[]>() ?? Array.Empty<string>();
+        if (proxies.Length > 0)
+        {
+            options.KnownProxies.Clear();
+            foreach (var proxy in proxies) options.KnownProxies.Add(IPAddress.Parse(proxy));
+        }
+        else
+        {
+            // The host's proxy address isn't fixed: trust whichever proxy is in front of the app.
+            options.KnownProxies.Clear();
+#pragma warning disable CS0618, ASPDEPR005
+            options.KnownNetworks.Clear();
+#pragma warning restore CS0618, ASPDEPR005
+        }
+    });
+}
 
 builder.Services.AddControllers();
 
@@ -48,10 +82,10 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(DemoOptions.StartRateLimitPolicy, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientPartition.For(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 6,
+                PermitLimit = 4,
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
@@ -59,7 +93,7 @@ builder.Services.AddRateLimiter(options =>
     // accounts at once). Wrong passwords for one username are paused separately (AuthService).
     options.AddPolicy(SecurityOptions.LoginRateLimitPolicy, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientPartition.For(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 30,
@@ -69,10 +103,31 @@ builder.Services.AddRateLimiter(options =>
     // Forgot and reset password: enough for a person, too few to guess links or flood inboxes.
     options.AddPolicy(SecurityOptions.PasswordResetRateLimitPolicy, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientPartition.For(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+    // Current password checks: per signed-in user (demo users are told apart by their database).
+    options.AddPolicy(SecurityOptions.PasswordCheckRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: (httpContext.User.FindFirst(DemoClaims.Database)?.Value ?? "main") + ":" +
+                          (httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? ClientPartition.For(httpContext)),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+    // Website contact form: a few messages per visitor is plenty.
+    options.AddPolicy(SecurityOptions.ContactFormRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ClientPartition.For(httpContext),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
@@ -83,6 +138,8 @@ builder.Services.AddRateLimiter(options =>
         {
             SecurityOptions.LoginRateLimitPolicy => "Too many sign-in attempts from your network. Please wait a few minutes and try again.",
             SecurityOptions.PasswordResetRateLimitPolicy => "Too many password reset attempts from your network. Please wait a few minutes and try again.",
+            SecurityOptions.PasswordCheckRateLimitPolicy => "Too many password attempts. Please wait a few minutes and try again.",
+            SecurityOptions.ContactFormRateLimitPolicy => "You have sent several messages already. Please wait a few minutes, or call us instead.",
             _ => "Too many demo attempts from your network. Please wait a few minutes and try again."
         };
         await context.HttpContext.Response.WriteAsJsonAsync(new { message }, cancellationToken);
@@ -198,12 +255,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Let the React dev server (localhost:5173) call this API
+// Let the website (App:FrontendUrl, eg http://localhost:5173 in development) call this API
+var frontendOrigins = (builder.Configuration["App:FrontendUrl"] ?? "http://localhost:5173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(url => url.TrimEnd('/'))
+    .ToArray();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(frontendOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -212,6 +273,9 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Request pipeline
+if (useForwardedHeaders)
+    app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

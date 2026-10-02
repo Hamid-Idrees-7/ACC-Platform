@@ -8,7 +8,7 @@ namespace Backend.Services
         Task<UserDto?> GetUserByIdAsync(int id);
         Task<(bool Success, string? Error, UserDto? User)> CreateUserAsync(CreateUserDto dto);
         // keepLoginId: when admins edit their own account, the session they are using stays signed in.
-        Task<(bool Success, string? Error, UserDto? User)> UpdateUserAsync(int id, CreateUserDto dto, int? keepLoginId);
+        Task<(bool Success, string? Error, UserDto? User)> UpdateUserAsync(int id, CreateUserDto dto, int currentUserId, int? keepLoginId);
         Task<(bool Success, string? Error)> DeleteUserAsync(int id, int currentUserId);
         Task<(bool Success, string? Error)> ToggleStatusAsync(int id, int currentUserId);
 

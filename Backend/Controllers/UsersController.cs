@@ -90,7 +90,7 @@ namespace Backend.Controllers
                 return BadRequest(new { message = DemoLoginLocked });
 
             var keep = id == GetCurrentUserId() ? GetCurrentLoginId() : null;
-            var (success, error, user) = await _service.UpdateUserAsync(id, dto, keep);
+            var (success, error, user) = await _service.UpdateUserAsync(id, dto, GetCurrentUserId(), keep);
             if (!success)
                 return BadRequest(new { message = error });
 

@@ -6,6 +6,8 @@ namespace Backend.Repositories
     {
         Task<List<User>> GetAllAsync();
         Task<User?> GetByIdAsync(int id);
+        Task<List<User>> GetAllLightAsync();
+        Task<bool?> GetIsActiveAsync(int id);
         Task<User> AddAsync(User user);
         Task UpdateAsync(User user);
         Task<bool> DeleteAsync(int id);

@@ -47,6 +47,23 @@ namespace Backend.Repositories
             await _context.SaveChangesAsync();
         }
 
+        // Moves a request from Pending to Processing in one statement. Only one caller can win.
+        public async Task<bool> TryClaimAsync(int id)
+        {
+            var rows = await _context.PendingActions
+                .Where(p => p.PendingActionID == id && p.Status == "Pending")
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, "Processing"));
+            return rows == 1;
+        }
+
+        // Puts a claimed request back to Pending when the approved action could not run.
+        public async Task ReleaseClaimAsync(int id)
+        {
+            await _context.PendingActions
+                .Where(p => p.PendingActionID == id && p.Status == "Processing")
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, "Pending"));
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             var action = await _context.PendingActions.FindAsync(id);

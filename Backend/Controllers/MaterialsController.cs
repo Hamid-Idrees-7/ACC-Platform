@@ -189,7 +189,7 @@ namespace Backend.Controllers
 
             // A material already issued to projects can't be deleted (it is part of their history).
             if (await _service.HasIssuesAsync(id))
-                return BadRequest(new { message = "This material has been issued to projects. Cancel its issues from the History page first, or set it Inactive." });
+                return BadRequest(new { message = "This material has been issued to projects, so it can't be deleted. Keep it and set it to Inactive instead, or cancel its issues from the History page first." });
 
             // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Materials", "Delete"))

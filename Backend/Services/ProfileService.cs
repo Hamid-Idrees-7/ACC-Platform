@@ -37,7 +37,7 @@ namespace Backend.Services
             };
         }
 
-        public async Task<(bool Success, string Message, string? Field)> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+        public async Task<(bool Success, string Message, string? Field)> UpdateProfileAsync(int userId, UpdateProfileDto dto, bool emailNeedsPassword)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return (false, "User not found.", null);
@@ -68,16 +68,34 @@ namespace Backend.Services
             var bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
             if (bio != null && bio.Length > 300) return (false, "The bio can be at most 300 characters.", "bio");
 
+            // Reset links go to the email, so changing it needs the password too.
+            var emailChanged = !string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase);
+            if (emailChanged && emailNeedsPassword)
+            {
+                if (string.IsNullOrEmpty(dto.CurrentPassword))
+                    return (false, "Enter your current password to change the email.", "currentPassword");
+                if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                    return (false, "Your current password is incorrect.", "currentPassword");
+            }
+
             user.FullName = fullName;
             user.Email = email;
-            user.Phone = dto.Phone!.Trim();
-            user.SecondaryPhone = secondary == null ? null : dto.SecondaryPhone!.Trim();
+            user.Phone = Fit(dto.Phone!.Trim(), phone);
+            user.SecondaryPhone = secondary == null ? null : Fit(dto.SecondaryPhone!.Trim(), secondary);
             user.Bio = bio;
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+
+            if (emailChanged) await DeleteUnusedResetLinksAsync(userId);
             return (true, "Profile updated successfully.", null);
         }
+
+        // Keeps the number as typed when it fits the column (15), otherwise its plain digits.
+        private static string Fit(string typed, string normalized) => typed.Length <= 15 ? typed : normalized;
+
+        private Task DeleteUnusedResetLinksAsync(int userId) =>
+            _context.PasswordResets.Where(r => r.UserID == userId && r.UsedAt == null).ExecuteDeleteAsync();
 
         // A Pakistani number as typed (0300-1234567, +92 300 1234567), or null when it is not one.
         private static string? NormalizePhone(string? value)
@@ -112,6 +130,7 @@ namespace Backend.Services
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
+            await DeleteUnusedResetLinksAsync(userId);
 
             var others = await _sessions.EndAllAsync(userId, currentLoginId, SessionEndReasons.PasswordChanged);
             return (true, others > 0
@@ -159,13 +178,29 @@ namespace Backend.Services
             return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
         }
 
-        // The picture is stored as a Base64 string.
+        // The picture is stored as a Base64 data URL. Only small PNG, JPG or WebP images are
+        // accepted: the settings page always sends a 400x400 JPG, and every user list loads it.
+        private const int MaxPictureLength = 400_000;
+        private static readonly string[] PicturePrefixes =
+            { "data:image/png;base64,", "data:image/jpeg;base64,", "data:image/jpg;base64,", "data:image/webp;base64," };
+
         public async Task<(bool Success, string Message)> UpdatePictureAsync(int userId, string? base64Image)
         {
+            var picture = string.IsNullOrWhiteSpace(base64Image) ? null : base64Image.Trim();
+            if (picture != null)
+            {
+                var prefix = PicturePrefixes.FirstOrDefault(p => picture.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+                if (prefix == null) return (false, "The picture must be a PNG, JPG or WebP image.");
+                if (picture.Length > MaxPictureLength) return (false, "The picture is too large. Use a smaller image.");
+                var data = picture[prefix.Length..];
+                if (!Convert.TryFromBase64String(data, new byte[data.Length], out _))
+                    return (false, "The picture could not be read.");
+            }
+
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return (false, "User not found.");
 
-            user.ProfilePicture = base64Image;
+            user.ProfilePicture = picture;
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();

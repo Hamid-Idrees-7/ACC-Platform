@@ -32,11 +32,22 @@ namespace Backend.Auth
         public static readonly int[] IdleChoices = { 0, 15, 30, 60 };
         public const int DefaultIdleMinutes = 30;
 
+        // The server ends a session this long after the idle setting, so an open tab (which pings
+        // while the user is active) always signs out on its own first.
+        public static readonly TimeSpan IdleServerMargin = TimeSpan.FromMinutes(5);
+
         // Rate limit on the sign-in endpoint, per IP address, across all usernames.
         public const string LoginRateLimitPolicy = "login";
 
         // Rate limit on the forgot / reset password endpoints, per IP address.
         public const string PasswordResetRateLimitPolicy = "password-reset";
+
+        // Rate limit on checks of the current password (verify, change password, change username),
+        // per signed-in user, so a stolen session can't be used to guess the password.
+        public const string PasswordCheckRateLimitPolicy = "password-check";
+
+        // Rate limit on the public contact form, per IP address.
+        public const string ContactFormRateLimitPolicy = "contact-form";
     }
 
     // Marks an endpoint that works even when the caller's session has already ended

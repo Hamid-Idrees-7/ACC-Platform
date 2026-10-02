@@ -45,6 +45,21 @@ namespace Backend.Repositories
             return await _context.PasswordResets.FirstOrDefaultAsync(r => r.CodeHash == codeHash);
         }
 
+        public async Task<bool> TryUseAsync(int resetId, DateTime usedAtUtc)
+        {
+            var rows = await _context.PasswordResets
+                .Where(r => r.PasswordResetID == resetId && r.UsedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, usedAtUtc));
+            return rows == 1;
+        }
+
+        public async Task DeleteUnusedAsync(int userId)
+        {
+            await _context.PasswordResets
+                .Where(r => r.UserID == userId && r.UsedAt == null)
+                .ExecuteDeleteAsync();
+        }
+
         public async Task<User?> GetUserAsync(int userId)
         {
             return await _context.Users.FindAsync(userId);

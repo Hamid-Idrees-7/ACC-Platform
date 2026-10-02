@@ -1,4 +1,5 @@
-﻿using Backend.Models.DTOs;
+﻿using System.Text.RegularExpressions;
+using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
 
@@ -32,6 +33,10 @@ namespace Backend.Services
             {
                 return (false, "Please fill in your name, phone, and message.");
             }
+
+            var digits = dto.Phone.Count(char.IsDigit);
+            if (!Regex.IsMatch(dto.Phone.Trim(), @"^\+?[0-9][0-9\s-]*$") || digits < 7 || digits > 13)
+                return (false, "Please enter a valid phone number.");
 
             // Block the phone number if it sent too many messages in the last few minutes.
             var since = DateTime.Now.AddMinutes(-RateLimitMinutes);

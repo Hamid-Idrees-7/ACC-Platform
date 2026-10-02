@@ -25,6 +25,34 @@ namespace Backend.Repositories
             return await _context.Users.FindAsync(id);
         }
 
+        // Every user without the picture and password, for lookups that only need names and roles.
+        public async Task<List<User>> GetAllLightAsync()
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .OrderByDescending(u => u.UserID)
+                .Select(u => new User
+                {
+                    UserID = u.UserID,
+                    Username = u.Username,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Role = u.Role,
+                    EmployeeID = u.EmployeeID,
+                    IsActive = u.IsActive
+                })
+                .ToListAsync();
+        }
+
+        // Null when the user doesn't exist.
+        public async Task<bool?> GetIsActiveAsync(int id)
+        {
+            return await _context.Users
+                .Where(u => u.UserID == id)
+                .Select(u => (bool?)u.IsActive)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<User> AddAsync(User user)
         {
             _context.Users.Add(user);

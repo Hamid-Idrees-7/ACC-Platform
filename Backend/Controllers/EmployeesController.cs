@@ -107,7 +107,7 @@ namespace Backend.Controllers
             // An employee with any assignment is kept for the history;
             // the message suggests setting them Inactive instead.
             if (await _service.HasAssignmentsAsync(id))
-                return Conflict(new { message = $"\"{employee.FullName}\" has project assignments and cannot be deleted. Set the employee to Inactive instead to keep the assignment history." });
+                return Conflict(new { message = $"\"{employee.FullName}\" has project assignments, so they can't be deleted. Keep them and set them to Inactive instead, so the assignment history stays." });
 
             // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Employees", "Delete"))

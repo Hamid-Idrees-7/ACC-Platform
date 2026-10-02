@@ -21,5 +21,9 @@ namespace Backend.Models.DTOs
 
         [MaxLength(300)]
         public string? Bio { get; set; }
+
+        // Needed only when the email changes: the email is where reset links go.
+        [MaxLength(128)]
+        public string? CurrentPassword { get; set; }
     }
 }

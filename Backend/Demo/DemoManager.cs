@@ -61,6 +61,11 @@ namespace Backend.Demo
         private readonly SemaphoreSlim _lock = new(1, 1);
         private readonly SemaphoreSlim _signal = new(0, 1);
 
+        // The seat each visitor (by network address) holds. One seat per visitor: starting a new
+        // demo ends their previous one, so a single person or script can't fill every seat.
+        // Only read and changed under _lock.
+        private readonly Dictionary<string, int> _seatByVisitor = new();
+
         public DemoManager(DemoDbFactory factory, IOptions<DemoOptions> options, IMemoryCache cache, ILogger<DemoManager> logger,
             AlertScheduler alerts)
         {
@@ -101,11 +106,36 @@ namespace Backend.Demo
             DateTime expiresAt = default;
             bool buildNow;
 
+            var visitor = ClientPartition.For(client.IpAddress);
+            int? endedPrevious = null;
+
             await _lock.WaitAsync(ct);
             try
             {
                 await using var main = _factory.CreateMain();
                 var now = DateTime.UtcNow;
+
+                // Forget seats that have already ended, so the map stays small.
+                var liveIds = await main.DemoSessions
+                    .Where(s => s.Status == DemoSessionStatus.Active || s.Status == DemoSessionStatus.Claimed)
+                    .Select(s => s.DemoSessionID)
+                    .ToListAsync(ct);
+                foreach (var stale in _seatByVisitor.Where(p => !liveIds.Contains(p.Value)).Select(p => p.Key).ToList())
+                    _seatByVisitor.Remove(stale);
+
+                if (_seatByVisitor.TryGetValue(visitor, out var previousId))
+                {
+                    var previous = await main.DemoSessions.FirstOrDefaultAsync(s => s.DemoSessionID == previousId, ct);
+                    if (previous != null &&
+                        (previous.Status == DemoSessionStatus.Active || previous.Status == DemoSessionStatus.Claimed))
+                    {
+                        previous.Status = DemoSessionStatus.Ended;
+                        previous.EndedAt = now;
+                        await main.SaveChangesAsync(ct);
+                        endedPrevious = previousId;
+                    }
+                    _seatByVisitor.Remove(visitor);
+                }
 
                 if (await CountSeatsInUseAsync(main, now, ct) >= _options.MaxVisitors)
                     return DemoResult.Fail(503,
@@ -138,11 +168,14 @@ namespace Backend.Demo
 
                 sessionId = session.DemoSessionID;
                 databaseName = session.DatabaseName;
+                _seatByVisitor[visitor] = sessionId;
             }
             finally
             {
                 _lock.Release();
             }
+
+            if (endedPrevious != null) _cache.Remove(CacheKey(endedPrevious.Value));
 
             // Top the ready pool back up in the background.
             RequestMaintenance();

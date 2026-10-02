@@ -14,6 +14,12 @@ namespace Backend.Repositories
 
         Task<PasswordReset?> GetByHashAsync(string codeHash);
 
+        // Marks a link used in one statement; false if another request used it first.
+        Task<bool> TryUseAsync(int resetId, DateTime usedAtUtc);
+
+        // Removes the account's unused links (after its password or email changes).
+        Task DeleteUnusedAsync(int userId);
+
         Task<User?> GetUserAsync(int userId);
 
         // Links older than this are deleted (used or not).

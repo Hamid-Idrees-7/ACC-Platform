@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services
 {
-    // Handles registration, sign-in, token renewal and sign-out
+    // Handles sign-in, token renewal and sign-out. Accounts are created on the Users page.
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
@@ -29,39 +29,6 @@ namespace Backend.Services
             _notificationService = notificationService;
             _sessions = sessions;
             _alerts = alerts;
-        }
-
-        // Register a new user (admin only, see AuthController). No token is returned:
-        // the new user signs in with their own password.
-        public async Task<(bool Success, string? Error, int UserId)> RegisterAsync(RegisterDto dto)
-        {
-            var username = (dto.Username ?? string.Empty).Trim();
-            if (username.Length < 3)
-                return (false, "Username must be at least 3 characters.", 0);
-
-            if (await _context.Users.AnyAsync(u => u.Username == username))
-                return (false, "Username already exists.", 0);
-
-            var passwordError = PasswordPolicy.Validate(dto.Password);
-            if (passwordError != null)
-                return (false, passwordError, 0);
-
-            var user = new User
-            {
-                Username = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Email = dto.Email,
-                FullName = dto.FullName,
-                Role = dto.Role,
-                Phone = dto.Phone,
-                IsActive = true,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return (true, null, user.UserID);
         }
 
         // Sign in. Every attempt is recorded (Settings > Security). After 5 wrong passwords for

@@ -111,7 +111,7 @@ namespace Backend.Controllers
 
             // A client with projects can't be deleted.
             if (await _projectRepository.AnyForClientAsync(id))
-                return BadRequest(new { message = "This client has projects and can't be deleted. Reassign or remove those projects first, or set the client Inactive." });
+                return BadRequest(new { message = "This client has projects, so it can't be deleted. Keep the client and set it to Inactive instead, or move or remove its projects first." });
 
             // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Clients", "Delete"))

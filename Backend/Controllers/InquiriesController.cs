@@ -5,6 +5,7 @@ using Backend.Models.DTOs;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend.Controllers
 {
@@ -29,6 +30,7 @@ namespace Backend.Controllers
         [HttpPost]
         [AllowAnonymous]
         [UseMainDatabase]
+        [EnableRateLimiting(SecurityOptions.ContactFormRateLimitPolicy)]
         public async Task<IActionResult> Submit([FromBody] CreateInquiryDto dto)
         {
             var (success, message) = await _service.SubmitInquiryAsync(dto);
