@@ -18,10 +18,11 @@ namespace Backend.Services
         // Found is false if the invoice doesn't exist; Error is set if a line is not valid.
         Task<(bool Found, string? Error)> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto);
 
-        Task<bool> DeleteInvoiceAsync(int invoiceId);
+        // Error when the invoice has payments (they must be removed first).
+        Task<(bool Found, string? Error)> DeleteInvoiceAsync(int invoiceId);
 
         // Records a part or full payment. False if the invoice doesn't exist.
-        Task<bool> RecordPaymentAsync(RecordPaymentDto dto);
+        Task<(bool Found, string? Error)> RecordPaymentAsync(RecordPaymentDto dto);
 
         Task<bool> DeletePaymentAsync(int paymentId);
 

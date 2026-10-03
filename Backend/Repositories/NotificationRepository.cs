@@ -19,6 +19,7 @@ namespace Backend.Repositories
             return await _context.Notifications
                 .Where(n => n.UserID == userId && n.Type == type)
                 .OrderByDescending(n => n.NotificationID)
+                .Take(ListLimit)
                 .ToListAsync();
         }
 
@@ -37,8 +38,24 @@ namespace Backend.Repositories
 
         public async Task AddAsync(Notification notification)
         {
+            // Texts built from names and amounts can run long; keep them inside their columns.
+            notification.Title = Cut(notification.Title, 150);
+            notification.Message = Cut(notification.Message, 400);
+            notification.Reason = notification.Reason == null ? null : Cut(notification.Reason, 300);
+            if (notification.Link?.Length > 200) notification.Link = null;
+
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+        }
+
+        // The page shows the latest ones; older ones are still counted and kept until cleaned up.
+        private const int ListLimit = 200;
+
+        private static string Cut(string text, int max) => text.Length <= max ? text : text[..(max - 3)] + "...";
+
+        public async Task PurgeReadAsync(DateTime before)
+        {
+            await _context.Notifications.Where(n => n.IsRead && n.CreatedAt < before).ExecuteDeleteAsync();
         }
 
         // Only if it belongs to this user

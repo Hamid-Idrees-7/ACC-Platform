@@ -4,6 +4,9 @@ namespace Backend.Services
 {
     public interface INotificationService
     {
+        // Removes read notifications older than 90 days.
+        Task PurgeOldAsync();
+
         Task<List<NotificationDto>> GetForUserAsync(int userId, string type);
         Task<int> GetUnreadCountAsync(int userId);
         Task<int> GetUnreadAlertCountAsync(int userId);

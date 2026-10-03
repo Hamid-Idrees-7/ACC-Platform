@@ -16,6 +16,10 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const rateLabel = (l) =>
   l.sourceType === "Monthly" ? `${money(l.rate)} /month` : l.sourceType === "Contract" ? `${money(l.rate)} contract` : `${money(l.rate)} /day`;
 
+// Paid = nothing left to pay, Part paid = some paid and more is due.
+const lineState = (l) => (l.isPaid ? "paid" : l.paidAmount > 0 ? "partial" : "pending");
+const STATE_LABEL = { paid: "PAID", partial: "PART PAID", pending: "PENDING" };
+
 const SECTIONS = [
   { type: "Monthly", title: "MONTHLY STAFF" },
   { type: "Contract", title: "CONTRACT" },
@@ -93,7 +97,7 @@ function Salaries() {
     const q = search.trim().toLowerCase();
     return lines.filter((l) => {
       if (statusFilter === "paid" && !l.isPaid) return false;
-      if (statusFilter === "pending" && l.isPaid) return false;
+      if (statusFilter === "pending" && !(l.dueAmount > 0)) return false;
       // Search matches employee name, designation, or project.
       if (q) {
         const hay = `${l.employeeName} ${l.designation} ${l.projectName || ""}`.toLowerCase();
@@ -110,9 +114,19 @@ function Salaries() {
   );
   const paging = usePagination(ordered, { resetKey: `${year}-${month}|${statusFilter}|${search}` });
 
-  const openPay = (line) => { setPayModal(line); setFinalAmount(String(line.calculatedAmount ?? 0)); setNote(""); };
+  const openPay = (line) => { setPayModal(line); setFinalAmount(String(line.dueAmount ?? 0)); setNote(""); };
+
+  // Anything from 1 rupee up to what is due; the rest stays due for later.
+  const amountError = (() => {
+    if (!payModal || finalAmount === "") return "";
+    const n = Number(finalAmount);
+    if (!(n > 0)) return "Enter an amount greater than zero.";
+    if (n > Number(payModal.dueAmount)) return `Only ${money(payModal.dueAmount)} is due. Enter that or less.`;
+    return "";
+  })();
 
   const confirmPay = async () => {
+    if (finalAmount === "" || amountError) return;
     setBusy(true);
     try {
       const updated = await salaryService.pay({
@@ -121,7 +135,7 @@ function Salaries() {
         paidAmount: Number(finalAmount) || 0, note: note.trim() || null,
       });
       setData(updated); setPayModal(null); showToast("Payment recorded.");
-    } catch { showToast("Could not record payment.", "error"); }
+    } catch (err) { showToast(err.response?.data?.message || "Could not record payment.", "error"); }
     finally { setBusy(false); }
   };
 
@@ -129,7 +143,7 @@ function Salaries() {
     setBusy(true);
     try {
       const updated = await salaryService.revert(confirmUndo.paymentID);
-      setData(updated); setConfirmUndo(null); showToast("Payment reverted.", "warn");
+      setData(updated); setConfirmUndo(null); showToast("Payment undone.", "warn");
     } catch { showToast("Could not revert.", "error"); }
     finally { setBusy(false); }
   };
@@ -137,36 +151,48 @@ function Salaries() {
   const openPayslip = (line) => navigate(`/dashboard/salaries/payslip/${line.employeeID}?year=${year}&month=${month}`);
 
   const renderCard = (line, i) => (
-    <div key={`${line.employeeID}-${line.sourceType}-${line.assignmentID ?? "m"}-${i}`} className={`sal-card ${line.isPaid ? "paid" : "pending"}`}>
+    <div key={`${line.employeeID}-${line.sourceType}-${line.assignmentID ?? "m"}-${i}`} className={`sal-card ${lineState(line)}`}>
       <div className="sal-card-head">
         <div className="sal-avatar">{(line.employeeName || "?").charAt(0).toUpperCase()}</div>
         <div className="sal-who">
           <div className="sal-name">{line.employeeName}</div>
           <div className="sal-desig">{line.designation}</div>
         </div>
-        <span className={`sal-badge ${line.isPaid ? "paid" : "pending"}`}>{line.isPaid ? "PAID" : "PENDING"}</span>
+        <span className={`sal-badge ${lineState(line)}`}>{STATE_LABEL[lineState(line)]}</span>
       </div>
 
       <div className="sal-card-body">
         <div className="sal-c-top">
           <span className="sal-c-project">{line.sourceType === "Monthly" ? "Company Payroll" : line.projectName}</span>
-          <span className="sal-c-amt">{money(line.isPaid ? line.paidAmount : line.calculatedAmount)}</span>
+          <span className="sal-c-amt">{money(line.paidAmount + line.dueAmount)}</span>
         </div>
         <div className="sal-c-meta">
           <span className={`sal-type ${line.sourceType.toLowerCase()}`}>{line.sourceType}</span>
           <span className="sal-rate">{rateLabel(line)}</span>
           {line.sourceType === "Daily" && <span className="sal-att">{line.presentDays} P / {line.absentDays} A</span>}
+          {line.sourceType === "Monthly" && line.coveredDays < line.monthDays && (
+            <span className="sal-att" title="Salary is earned day by day: these are the days earned so far this month">
+              {line.coveredDays} of {line.monthDays} days{isThisMonth ? " so far" : ""}
+            </span>
+          )}
         </div>
-        {line.isPaid && Number(line.paidAmount) !== Number(line.calculatedAmount) && (
-          <div className="sal-override">Calculated: {money(line.calculatedAmount)} → Paid: {money(line.paidAmount)}</div>
+        {line.paidAmount > 0 && line.dueAmount > 0 && (
+          <div className="sal-override">Paid {money(line.paidAmount)} · Due {money(line.dueAmount)}</div>
+        )}
+        {line.paidAmount > line.calculatedAmount && (
+          <div className="sal-override">Paid {money(line.paidAmount)}, earned {money(line.calculatedAmount)}</div>
         )}
         {line.note && <div className="sal-line-note">“{line.note}”</div>}
       </div>
 
       <div className="sal-c-actions">
-        {line.isPaid
-          ? (canManage && <button className="sal-undo" onClick={() => setConfirmUndo(line)}>Undo</button>)
-          : (canPay && <button className="sal-pay" onClick={() => openPay(line)}>Pay</button>)}
+        {canManage && line.paymentsCount > 0 && (
+          <button className="sal-undo" onClick={() => setConfirmUndo(line)} title="Undo the latest payment">Undo</button>
+        )}
+        {canPay && line.dueAmount > 0 && <button className="sal-pay" onClick={() => openPay(line)}>Pay</button>}
+        {canPay && !(line.dueAmount > 0) && line.paymentsCount === 0 && (
+          <span className="sal-pay-later" title="Mark attendance and the earned pay shows here">Nothing earned yet</span>
+        )}
         <button className="sal-payslip" onClick={() => openPayslip(line)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
           Payslip
@@ -257,23 +283,34 @@ function Salaries() {
             <p className="sal-modal-sub">{payModal.employeeName} · {payModal.sourceType === "Monthly" ? "Company Payroll" : payModal.projectName}</p>
             <div className="sal-calc">
               <div>
-                <div className="sal-calc-lbl">System Calculated</div>
+                <div className="sal-calc-lbl">Due Now</div>
                 <div className="sal-calc-sub">
                   {payModal.sourceType === "Daily"
                     ? `${payModal.presentDays} present days × ${money(payModal.rate)}/day`
-                    : payModal.sourceType === "Contract" ? "Contract amount" : "Monthly salary"}
+                    : payModal.sourceType === "Contract" ? "Contract amount"
+                    : `Monthly salary, ${payModal.coveredDays} of ${payModal.monthDays} days`}
+                  {payModal.paidAmount > 0 && ` = ${money(payModal.calculatedAmount)}, already paid ${money(payModal.paidAmount)}`}
                 </div>
               </div>
-              <div className="sal-calc-amt">{money(payModal.calculatedAmount)}</div>
+              <div className="sal-calc-amt">{money(payModal.dueAmount)}</div>
             </div>
-            <label className="sal-modal-label">Final Amount to Pay ({currencySymbol()}) <span>*</span></label>
-            <input type="number" min="0" step="any" value={finalAmount} onChange={(e) => setFinalAmount(e.target.value)} autoFocus />
-            {finalAmount !== "" && Number(finalAmount) > 0 && <div className="sal-words">= {amountInWords(finalAmount)}</div>}
+            <label className="sal-modal-label">Amount to Pay ({currencySymbol()}) <span>*</span></label>
+            <input
+              type="number" min="0" step="any" value={finalAmount} autoFocus
+              className={amountError ? "err" : ""}
+              onChange={(e) => setFinalAmount(e.target.value)}
+            />
+            {amountError
+              ? <div className="sal-amount-err">{amountError}</div>
+              : finalAmount !== "" && Number(finalAmount) > 0 && <div className="sal-words">= {amountInWords(finalAmount)}</div>}
+            {!amountError && Number(finalAmount) > 0 && Number(finalAmount) < Number(payModal.dueAmount) && (
+              <div className="sal-amount-hint">The other {money(payModal.dueAmount - Number(finalAmount))} stays due.</div>
+            )}
             <label className="sal-modal-label">Payment Note</label>
             <input type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note." />
             <div className="sal-modal-actions">
               <button className="sal-modal-cancel" data-close onClick={() => setPayModal(null)} disabled={busy}>Cancel</button>
-              <button className="sal-modal-ok" onClick={confirmPay} disabled={busy}>{busy ? "Saving..." : "Confirm Payment"}</button>
+              <button className="sal-modal-ok" onClick={confirmPay} disabled={busy || finalAmount === "" || !!amountError}>{busy ? "Saving..." : "Confirm Payment"}</button>
             </div>
           </div>
         </ModalOverlay>
@@ -284,11 +321,14 @@ function Salaries() {
         <ModalOverlay className="sal-overlay" onClose={() => setConfirmUndo(null)}>
           <div className="sal-confirm">
             <div className="sal-confirm-ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg></div>
-            <h3>Revert this payment?</h3>
-            <p>This will move the salary back to <strong>Pending</strong> and remove the paid record. You can pay it again afterwards.</p>
+            <h3>Undo this payment?</h3>
+            <p>
+              This removes the latest payment of <strong>{money(confirmUndo.lastPaidAmount)}</strong> to {confirmUndo.employeeName}.
+              That amount becomes due again, and you can pay it later.
+            </p>
             <div className="sal-modal-actions">
               <button className="sal-modal-cancel" data-close onClick={() => setConfirmUndo(null)} disabled={busy}>Cancel</button>
-              <button className="sal-confirm-undo" onClick={doUndo} disabled={busy}>{busy ? "..." : "Yes, Revert"}</button>
+              <button className="sal-confirm-undo" onClick={doUndo} disabled={busy}>{busy ? "..." : "Yes, Undo"}</button>
             </div>
           </div>
         </ModalOverlay>

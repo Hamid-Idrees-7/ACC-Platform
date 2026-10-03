@@ -14,6 +14,7 @@ namespace Backend.Repositories
         Task<List<ProjectPhase>> GetAllPhasesAsync();
         Task<List<ProjectPhase>> GetPhasesAsync(int projectId);
         Task<ProjectPhase?> GetPhaseByIdAsync(int phaseId);
+        Task<bool> PhaseInUseAsync(int phaseId);
         Task AddPhaseAsync(ProjectPhase phase);
         Task AddPhasesAsync(List<ProjectPhase> phases);
         Task UpdatePhaseAsync(ProjectPhase phase);

@@ -13,6 +13,8 @@ namespace Backend.Repositories
             _context = context;
         }
 
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
+
         public async Task<List<SalaryPayment>> GetForPeriodAsync(int year, int month)
         {
             return await _context.SalaryPayments
@@ -29,6 +31,16 @@ namespace Backend.Repositories
         {
             _context.SalaryPayments.Add(payment);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<SalaryPayment>> GetForEmployeeAsync(int employeeId)
+        {
+            return await _context.SalaryPayments.AsNoTracking().Where(p => p.EmployeeID == employeeId).ToListAsync();
+        }
+
+        public async Task<bool> AnyForAssignmentAsync(int assignmentId)
+        {
+            return await _context.SalaryPayments.AnyAsync(p => p.AssignmentID == assignmentId);
         }
 
         public async Task<bool> DeleteAsync(int paymentId)

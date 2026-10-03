@@ -8,8 +8,8 @@ const unit = (l) => (l.sourceType === "Daily" ? "/day" : l.sourceType === "Contr
 export function buildPayslipDoc(slip) {
   const company = slip.company || {};
   const paid = (slip.status || "").toLowerCase() === "paid";
-  // Nothing is paid yet (or only part of it): the amount is what is payable, not what was paid.
-  const netLabel = paid ? "Net paid" : "Net payable";
+  // Something is still due: the last total shows what is left to pay.
+  const due = Number(slip.totalDue) > 0;
 
   const info = (label, value, extra) => ({
     stack: [
@@ -25,7 +25,7 @@ export function buildPayslipDoc(slip) {
       { text: "TYPE", style: "th" },
       { text: "RATE", style: "th" },
       { text: "ATTENDANCE", style: "th" },
-      { text: "CALCULATED", style: "th", alignment: "right" },
+      { text: "EARNED", style: "th", alignment: "right" },
       { text: "PAID", style: "th", alignment: "right" },
     ],
     ...(slip.lines || []).map((l) => [
@@ -39,11 +39,11 @@ export function buildPayslipDoc(slip) {
       { text: [money(l.rate), { text: unit(l), color: C.muted, fontSize: 8 }], noWrap: true },
       l.sourceType === "Daily" ? `${l.presentDays} present / ${l.absentDays} absent` : "—",
       { text: money(l.calculatedAmount), alignment: "right", noWrap: true },
-      l.isPaid
+      Number(l.paidAmount) > 0
         ? {
             stack: [
               { text: money(l.paidAmount), bold: true, alignment: "right", color: C.greenStrong, noWrap: true },
-              Number(l.paidAmount) !== Number(l.calculatedAmount) ? { text: "ADJUSTED", fontSize: 7, bold: true, color: C.amber, alignment: "right" } : null,
+              Number(l.dueAmount) > 0 ? { text: "PART PAID", fontSize: 7, bold: true, color: C.amber, alignment: "right" } : null,
             ].filter(Boolean),
           }
         : { text: "Pending", color: C.amber, bold: true, alignment: "right" },
@@ -80,8 +80,9 @@ export function buildPayslipDoc(slip) {
           width: 240,
           margin: [0, 12, 0, 0],
           ...totalsTable([
-            ["Total calculated", money(slip.totalCalculated)],
-            [netLabel, money(slip.netPaid), { bold: true, size: 13, color: C.primaryDark, lineAbove: true }],
+            ["Total earned", money(slip.totalCalculated)],
+            ["Paid", money(slip.totalPaid)],
+            [due ? "Due now" : "Net paid", money(due ? slip.totalDue : slip.totalPaid), { bold: true, size: 13, color: C.primaryDark, lineAbove: true }],
           ], 240),
         },
       ],

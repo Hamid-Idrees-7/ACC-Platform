@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Backend.Models.DTOs
 {
     // An engineer raising a request. ProjectID comes from the route.
@@ -6,12 +8,14 @@ namespace Backend.Models.DTOs
         public int MaterialID { get; set; }
         public int? PhaseID { get; set; }
         public decimal Quantity { get; set; }
+        [MaxLength(255)]
         public string? Note { get; set; }
     }
 
     // Admin resolving a request (reject reason or approve note).
     public class ResolveRequestDto
     {
+        [MaxLength(255)]
         public string? Note { get; set; }
     }
 

@@ -175,15 +175,30 @@ namespace Backend.Services
             };
         }
 
+        private const decimal MaxAmount = 10_000_000_000_000m;
+
+        // Tax, dates and notes shared by create and edit. Null when they are fine.
+        private static string? CheckHeader(CreateInvoiceDto dto, DateTime issueDate)
+        {
+            if (dto.TaxAmount < 0) return "Tax can't be negative.";
+            if (dto.TaxAmount > MaxAmount) return "The tax is too large.";
+            if (issueDate.Year < 2000 || issueDate.Year > 2100) return "Enter a valid issue date.";
+            if (dto.DueDate != null && dto.DueDate.Value.Date < issueDate.Date) return "The due date can't be before the issue date.";
+            if (dto.Notes?.Trim().Length > 255) return "Notes can be at most 255 characters.";
+            return null;
+        }
+
         public async Task<(int? InvoiceId, string? Error)> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
             var project = await _projectRepository.GetByIdAsync(dto.ProjectID);
             if (project == null) return (null, "Project not found.");
 
+            var issueDate = dto.IssueDate == default ? DateTime.Now : dto.IssueDate;
+            var headerError = CheckHeader(dto, issueDate);
+            if (headerError != null) return (null, headerError);
+
             var (items, error) = await BuildItemsAsync(dto.ProjectID, null, dto.Items);
             if (error != null) return (null, error);
-
-            var issueDate = dto.IssueDate == default ? DateTime.Now : dto.IssueDate;
 
             var invoice = new Invoice
             {
@@ -192,7 +207,7 @@ namespace Backend.Services
                 ProjectID = dto.ProjectID,
                 IssueDate = issueDate,
                 DueDate = dto.DueDate,
-                TaxAmount = dto.TaxAmount,
+                TaxAmount = Math.Round(dto.TaxAmount, 2),
                 Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim(),
                 CreatedAt = DateTime.Now
             };
@@ -202,44 +217,89 @@ namespace Backend.Services
 
         public async Task<(bool Found, string? Error)> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto)
         {
+            using var _ = await Locks.ForInvoiceAsync(_billingRepository.DatabaseName, invoiceId);
+
             var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
             if (invoice == null) return (false, null);
+
+            var issueDate = dto.IssueDate == default ? invoice.IssueDate : dto.IssueDate;
+            var headerError = CheckHeader(dto, issueDate);
+            if (headerError != null) return (true, headerError);
 
             // Lines are checked against the invoice's own project (it never changes).
             var (items, error) = await BuildItemsAsync(invoice.ProjectID, invoiceId, dto.Items);
             if (error != null) return (true, error);
 
+            // The new total can't be less than the money already received on it.
+            var tax = Math.Round(dto.TaxAmount, 2);
+            var paid = (await _billingRepository.GetPaymentsByInvoiceIdsAsync(new List<int> { invoiceId })).Sum(p => p.Amount);
+            var newTotal = items!.Sum(i => i.Amount) + tax;
+            if (newTotal < paid)
+                return (true, $"This invoice already has {await _companyService.FormatMoneyAsync(paid)} received, so its total can't go below that. Remove a payment first.");
+
             // InvoiceNumber and ProjectID stay fixed once created.
-            invoice.IssueDate = dto.IssueDate == default ? invoice.IssueDate : dto.IssueDate;
+            invoice.IssueDate = issueDate;
             invoice.DueDate = dto.DueDate;
-            invoice.TaxAmount = dto.TaxAmount;
+            invoice.TaxAmount = tax;
             invoice.Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
 
-            await _billingRepository.UpdateInvoiceAsync(invoice);
-            await _billingRepository.ReplaceItemsAsync(invoiceId, items!);
+            await _billingRepository.SaveInvoiceWithItemsAsync(invoice, items!);
             return (true, null);
         }
 
-        public async Task<bool> DeleteInvoiceAsync(int invoiceId)
+        public async Task<(bool Found, string? Error)> DeleteInvoiceAsync(int invoiceId)
         {
-            return await _billingRepository.DeleteInvoiceAsync(invoiceId);
+            using var _ = await Locks.ForInvoiceAsync(_billingRepository.DatabaseName, invoiceId);
+
+            var invoice = await _billingRepository.GetInvoiceByIdAsync(invoiceId);
+            if (invoice == null) return (false, null);
+
+            // Money received is part of the record: payments are removed one by one first.
+            var payments = await _billingRepository.GetPaymentsByInvoiceIdsAsync(new List<int> { invoiceId });
+            if (payments.Count > 0)
+                return (true, $"Invoice {invoice.InvoiceNumber} has payments recorded, so it can't be deleted. Remove those payments first.");
+
+            return (await _billingRepository.DeleteInvoiceAsync(invoiceId), null);
         }
 
-        public async Task<bool> RecordPaymentAsync(RecordPaymentDto dto)
+        public async Task<(bool Found, string? Error)> RecordPaymentAsync(RecordPaymentDto dto)
         {
+            // One payment at a time per invoice, so two can't both fit into the same balance.
+            using var _ = await Locks.ForInvoiceAsync(_billingRepository.DatabaseName, dto.InvoiceID);
+
             var invoice = await _billingRepository.GetInvoiceByIdAsync(dto.InvoiceID);
-            if (invoice == null) return false;
+            if (invoice == null) return (false, null);
+
+            if (dto.Amount <= 0) return (true, "Enter an amount greater than zero.");
+            var amount = Math.Round(dto.Amount, 2);
+
+            var method = string.IsNullOrWhiteSpace(dto.Method) ? "Cash" : dto.Method.Trim();
+            if (method.Length > 30) return (true, "The payment method can be at most 30 characters.");
+            var reference = string.IsNullOrWhiteSpace(dto.Reference) ? null : dto.Reference.Trim();
+            if (reference?.Length > 255) return (true, "The reference can be at most 255 characters.");
+
+            var paymentDate = dto.PaymentDate == default ? DateTime.Now : dto.PaymentDate;
+            if (paymentDate.Year < 2000 || paymentDate.Date > DateTime.Now.Date.AddDays(1))
+                return (true, "Enter a valid payment date (not in the future).");
+
+            var ids = new List<int> { dto.InvoiceID };
+            var items = await _billingRepository.GetItemsByInvoiceIdsAsync(ids);
+            var paid = (await _billingRepository.GetPaymentsByInvoiceIdsAsync(ids)).Sum(p => p.Amount);
+            var due = items.Sum(i => i.Amount) + invoice.TaxAmount - paid;
+            if (due <= 0) return (true, "This invoice is already fully paid.");
+            if (amount > due)
+                return (true, $"The payment is more than the amount due ({await _companyService.FormatMoneyAsync(due)}).");
 
             await _billingRepository.AddPaymentAsync(new InvoicePayment
             {
                 InvoiceID = dto.InvoiceID,
-                Amount = dto.Amount,
-                PaymentDate = dto.PaymentDate == default ? DateTime.Now : dto.PaymentDate,
-                Method = string.IsNullOrWhiteSpace(dto.Method) ? "Cash" : dto.Method.Trim(),
-                Reference = string.IsNullOrWhiteSpace(dto.Reference) ? null : dto.Reference.Trim(),
+                Amount = amount,
+                PaymentDate = paymentDate,
+                Method = method,
+                Reference = reference,
                 CreatedAt = DateTime.Now
             });
-            return true;
+            return (true, null);
         }
 
         public async Task<bool> DeletePaymentAsync(int paymentId)
@@ -325,6 +385,7 @@ namespace Backend.Services
 
             var expenses = (await _expenseRepository.GetByIdsAsync(expenseIds)).ToDictionary(e => e.ExpenseID);
             var links = await _expenseRepository.GetInvoiceLinksAsync(expenseIds);
+            var phaseIds = (await _projectRepository.GetPhasesAsync(projectId)).Select(p => p.PhaseID).ToHashSet();
 
             var items = new List<InvoiceItem>();
             foreach (var i in lines)
@@ -355,13 +416,24 @@ namespace Backend.Services
                     continue;
                 }
 
-                decimal qty = i.Quantity == 0 ? 1 : i.Quantity;
+                // A normal line: a positive quantity, a rate that isn't negative, sensible sizes.
+                var text = (i.Description ?? string.Empty).Trim();
+                if (text.Length > 200) return (null, "A line description can be at most 200 characters.");
+                if (i.Quantity <= 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" needs a quantity greater than zero.");
+                if (i.Rate < 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" can't have a negative rate.");
+                var qty = Math.Round(i.Quantity, 2);
+                var rate = Math.Round(i.Rate, 2);
+                if (qty > 1_000_000_000m || rate > MaxAmount || qty * rate > MaxAmount)
+                    return (null, $"\"{(text.Length > 0 ? text : "A line")}\" is too large.");
+                if (i.PhaseID != null && !phaseIds.Contains(i.PhaseID.Value))
+                    return (null, "A line points to a phase of another project. Pick the phase again.");
+
                 items.Add(new InvoiceItem
                 {
-                    Description = (i.Description ?? string.Empty).Trim(),
+                    Description = text,
                     Quantity = qty,
-                    Rate = i.Rate,
-                    Amount = qty * i.Rate,
+                    Rate = rate,
+                    Amount = Math.Round(qty * rate, 2),
                     PhaseID = i.PhaseID
                 });
             }

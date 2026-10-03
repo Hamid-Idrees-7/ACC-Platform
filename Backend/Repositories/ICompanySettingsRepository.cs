@@ -12,5 +12,10 @@ namespace Backend.Repositories
 
         // Changes only the weekly off days (Settings > Calendar).
         Task SaveWeeklyOffAsync(string days);
+
+        // Takes the next invoice number (at least atLeast + 1) and remembers it.
+        Task<int> ReserveInvoiceSeqAsync(int atLeast);
+
+        string DatabaseName { get; }
     }
 }

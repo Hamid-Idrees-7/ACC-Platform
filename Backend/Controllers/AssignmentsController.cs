@@ -70,7 +70,9 @@ namespace Backend.Controllers
         [RequirePermission("Assignments", "Add")]
         public async Task<IActionResult> Create([FromBody] CreateAssignmentDto dto)
         {
-            var assignment = await _service.CreateAsync(dto);
+            var (assignment, error) = await _service.CreateAsync(dto);
+            if (assignment == null)
+                return BadRequest(new { message = error });
 
             await _notificationService.NotifyPersonalAsync(
                 GetUserId(), "Assignment", "Assignment created",
@@ -89,9 +91,9 @@ namespace Backend.Controllers
         [RequirePermission("Assignments", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateAssignmentDto dto)
         {
-            var assignment = await _service.UpdateAsync(id, dto);
+            var (assignment, error) = await _service.UpdateAsync(id, dto);
             if (assignment == null)
-                return NotFound(new { message = "Assignment not found" });
+                return BadRequest(new { message = error });
 
             return Ok(assignment);
         }
@@ -116,6 +118,11 @@ namespace Backend.Controllers
             var assignment = await _service.GetByIdAsync(id);
             if (assignment == null)
                 return NotFound(new { message = "Assignment not found" });
+
+            // Attendance and pay hang on the assignment, so it is ended, not deleted.
+            var blocker = await _service.GetDeleteBlockerAsync(id);
+            if (blocker != null)
+                return BadRequest(new { message = blocker });
 
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Assignments", "Delete"))
             {

@@ -53,8 +53,13 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
+
+        // In one transaction, so a failed line never leaves an empty invoice behind.
         public async Task<int> AddInvoiceAsync(Invoice invoice, List<InvoiceItem> items)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();   // generates InvoiceID
 
@@ -67,28 +72,23 @@ namespace Backend.Repositories
                 await _context.SaveChangesAsync();
             }
 
+            await transaction.CommitAsync();
             return invoice.InvoiceID;
         }
 
-        public async Task UpdateInvoiceAsync(Invoice invoice)
+        public async Task SaveInvoiceWithItemsAsync(Invoice invoice, List<InvoiceItem> items)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             _context.Invoices.Update(invoice);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ReplaceItemsAsync(int invoiceId, List<InvoiceItem> items)
-        {
-            var existing = await _context.InvoiceItems
-                .Where(x => x.InvoiceID == invoiceId)
-                .ToListAsync();
+            var existing = await _context.InvoiceItems.Where(x => x.InvoiceID == invoice.InvoiceID).ToListAsync();
             _context.InvoiceItems.RemoveRange(existing);
-
             foreach (var item in items)
-                item.InvoiceID = invoiceId;
-            if (items.Count > 0)
-                _context.InvoiceItems.AddRange(items);
-
+                item.InvoiceID = invoice.InvoiceID;
+            _context.InvoiceItems.AddRange(items);
             await _context.SaveChangesAsync();
+
+            await transaction.CommitAsync();
         }
 
         public async Task<bool> DeleteInvoiceAsync(int invoiceId)

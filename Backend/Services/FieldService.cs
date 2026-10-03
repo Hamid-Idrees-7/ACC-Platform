@@ -180,6 +180,8 @@ namespace Backend.Services
 
             if (dto.Quantity <= 0)
                 return (null, "Enter a quantity greater than zero.");
+            if (dto.Quantity > 1_000_000_000m)
+                return (null, "The quantity is too large.");
 
             // The material must exist and be Active, so a crafted request can't slip in a
             // deleted, inactive or made-up material.

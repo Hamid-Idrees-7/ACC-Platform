@@ -82,6 +82,7 @@ namespace Backend.Services
             await _context.SaveChangesAsync();
 
             var session = await _sessions.StartAsync(user, client, dto.KeepSignedIn);
+            await _notificationService.PurgeOldAsync();
 
             await _notificationService.NotifyPersonalAsync(
                 user.UserID, LoginNotification.Category, LoginNotification.Title,

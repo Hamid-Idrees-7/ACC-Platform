@@ -9,6 +9,7 @@ namespace Backend.Services
         Task<MaterialDto?> GetMaterialByIdAsync(int id);
         Task<MaterialDto> CreateMaterialAsync(CreateMaterialDto dto);
         Task<MaterialDto?> UpdateMaterialAsync(int id, CreateMaterialDto dto);
+        Task<string?> CheckUpdateAsync(int id, CreateMaterialDto dto);
         Task<bool> DeleteMaterialAsync(int id);
         Task<StockResult> RestockAsync(int id, RestockDto dto);
         Task<StockResult> IssueAsync(int id, IssueDto dto);

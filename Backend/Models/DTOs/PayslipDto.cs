@@ -18,7 +18,8 @@ namespace Backend.Models.DTOs
 
         public List<SalaryLineDto> Lines { get; set; } = new();
         public decimal TotalCalculated { get; set; }
-        public decimal NetPaid { get; set; }   // the paid amount if paid, otherwise the calculated amount
+        public decimal TotalPaid { get; set; }
+        public decimal TotalDue { get; set; }
         public DateTime GeneratedAt { get; set; }
     }
 }

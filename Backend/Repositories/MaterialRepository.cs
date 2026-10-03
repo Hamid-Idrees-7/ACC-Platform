@@ -13,6 +13,8 @@ namespace Backend.Repositories
             _context = context;
         }
 
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
+
         public async Task<List<Material>> GetAllAsync()
         {
             return await _context.Materials
@@ -81,7 +83,8 @@ namespace Backend.Repositories
                     MaterialID = g.Key,
                     Stock = g.Sum(t => t.Type == "Restock" ? t.Quantity : -t.Quantity),
                     PurchasedQty = g.Sum(t => t.Type == "Restock" ? t.Quantity : 0m),
-                    Invested = g.Sum(t => t.Type == "Restock" ? t.Quantity * t.Rate : 0m)
+                    Invested = g.Sum(t => t.Type == "Restock" ? t.Quantity * t.Rate : 0m),
+                    IssuedCost = g.Sum(t => t.Type == "Issue" ? t.Quantity * t.Rate : 0m)
                 })
                 .ToListAsync();
 
@@ -91,7 +94,8 @@ namespace Backend.Repositories
                 {
                     Stock = r.Stock,
                     PurchasedQty = r.PurchasedQty,
-                    Invested = r.Invested
+                    Invested = r.Invested,
+                    IssuedCost = r.IssuedCost
                 });
         }
 

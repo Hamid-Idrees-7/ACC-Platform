@@ -117,7 +117,7 @@ function Payslip() {
             <table className="psl-table">
               <thead>
                 <tr>
-                  <th>PROJECT</th><th>TYPE</th><th>RATE</th><th>ATTENDANCE</th><th className="r">CALCULATED</th><th className="r">PAID</th>
+                  <th>PROJECT</th><th>TYPE</th><th>RATE</th><th>ATTENDANCE</th><th className="r">EARNED</th><th className="r">PAID</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,10 +129,10 @@ function Payslip() {
                     <td>{l.sourceType === "Daily" ? `${l.presentDays} present / ${l.absentDays} absent` : "—"}</td>
                     <td className="r">{money(l.calculatedAmount)}</td>
                     <td className="r">
-                      {l.isPaid ? (
+                      {l.paidAmount > 0 ? (
                         <div className="psl-paid">
                           <strong>{money(l.paidAmount)}</strong>
-                          {Number(l.paidAmount) !== Number(l.calculatedAmount) && <span className="psl-override">OVERRIDE</span>}
+                          {l.dueAmount > 0 && <span className="psl-override">PART PAID</span>}
                         </div>
                       ) : (
                         <span className="psl-pending">Pending</span>
@@ -145,8 +145,11 @@ function Payslip() {
           </div>
 
           <div className="psl-totals">
-            <div className="psl-total-row"><span>Total Calculated</span><strong>{money(slip.totalCalculated)}</strong></div>
-            <div className="psl-net"><span>{slip.status === "Paid" ? "Net Paid" : "Net Payable"}</span><strong>{money(slip.netPaid)}</strong></div>
+            <div className="psl-total-row"><span>Total Earned</span><strong>{money(slip.totalCalculated)}</strong></div>
+            <div className="psl-total-row"><span>Paid</span><strong>{money(slip.totalPaid)}</strong></div>
+            {slip.totalDue > 0
+              ? <div className="psl-net"><span>Due Now</span><strong>{money(slip.totalDue)}</strong></div>
+              : <div className="psl-net"><span>Net Paid</span><strong>{money(slip.totalPaid)}</strong></div>}
           </div>
 
           <div className="psl-foot">

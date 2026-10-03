@@ -82,6 +82,10 @@ namespace Backend.Controllers
         [RequirePermission("Materials", "Add")]
         public async Task<IActionResult> Create([FromBody] CreateMaterialDto dto)
         {
+            var invalid = MaterialService.CheckCreate(dto);
+            if (invalid != null)
+                return BadRequest(new { message = invalid });
+
             var material = await _service.CreateMaterialAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
@@ -99,6 +103,10 @@ namespace Backend.Controllers
         [RequirePermission("Materials", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateMaterialDto dto)
         {
+            var invalid = await _service.CheckUpdateAsync(id, dto);
+            if (invalid != null)
+                return BadRequest(new { message = invalid });
+
             var material = await _service.UpdateMaterialAsync(id, dto);
             if (material == null)
                 return NotFound(new { message = "Material not found" });

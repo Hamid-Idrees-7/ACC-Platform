@@ -133,7 +133,7 @@ namespace Backend.Services
                 .Where(a => a.WageType != "Contract")
                 .ToDictionary(a => a.AssignmentID, a => a);
 
-            foreach (var entry in dto.Entries)
+            foreach (var entry in dto.Entries.GroupBy(e => e.AssignmentID).Select(g => g.Last()))
             {
                 if (!assignments.TryGetValue(entry.AssignmentID, out var a)) continue;
 
@@ -143,28 +143,35 @@ namespace Backend.Services
                 bool onSite = day >= startDay && (endDay == null || day <= endDay);
                 if (!onSite) continue;
 
+                // A worker can be Present on more than one site in a day; each site pays its own day.
                 var status = entry.Status == "Absent" ? "Absent" : "Present";
+
+                var note = string.IsNullOrWhiteSpace(entry.Note) ? null : entry.Note.Trim();
+                if (note?.Length > 255) note = note[..255];
 
                 var existing = await _attendanceRepository.GetByAssignmentAndDateAsync(entry.AssignmentID, day);
                 if (existing == null)
                 {
-                    await _attendanceRepository.AddAsync(new Attendance
+                    var added = await _attendanceRepository.TryAddAsync(new Attendance
                     {
                         AssignmentID = entry.AssignmentID,
                         Date = day,
                         Status = status,
-                        Note = entry.Note,
+                        Note = note,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now
                     });
+                    if (added) continue;
+
+                    // Saved by someone else at the same moment: update that row instead.
+                    existing = await _attendanceRepository.GetByAssignmentAndDateAsync(entry.AssignmentID, day);
+                    if (existing == null) continue;
                 }
-                else
-                {
-                    existing.Status = status;
-                    existing.Note = entry.Note;
-                    existing.UpdatedAt = DateTime.Now;
-                    await _attendanceRepository.UpdateAsync(existing);
-                }
+
+                existing.Status = status;
+                existing.Note = note;
+                existing.UpdatedAt = DateTime.Now;
+                await _attendanceRepository.UpdateAsync(existing);
             }
 
             return await GetSheetAsync(projectId, dto.Date);
@@ -193,7 +200,8 @@ namespace Backend.Services
             var endDay = a.EndDate?.Date;
             bool onSite = day >= startDay && (endDay == null || day <= endDay);
 
-            var recByDate = recs.ToDictionary(r => r.Date.Date, r => r);
+            // GroupBy, so an old duplicate row can never break the sheet.
+            var recByDate = recs.GroupBy(r => r.Date.Date).ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.UpdatedAt).First());
             recByDate.TryGetValue(day, out var todayRec);
 
             var timelineEnd = endDay.HasValue && endDay.Value < today ? endDay.Value : today;

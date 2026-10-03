@@ -15,9 +15,9 @@ namespace Backend.Repositories
         // Create an invoice together with its line items (returns the new InvoiceID).
         Task<int> AddInvoiceAsync(Invoice invoice, List<InvoiceItem> items);
 
-        Task UpdateInvoiceAsync(Invoice invoice);
-        // Swap all line items on an invoice for a new set.
-        Task ReplaceItemsAsync(int invoiceId, List<InvoiceItem> items);
+        // Saves the invoice header and its new lines together: either both are saved or neither.
+        Task SaveInvoiceWithItemsAsync(Invoice invoice, List<InvoiceItem> items);
+
         // Removes the invoice with its items and payments.
         Task<bool> DeleteInvoiceAsync(int invoiceId);
 
@@ -28,5 +28,7 @@ namespace Backend.Repositories
         // Highest running number used by any invoice (the digits at the end, whatever the
         // prefix), so numbering carries on when the admin changes the invoice prefix.
         Task<int> MaxInvoiceSeqAsync();
+
+        string DatabaseName { get; }
     }
 }

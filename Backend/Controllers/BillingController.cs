@@ -104,9 +104,11 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteInvoice(int id)
         {
             var invoice = await _service.DescribeInvoiceAsync(id);
-            var ok = await _service.DeleteInvoiceAsync(id);
-            if (!ok)
+            var (found, error) = await _service.DeleteInvoiceAsync(id);
+            if (!found)
                 return NotFound(new { message = "Invoice not found" });
+            if (error != null)
+                return BadRequest(new { message = error });
 
             if (invoice != null)
             {
@@ -123,14 +125,16 @@ namespace Backend.Controllers
         [RequirePermission("Billing", "Manage")]
         public async Task<IActionResult> RecordPayment([FromBody] RecordPaymentDto dto)
         {
-            var ok = await _service.RecordPaymentAsync(dto);
-            if (!ok)
+            var (found, error) = await _service.RecordPaymentAsync(dto);
+            if (!found)
                 return NotFound(new { message = "Invoice not found" });
+            if (error != null)
+                return BadRequest(new { message = error });
 
             var invoice = await _service.DescribeInvoiceAsync(dto.InvoiceID);
             if (invoice != null)
             {
-                var what = $"a payment of {await _company.FormatMoneyAsync(dto.Amount)} on invoice {invoice.InvoiceNumber} ({invoice.ProjectTitle}).";
+                var what = $"a payment of {await _company.FormatMoneyAsync(Math.Round(dto.Amount, 2))} on invoice {invoice.InvoiceNumber} ({invoice.ProjectTitle}).";
                 await NotifyAsync("Payment recorded", $"You recorded {what}", "Payment received", $"recorded {what}",
                     NotificationLinks.Invoice(invoice.ProjectID, invoice.InvoiceID));
             }

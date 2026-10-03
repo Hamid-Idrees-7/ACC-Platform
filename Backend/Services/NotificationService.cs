@@ -51,6 +51,11 @@ namespace Backend.Services
                         .ToHashSet();
         }
 
+        public async Task PurgeOldAsync()
+        {
+            await _repository.PurgeReadAsync(DateTime.Now.AddDays(-90));
+        }
+
         public async Task<List<NotificationDto>> GetForUserAsync(int userId, string type)
         {
             var list = await _repository.GetByUserAsync(userId, type);

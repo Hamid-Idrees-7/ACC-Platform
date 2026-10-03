@@ -38,6 +38,22 @@ namespace Backend.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> TryAddAsync(UserPermission permission)
+        {
+            _context.UserPermissions.Add(permission);
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                // The unique (user, module, action) index: saved by a quick second click.
+                _context.Entry(permission).State = EntityState.Detached;
+                return false;
+            }
+        }
+
         public async Task UpdateAsync(UserPermission permission)
         {
             _context.UserPermissions.Update(permission);

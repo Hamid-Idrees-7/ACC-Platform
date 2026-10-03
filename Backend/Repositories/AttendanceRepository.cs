@@ -35,6 +35,32 @@ namespace Backend.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> TryAddAsync(Attendance attendance)
+        {
+            _context.Attendances.Add(attendance);
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                // The unique (assignment, date) index: someone saved this day first.
+                _context.Entry(attendance).State = EntityState.Detached;
+                return false;
+            }
+        }
+
+        public async Task<(DateTime First, DateTime Last)?> GetDateRangeAsync(int assignmentId)
+        {
+            var range = await _context.Attendances
+                .Where(a => a.AssignmentID == assignmentId)
+                .GroupBy(a => a.AssignmentID)
+                .Select(g => new { First = g.Min(a => a.Date), Last = g.Max(a => a.Date) })
+                .FirstOrDefaultAsync();
+            return range == null ? null : (range.First, range.Last);
+        }
+
         public async Task UpdateAsync(Attendance attendance)
         {
             _context.Attendances.Update(attendance);

@@ -3,10 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Models.Entities
 {
-    // A single salary payment for one pay line, in one month.
+    // One payment towards a pay line in one month. A line can be paid in parts, any time:
+    // what is due is what was earned so far minus what was paid.
     // Daily/Contract lines are per assignment (per project); Monthly is one per employee
     // per month (a monthly salary is owed by the company, not tied to a project).
-    // A row means paid. Undoing a payment deletes the row, so it goes back to Pending.
+    // Undoing a payment deletes the row, so that amount is due again.
     public class SalaryPayment
     {
         [Key]
@@ -28,8 +29,7 @@ namespace Backend.Models.Entities
         public int? AssignmentID { get; set; }
         public int? ProjectID { get; set; }
 
-        // What the system worked out, kept alongside the actual paid amount so any
-        // override (paid different from calculated) is always visible on the payslip.
+        // What the line had earned when this payment was made.
         [Column(TypeName = "decimal(18,2)")]
         public decimal CalculatedAmount { get; set; }
 

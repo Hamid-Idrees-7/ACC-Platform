@@ -28,12 +28,12 @@ namespace Backend.Services
         // Creates or updates one permission toggle.
         public async Task SetPermissionAsync(SetPermissionDto dto)
         {
-            var existing = await _repository.GetOneAsync(dto.UserID, dto.Module, dto.Action);
+            var existing = await _repository.GetOneAsync(dto.UserID, dto.Module.Trim(), dto.Action.Trim());
 
             if (existing == null)
             {
                 // First time this action is toggled, so add a row
-                await _repository.AddAsync(new UserPermission
+                var added = await _repository.TryAddAsync(new UserPermission
                 {
                     UserID = dto.UserID,
                     Module = dto.Module.Trim(),
@@ -42,14 +42,17 @@ namespace Backend.Services
                     RequiresApproval = dto.RequiresApproval,
                     UpdatedAt = DateTime.Now
                 });
+                if (added) return;
+
+                // Saved by a quick second click at the same moment: update that row instead.
+                existing = await _repository.GetOneAsync(dto.UserID, dto.Module.Trim(), dto.Action.Trim());
+                if (existing == null) return;
             }
-            else
-            {
-                existing.IsAllowed = dto.IsAllowed;
-                existing.RequiresApproval = dto.RequiresApproval;
-                existing.UpdatedAt = DateTime.Now;
-                await _repository.UpdateAsync(existing);
-            }
+
+            existing.IsAllowed = dto.IsAllowed;
+            existing.RequiresApproval = dto.RequiresApproval;
+            existing.UpdatedAt = DateTime.Now;
+            await _repository.UpdateAsync(existing);
         }
 
         // How many modules each user has at least one "View" access to (for the "X of 9 modules" count)

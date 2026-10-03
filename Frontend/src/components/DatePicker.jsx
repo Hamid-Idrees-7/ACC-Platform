@@ -1,19 +1,45 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { formatDate } from "../utils/dates";
 import "./DatePicker.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
+// "2026-10-02" read as a local date. new Date("2026-10-02") is UTC midnight,
+// which shows the day before for anyone west of UTC.
+const parseValue = (value) => {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+  return isNaN(d) ? null : d;
+};
+
+const toIso = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+// The visible area the picker sits in: the nearest parent that scrolls or clips
+// (eg a modal body), cut down to the window.
+const visibleBox = (el) => {
+  let top = 0, bottom = window.innerHeight;
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowY)) {
+      const r = p.getBoundingClientRect();
+      top = Math.max(top, r.top);
+      bottom = Math.min(bottom, r.bottom);
+      break;
+    }
+  }
+  return { top, bottom };
+};
+
 // Custom date picker. value and onChange use ISO date strings (YYYY-MM-DD).
 // id and invalid are optional: a form can jump to the picker and mark it red.
 function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true, id, invalid = false }) {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  const selected = value ? new Date(value) : null;
+  const selected = parseValue(value);
   const [viewMonth, setViewMonth] = useState((selected || new Date()).getMonth());
   const [viewYear, setViewYear] = useState((selected || new Date()).getFullYear());
   const ref = useRef(null);
+  const popupRef = useRef(null);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -22,6 +48,23 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Opens below by default. It flips up only when it fits above and not below;
+  // otherwise the modal or page scrolls just enough to show the whole calendar.
+  useLayoutEffect(() => {
+    const popup = popupRef.current;
+    if (!open || !popup || !ref.current) return;
+    const field = ref.current.getBoundingClientRect();
+    const box = visibleBox(ref.current);
+    const need = popup.offsetHeight + 8;
+    const up = box.bottom - field.bottom < need && field.top - box.top >= need;
+    popup.classList.toggle("up", up);
+    if (up) return;
+    // Once now and once after the open animation, which starts a few px higher.
+    const show = () => popup.scrollIntoView({ block: "nearest" });
+    show();
+    popup.addEventListener("animationend", show, { once: true });
+  }, [open]);
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -32,9 +75,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
     d && d.getDate() === day && d.getMonth() === viewMonth && d.getFullYear() === viewYear;
 
   const pickDay = (day) => {
-    // Local date, so there is no timezone shift.
-    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    onChange(iso);
+    onChange(toIso(viewYear, viewMonth, day));
     setOpen(false);
   };
 
@@ -51,15 +92,10 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  // Open upward when there isn't room below, so the popup never spills out of a modal.
   const toggleOpen = () => {
-    if (!open && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const popupHeight = 360;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDropUp(spaceBelow < popupHeight && rect.top > spaceBelow);
+    if (!open) {
       // Open on the chosen month (the value may have been set from outside)
-      if (selected && !isNaN(selected)) {
+      if (selected) {
         setViewMonth(selected.getMonth());
         setViewYear(selected.getFullYear());
       }
@@ -85,7 +121,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
       </button>
 
       {open && (
-        <div className={`dp-popup ${dropUp ? "up" : ""}`}>
+        <div className="dp-popup" ref={popupRef}>
           <div className="dp-head">
             <button type="button" className="dp-nav" onClick={prevMonth}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
@@ -128,7 +164,8 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
               const t = new Date();
               setViewMonth(t.getMonth());
               setViewYear(t.getFullYear());
-              pickDay(t.getDate());
+              onChange(toIso(t.getFullYear(), t.getMonth(), t.getDate()));
+              setOpen(false);
             }}>Today</button>
           </div>
         </div>

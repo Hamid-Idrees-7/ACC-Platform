@@ -90,12 +90,18 @@ namespace Backend.Services
                 return (false, "You can't approve your own material request.");
 
             var project = await _projectRepository.GetByIdAsync(request.ProjectID);
+            if (project == null) return (false, "This request's project no longer exists. Reject the request instead.");
+
+            // Claim it first, so two people approving (or approving and rejecting) at the same
+            // moment can't both act on it.
+            if (!await _repository.TryClaimAsync(requestId))
+                return (false, "This request has already been resolved.");
 
             // Issue the stock with the material module's own logic, which blocks negative
-            // stock and applies weighted average costing.
+            // stock, closed projects and a phase from another project.
             var result = await _materialService.IssueAsync(request.MaterialID, new IssueDto
             {
-                ProjectName = project?.Title ?? "",
+                ProjectName = project.Title,
                 ProjectID = request.ProjectID,
                 PhaseID = request.PhaseID,
                 Quantity = request.Quantity,
@@ -103,7 +109,10 @@ namespace Backend.Services
             });
 
             if (!result.Success)
+            {
+                await _repository.ReleaseClaimAsync(requestId);
                 return (false, result.Error);   // eg "Only 40 Bags available"
+            }
 
             request.Status = "Approved";
             request.ResolvedByUserID = adminUserId;
@@ -138,8 +147,12 @@ namespace Backend.Services
             if (request.RequestedByUserID == adminUserId)
                 return (false, "You can't reject your own material request.");
 
+            if (!await _repository.TryClaimAsync(requestId))
+                return (false, "This request has already been resolved.");
+
+            var reason = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
             request.Status = "Rejected";
-            request.ResolveNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+            request.ResolveNote = reason?.Length > 255 ? reason[..255] : reason;
             request.ResolvedByUserID = adminUserId;
             request.ResolvedAt = DateTime.Now;
             await _repository.UpdateAsync(request);

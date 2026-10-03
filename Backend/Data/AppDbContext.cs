@@ -102,6 +102,23 @@ namespace Backend.Data
                 .HasFilter("[Status] = 'Open'");
             modelBuilder.Entity<Alert>().HasIndex(a => new { a.Status, a.ResolvedAt });
 
+            // One record per thing, enforced by the database itself, so two saves at the same
+            // moment can never create a duplicate:
+            // one attendance row per assignment per day,
+            modelBuilder.Entity<Attendance>().HasIndex(a => new { a.AssignmentID, a.Date }).IsUnique();
+            // A salary line can be paid in parts, so its payments are only indexed for lookup.
+            modelBuilder.Entity<SalaryPayment>()
+                .HasIndex(p => new { p.EmployeeID, p.Year, p.Month, p.SourceType, p.AssignmentID });
+            // one row per permission toggle,
+            modelBuilder.Entity<UserPermission>().HasIndex(p => new { p.UserID, p.Module, p.Action }).IsUnique();
+            // unique invoice numbers and usernames.
+            modelBuilder.Entity<Invoice>().HasIndex(i => i.InvoiceNumber).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+
+            // Lookups that run on every page or every message.
+            modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserID, n.Type, n.IsRead });
+            modelBuilder.Entity<Inquiry>().HasIndex(i => new { i.Phone, i.CreatedAt });
+
             modelBuilder.Entity<Alert>()
                 .HasOne<User>()
                 .WithMany()

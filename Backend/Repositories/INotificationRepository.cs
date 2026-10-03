@@ -13,5 +13,8 @@ namespace Backend.Repositories
         Task<bool> DeleteAsync(int id, int userId);
         Task DeleteAllAsync(int userId, string type);
         Task DeleteAllForUserAsync(int userId);
+
+        // Read notifications older than this are removed, so the table doesn't grow forever.
+        Task PurgeReadAsync(DateTime before);
     }
 }

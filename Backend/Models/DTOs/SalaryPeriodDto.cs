@@ -36,11 +36,19 @@ namespace Backend.Models.DTOs
         public decimal Rate { get; set; }        // per-day rate, monthly salary, or contract amount
         public int PresentDays { get; set; }     // daily only
         public int AbsentDays { get; set; }       // daily only
-        public decimal CalculatedAmount { get; set; }
+        public int CoveredDays { get; set; }     // monthly only: days of the month the salary covers
+        public int MonthDays { get; set; }       // monthly only
+        public decimal CalculatedAmount { get; set; }   // earned so far (up to today)
 
-        public bool IsPaid { get; set; }
-        public decimal PaidAmount { get; set; }
+        // A line can be paid in parts, any time.
+        public decimal PaidAmount { get; set; }   // total of its payments
+        public decimal DueAmount { get; set; }    // earned minus paid, never below 0
+        public int PaymentsCount { get; set; }
+        public bool IsPaid { get; set; }          // something was paid and nothing is due
+
+        // The latest payment, which Undo removes
+        public int? PaymentID { get; set; }
+        public decimal LastPaidAmount { get; set; }
         public string? Note { get; set; }
-        public int? PaymentID { get; set; }       // used to undo the payment
     }
 }

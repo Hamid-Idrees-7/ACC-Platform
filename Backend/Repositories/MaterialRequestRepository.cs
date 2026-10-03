@@ -40,6 +40,21 @@ namespace Backend.Repositories
             return await _context.MaterialRequests.FindAsync(id);
         }
 
+        public async Task<bool> TryClaimAsync(int id)
+        {
+            var rows = await _context.MaterialRequests
+                .Where(r => r.RequestID == id && r.Status == "Pending")
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, "Processing"));
+            return rows == 1;
+        }
+
+        public async Task ReleaseClaimAsync(int id)
+        {
+            await _context.MaterialRequests
+                .Where(r => r.RequestID == id && r.Status == "Processing")
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, "Pending"));
+        }
+
         public async Task UpdateAsync(MaterialRequest request)
         {
             _context.MaterialRequests.Update(request);

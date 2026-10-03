@@ -269,8 +269,8 @@ function ProjectBilling() {
       showToast("Payment recorded.");
       closePay();
       await load({ quiet: true });
-    } catch {
-      showToast("Could not record payment.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not record payment.", "error");
     } finally {
       setBusy(false);
     }
@@ -283,8 +283,8 @@ function ProjectBilling() {
       showToast("Invoice deleted.", "warn");
       setDelInvoice(null);
       await load({ quiet: true });
-    } catch {
-      showToast("Could not delete invoice.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not delete invoice.", "error");
     } finally {
       setBusy(false);
     }

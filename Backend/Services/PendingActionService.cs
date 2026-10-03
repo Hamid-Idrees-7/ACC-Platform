@@ -16,6 +16,7 @@ namespace Backend.Services
         private readonly IProjectExpenseService _expenseService;
         private readonly IEmployeeService _employeeService;
         private readonly IMaterialService _materialService;
+        private readonly IAssignmentService _assignmentService;
         private readonly INotificationService _notificationService;
 
         public PendingActionService(
@@ -29,6 +30,7 @@ namespace Backend.Services
             IProjectExpenseService expenseService,
             IEmployeeService employeeService,
             IMaterialService materialService,
+            IAssignmentService assignmentService,
             INotificationService notificationService)
         {
             _repository = repository;
@@ -41,6 +43,7 @@ namespace Backend.Services
             _expenseService = expenseService;
             _employeeService = employeeService;
             _materialService = materialService;
+            _assignmentService = assignmentService;
             _notificationService = notificationService;
         }
 
@@ -193,7 +196,11 @@ namespace Backend.Services
                     return await _projectRepository.DeleteAsync(action.TargetID) ? null : gone;
                 }
                 case "Assignments":
+                {
+                    var blocker = await _assignmentService.GetDeleteBlockerAsync(action.TargetID);
+                    if (blocker != null) return blocker;
                     return await _assignmentRepository.DeleteAsync(action.TargetID) ? null : gone;
+                }
                 case "Expenses":
                 {
                     var blocker = await _expenseService.GetDeleteBlockerAsync(action.TargetID);

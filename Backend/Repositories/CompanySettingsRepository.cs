@@ -30,10 +30,28 @@ namespace Backend.Repositories
             }
             else
             {
+                // The invoice counter is not part of the settings form.
+                settings.LastInvoiceSeq = existing.LastInvoiceSeq;
                 _context.Entry(existing).CurrentValues.SetValues(settings);
             }
             await _context.SaveChangesAsync();
         }
+
+        public async Task<int> ReserveInvoiceSeqAsync(int atLeast)
+        {
+            var row = await _context.CompanySettings.FindAsync(CompanyOptions.RowId);
+            if (row == null)
+            {
+                // First invoice before the settings were ever saved: the row starts with the defaults.
+                row = new CompanySetting { UpdatedBy = null };
+                _context.CompanySettings.Add(row);
+            }
+            row.LastInvoiceSeq = Math.Max(row.LastInvoiceSeq, atLeast) + 1;
+            await _context.SaveChangesAsync();
+            return row.LastInvoiceSeq;
+        }
+
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
 
         public async Task SaveWeeklyOffAsync(string days)
         {

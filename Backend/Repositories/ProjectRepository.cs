@@ -43,10 +43,27 @@ namespace Backend.Repositories
             var project = await _context.Projects.FindAsync(id);
             if (project == null) return false;
 
+            // Field requests still waiting for this project can never be met now.
+            await _context.MaterialRequests
+                .Where(r => r.ProjectID == id && r.Status == "Pending")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.Status, "Rejected")
+                    .SetProperty(r => r.ResolveNote, "The project was deleted.")
+                    .SetProperty(r => r.ResolvedAt, DateTime.Now));
+
             // The FK cascade removes this project's phases with it.
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        // True when expenses, stock entries, invoice lines or material requests point to the phase.
+        public async Task<bool> PhaseInUseAsync(int phaseId)
+        {
+            return await _context.ProjectExpenses.AnyAsync(e => e.PhaseID == phaseId) ||
+                   await _context.MaterialTransactions.AnyAsync(t => t.PhaseID == phaseId) ||
+                   await _context.InvoiceItems.AnyAsync(i => i.PhaseID == phaseId) ||
+                   await _context.MaterialRequests.AnyAsync(r => r.PhaseID == phaseId);
         }
 
         public async Task<bool> AnyForClientAsync(int clientId)

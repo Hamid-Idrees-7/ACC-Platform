@@ -280,7 +280,7 @@ namespace Backend.Alerts
                 {
                     var checkFrom = new DateTime(period.Year, period.Month, 1).AddMonths(1).AddDays(dayOfMonth - 1);
                     if (_today < checkFrom) continue;
-                    var unpaid = period.Employees.Count(e => e.Lines.Any(l => !l.IsPaid && l.CalculatedAmount > 0));
+                    var unpaid = period.Employees.Count(e => e.Lines.Any(l => l.DueAmount > 0));
                     if (unpaid == 0) continue;
                     var label = new DateTime(period.Year, period.Month, 1).ToString("MMMM yyyy", En);
                     yield return Make(AlertTypes.SalaryPending, $"{period.Year:0000}-{period.Month:00}",

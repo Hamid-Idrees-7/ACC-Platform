@@ -85,6 +85,10 @@ namespace Backend.Models.Entities
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }
+
+        // The highest invoice number ever given out. Numbers only go up, so a deleted invoice's
+        // number is never used again.
+        public int LastInvoiceSeq { get; set; }
     }
 
     // Defaults and allowed values, shared by the entity, validation and the API.

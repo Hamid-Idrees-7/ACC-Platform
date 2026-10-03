@@ -120,7 +120,11 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
                 <li key={a.assignmentID}>{a.projectTitle} ({formatDate(a.startDate)}{a.endDate ? ` → ${formatDate(a.endDate)}` : " → ongoing"})</li>
               ))}
             </ul>
-            <span>You can still proceed.</span>
+            <span>
+              {wageType === "Monthly" && overlaps.some((a) => a.wageType === "Monthly")
+                ? "A monthly salary is paid once per person, not per project. This wage replaces the current monthly wage from its start date."
+                : "You can still proceed."}
+            </span>
           </div>
         )}
 

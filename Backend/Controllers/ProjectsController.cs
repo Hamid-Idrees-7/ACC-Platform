@@ -146,6 +146,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> DeletePhase(int phaseId)
         {
+            var blocker = await _service.GetPhaseDeleteBlockerAsync(phaseId);
+            if (blocker != null)
+                return BadRequest(new { message = blocker });
+
             var deleted = await _service.DeletePhaseAsync(phaseId);
             if (!deleted)
                 return NotFound(new { message = "Phase not found" });

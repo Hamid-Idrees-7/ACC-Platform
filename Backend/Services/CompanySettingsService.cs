@@ -29,7 +29,8 @@ namespace Backend.Services
             var saved = await _repository.GetAsync();
             var settings = saved ?? new CompanySetting();
             var dto = ToDto(settings);
-            dto.IsDefault = saved == null;
+            // A row made only by the invoice counter or the calendar is still "not set up".
+            dto.IsDefault = saved == null || saved.UpdatedBy == null;
             dto.UpdatedAt = saved?.UpdatedAt;
             dto.NextInvoiceNumber = await NextNumberAsync(settings);
             return dto;
@@ -43,10 +44,14 @@ namespace Backend.Services
             return dto;
         }
 
+        // Takes the next number for a new invoice. One at a time per database, so two invoices
+        // created together never get the same number.
         public async Task<string> NewInvoiceNumberAsync()
         {
+            using var _ = await Locks.ForInvoiceNumberAsync(_repository.DatabaseName);
             var settings = await _repository.GetAsync() ?? new CompanySetting();
-            return await NextNumberAsync(settings);
+            var seq = await _repository.ReserveInvoiceSeqAsync(await _billingRepository.MaxInvoiceSeqAsync());
+            return $"{settings.InvoicePrefix}-{seq:0000}";
         }
 
         public async Task<string> FormatMoneyAsync(decimal amount)
@@ -185,7 +190,7 @@ namespace Backend.Services
                 // Kept as it is: the weekly off days are edited in Settings > Calendar
                 WeeklyOffDays = current.WeeklyOffDays,
                 UpdatedAt = DateTime.Now,
-                UpdatedBy = Clean(updatedBy)
+                UpdatedBy = Clean(updatedBy) ?? "Admin"
             };
             await _repository.SaveAsync(settings);
             return (await GetAsync(), null, null);
@@ -213,7 +218,7 @@ namespace Backend.Services
 
         private async Task<string> NextNumberAsync(CompanySetting settings)
         {
-            int seq = await _billingRepository.MaxInvoiceSeqAsync() + 1;
+            int seq = Math.Max(settings.LastInvoiceSeq, await _billingRepository.MaxInvoiceSeqAsync()) + 1;
             return $"{settings.InvoicePrefix}-{seq:0000}";
         }
 

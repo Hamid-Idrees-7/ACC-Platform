@@ -272,6 +272,10 @@ namespace Backend.Services
             if (invoices.Count > 0)
                 return "This project has invoices, so it can't be deleted. Set its status to Cancelled instead, or delete those invoices first.";
 
+            // People placed on it carry attendance and pay history.
+            if ((await _assignmentRepository.GetByProjectAsync(id)).Count > 0)
+                return "This project has assignments, so it can't be deleted. Set its status to Cancelled instead, or remove those assignments first.";
+
             return null;
         }
 
@@ -335,6 +339,14 @@ namespace Backend.Services
         public async Task<bool> DeletePhaseAsync(int phaseId)
         {
             return await _repository.DeletePhaseAsync(phaseId);
+        }
+
+        // Expenses, stock issues, invoice lines and requests filed under a phase keep it in place.
+        public async Task<string?> GetPhaseDeleteBlockerAsync(int phaseId)
+        {
+            return await _repository.PhaseInUseAsync(phaseId)
+                ? "This phase has expenses, stock issues, invoice lines or material requests filed under it, so it can't be deleted. Rename it instead."
+                : null;
         }
 
         public async Task ReorderPhasesAsync(int projectId, List<int> phaseIds)

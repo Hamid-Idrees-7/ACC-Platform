@@ -47,6 +47,8 @@ namespace Backend.Controllers
             var now = DateTime.Now;
             if (year == 0) year = now.Year;
             if (month == 0) month = now.Month;
+            if (month < 1 || month > 12 || year < 2000 || year > 2100)
+                return BadRequest(new { message = "Choose a valid month." });
 
             var data = await _service.GetPeriodAsync(year, month, projectId);
             return Ok(data);
@@ -57,21 +59,19 @@ namespace Backend.Controllers
         [RequirePermission("Salaries", "Manage")]
         public async Task<IActionResult> Pay([FromBody] PaySalaryDto dto)
         {
-            var alreadyPaid = await _service.IsLinePaidAsync(dto);
-            var data = await _service.PayAsync(dto, GetUserId());
+            var (data, error) = await _service.PayAsync(dto, GetUserId());
+            if (data == null)
+                return BadRequest(new { message = error });
 
-            if (!alreadyPaid)
-            {
-                var name = await _service.EmployeeNameAsync(dto.EmployeeID);
-                var what = $"{name}'s salary for {SalaryService.PeriodLabel(dto.Year, dto.Month)}: {await _company.FormatMoneyAsync(dto.PaidAmount)}.";
-                await NotifyAsync("Salary paid", $"You paid {what}", "Salary paid", $"paid {what}",
-                    NotificationLinks.Salaries(dto.Year, dto.Month));
-            }
+            var name = await _service.EmployeeNameAsync(dto.EmployeeID);
+            var what = $"{name}'s salary for {SalaryService.PeriodLabel(dto.Year, dto.Month)}: {await _company.FormatMoneyAsync(Math.Round(dto.PaidAmount, 2))}.";
+            await NotifyAsync("Salary paid", $"You paid {what}", "Salary paid", $"paid {what}",
+                NotificationLinks.Salaries(dto.Year, dto.Month));
 
             return Ok(data);
         }
 
-        // DELETE: /api/salaries/5  = undo a payment (back to Pending)
+        // DELETE: /api/salaries/5  = undo a payment (its amount is due again)
         [HttpDelete("{paymentId}")]
         [RequirePermission("Salaries", "Manage")]
         public async Task<IActionResult> Revert(int paymentId)
@@ -83,7 +83,7 @@ namespace Backend.Controllers
 
             if (payment != null)
             {
-                var what = $"{payment.EmployeeName}'s salary payment for {SalaryService.PeriodLabel(payment.Year, payment.Month)} ({await _company.FormatMoneyAsync(payment.Amount)}). It is pending again.";
+                var what = $"{payment.EmployeeName}'s salary payment for {SalaryService.PeriodLabel(payment.Year, payment.Month)} ({await _company.FormatMoneyAsync(payment.Amount)}). That amount is due again.";
                 await NotifyAsync("Salary payment undone", $"You undid {what}", "Salary payment undone", $"undid {what}",
                     NotificationLinks.Salaries(payment.Year, payment.Month));
             }
@@ -96,6 +96,9 @@ namespace Backend.Controllers
         [RequirePermission("Salaries", "View")]
         public async Task<IActionResult> Payslip(int employeeId, [FromQuery] int year, [FromQuery] int month)
         {
+            if (month < 1 || month > 12 || year < 2000 || year > 2100)
+                return BadRequest(new { message = "Choose a valid month." });
+
             var slip = await _service.GetPayslipAsync(employeeId, year, month);
             if (slip == null)
                 return NotFound(new { message = "Employee not found" });

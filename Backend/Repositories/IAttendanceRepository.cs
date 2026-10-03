@@ -12,6 +12,13 @@ namespace Backend.Repositories
         Task<Attendance?> GetByAssignmentAndDateAsync(int assignmentId, DateTime date);
 
         Task AddAsync(Attendance attendance);
+
+        // Adds the row unless the same assignment already has one for that day (saved by someone
+        // else at the same moment); returns false then, so the caller updates it instead.
+        Task<bool> TryAddAsync(Attendance attendance);
+
+        // First and last marked day of an assignment, or null when it has none
+        Task<(DateTime First, DateTime Last)?> GetDateRangeAsync(int assignmentId);
         Task UpdateAsync(Attendance attendance);
 
         // Present-day count per assignment (daily labour = present days x wage)

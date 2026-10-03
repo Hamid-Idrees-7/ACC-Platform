@@ -129,8 +129,9 @@ function ProjectDetail() {
       setConfirmPhase(null);
       showToast("Phase deleted.", "error");
       refreshQuietly();
-    } catch {
-      showToast("Could not delete phase.", "error");
+    } catch (err) {
+      setConfirmPhase(null);
+      showToast(err.response?.data?.message || "Could not delete phase.", "error");
     }
   };
 
