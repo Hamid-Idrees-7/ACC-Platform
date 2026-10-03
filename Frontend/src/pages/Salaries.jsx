@@ -63,7 +63,10 @@ function Salaries() {
       const result = await salaryService.getPeriod(year, month, 0);
       if (period.current === asked) setData(result);
     }
-    catch { showToast("Could not load payroll.", "error"); }
+    catch {
+      // Never leave another month's payroll on screen under this month's name
+      if (period.current === asked) setData(null);
+    }
     finally { if (period.current === asked) setLoading(false); }
   };
   useLoader(() => { period.current = `${year}-${month}`; load(); }, `${year}-${month}`);
@@ -114,6 +117,11 @@ function Salaries() {
   );
   const paging = usePagination(ordered, { resetKey: `${year}-${month}|${statusFilter}|${search}` });
 
+  // Pay and payslips always use the month whose figures are on screen.
+  const shownYear = data?.year ?? year;
+  const shownMonth = data?.month ?? month;
+  const shownKey = `${shownYear}-${shownMonth}`;
+
   const openPay = (line) => { setPayModal(line); setFinalAmount(String(line.dueAmount ?? 0)); setNote(""); };
 
   // Anything from 1 rupee up to what is due; the rest stays due for later.
@@ -130,11 +138,12 @@ function Salaries() {
     setBusy(true);
     try {
       const updated = await salaryService.pay({
-        employeeID: payModal.employeeID, year, month,
+        employeeID: payModal.employeeID, year: shownYear, month: shownMonth,
         sourceType: payModal.sourceType, assignmentID: payModal.assignmentID ?? null,
         paidAmount: Number(finalAmount) || 0, note: note.trim() || null,
       });
-      setData(updated); setPayModal(null); showToast("Payment recorded.");
+      if (period.current === shownKey) setData(updated);
+      setPayModal(null); showToast("Payment recorded.");
     } catch (err) { showToast(err.response?.data?.message || "Could not record payment.", "error"); }
     finally { setBusy(false); }
   };
@@ -143,12 +152,13 @@ function Salaries() {
     setBusy(true);
     try {
       const updated = await salaryService.revert(confirmUndo.paymentID);
-      setData(updated); setConfirmUndo(null); showToast("Payment undone.", "warn");
+      if (period.current === shownKey) setData(updated);
+      setConfirmUndo(null); showToast("Payment undone.", "warn");
     } catch { showToast("Could not revert.", "error"); }
     finally { setBusy(false); }
   };
 
-  const openPayslip = (line) => navigate(`/dashboard/salaries/payslip/${line.employeeID}?year=${year}&month=${month}`);
+  const openPayslip = (line) => navigate(`/dashboard/salaries/payslip/${line.employeeID}?year=${shownYear}&month=${shownMonth}`);
 
   const renderCard = (line, i) => (
     <div key={`${line.employeeID}-${line.sourceType}-${line.assignmentID ?? "m"}-${i}`} className={`sal-card ${lineState(line)}`}>
@@ -205,6 +215,16 @@ function Salaries() {
     <DashboardLayout title="Salaries & Payroll">
       {loading ? (
         <SkeletonPage stats={4} rows={6} />
+      ) : !data ? (
+        <div className="sal-empty">
+          <h3>Could not load payroll</h3>
+          <p>{MONTHS[month - 1]} {year} could not be loaded. Check your connection and try again.</p>
+          <div className="sal-load-actions">
+            <button className="sal-thismonth" onClick={() => shiftMonth(-1)}>‹ Previous month</button>
+            <button className="sal-pay" onClick={load}>Retry</button>
+            <button className="sal-thismonth" onClick={() => shiftMonth(1)}>Next month ›</button>
+          </div>
+        </div>
       ) : (
         <>
           {/* Stat cards (clickable status filter) */}

@@ -20,8 +20,14 @@ export const setDatePrefs = ({ dateFormat, timeFormat } = {}) => {
 
 const pad = (n) => String(n).padStart(2, "0");
 
+// A plain "2026-10-02" is read as a local date. new Date("2026-10-02") would be UTC
+// midnight, which shows the day before for anyone west of UTC.
 const toDate = (value) => {
   if (!value && value !== 0) return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
   const d = value instanceof Date ? value : new Date(value);
   return isNaN(d) ? null : d;
 };
@@ -79,8 +85,19 @@ export const formatDateTime = (value, fallback = "") => {
 // Month and year for period pickers, eg "September 2026".
 export const formatMonthYear = (year, monthIndex) => `${MONTHS[monthIndex]} ${year}`;
 
-// Today as YYYY-MM-DD in local time (what the date inputs use).
-export const todayISO = () => {
-  const t = new Date();
-  return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
+// A date as YYYY-MM-DD in local time (what the date inputs use).
+export const toISODate = (value) => {
+  const d = toDate(value);
+  return d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "";
+};
+
+// Today as YYYY-MM-DD in local time.
+export const todayISO = () => toISODate(new Date());
+
+// A YYYY-MM-DD date moved by a number of days.
+export const addDaysISO = (iso, days) => {
+  const d = toDate(iso);
+  if (!d) return iso;
+  d.setDate(d.getDate() + days);
+  return toISODate(d);
 };

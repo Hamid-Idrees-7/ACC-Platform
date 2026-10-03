@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
@@ -46,6 +46,9 @@ function ProjectDetail() {
 
   const [addPhaseOpen, setAddPhaseOpen] = useState(false);
   const [phaseName, setPhaseName] = useState("");
+  // A ref as well as state: a double click or held Enter fires again before state updates
+  const addingPhase = useRef(false);
+  const [phaseBusy, setPhaseBusy] = useState(false);
   const [editPhase, setEditPhase] = useState(null); // phase object
   const [confirmPhase, setConfirmPhase] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
@@ -100,7 +103,9 @@ function ProjectDetail() {
 
   const addPhase = async (name) => {
     const value = (name ?? phaseName).trim();
-    if (!value) return;
+    if (!value || addingPhase.current) return;
+    addingPhase.current = true;
+    setPhaseBusy(true);
     try {
       await projectService.addPhase(project.projectID, value);
       setAddPhaseOpen(false);
@@ -109,6 +114,9 @@ function ProjectDetail() {
       refreshQuietly();
     } catch {
       showToast("Could not add phase.", "error");
+    } finally {
+      addingPhase.current = false;
+      setPhaseBusy(false);
     }
   };
 
@@ -447,13 +455,13 @@ function ProjectDetail() {
             <h3>Add New Phase</h3>
             <p className="pd-modal-sub">For luxury homes you can add phases like Swimming Pool, Basement, Lift, Home Theater, etc.</p>
             <label className="pd-modal-label">Phase Name</label>
-            <input type="text" maxLength={100} value={phaseName} onChange={(e) => setPhaseName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addPhase()} placeholder="e.g. Swimming Pool" autoFocus />
+            <input type="text" maxLength={100} value={phaseName} onChange={(e) => setPhaseName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.repeat && addPhase()} placeholder="e.g. Swimming Pool" autoFocus />
             <div className="pd-suggestions">
               {PHASE_SUGGESTIONS.map((s) => <button key={s} onClick={() => setPhaseName(s)}>{s}</button>)}
             </div>
             <div className="pd-modal-actions">
               <button className="pd-modal-cancel" data-close onClick={() => { setAddPhaseOpen(false); setPhaseName(""); }}>Cancel</button>
-              <button className="pd-modal-save" onClick={() => addPhase()}>Add Phase</button>
+              <button className="pd-modal-save" onClick={() => addPhase()} disabled={phaseBusy || !phaseName.trim()}>{phaseBusy ? "Adding..." : "Add Phase"}</button>
             </div>
           </div>
         </ModalOverlay>

@@ -282,6 +282,8 @@
     background: var(--color-surface); outline: none; width: 100%;
 }
 .pbl-item-row input:focus { border-color: var(--color-primary); }
+.pbl-item-row input.err { border-color: var(--color-error); }
+.pbl-item-err { margin: 6px 0 4px; font-size: 12.5px; font-weight: 600; color: var(--color-error); }
 .pbl-item-row .col-qty, .pbl-item-row .col-rate { text-align: right; }
 .pbl-item-row.expense input { border-color: var(--color-info-border); }                              /* blue = reimbursement line, intentional */
 .pbl-item-row.expense input[readonly] { background: var(--color-info-soft); color: var(--color-text-muted); cursor: not-allowed; }   /* intentional */

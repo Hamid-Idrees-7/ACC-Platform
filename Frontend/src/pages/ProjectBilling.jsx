@@ -212,9 +212,14 @@ function ProjectBilling() {
     return { subtotal, tax, total: subtotal + tax };
   }, [form, taxPercent]);
 
-  const canSubmitInvoice = form && form.items.some((it) => it.description.trim() && Number(it.rate) > 0);
+  // A line is kept when it has anything in it; a kept line needs a quantity above 0.
+  const keptLine = (it) => !!(it.expenseID || it.description.trim() || Number(it.rate) !== 0);
+  const badQty = (it) => keptLine(it) && !(Number(it.quantity) > 0);
+  const anyBadQty = !!form && form.items.some(badQty);
+  const canSubmitInvoice = form && !anyBadQty && form.items.some((it) => it.description.trim() && Number(it.rate) > 0);
 
   const submitInvoice = async () => {
+    if (!canSubmitInvoice || busy) return;
     setBusy(true);
     setFormError("");
     try {
@@ -225,10 +230,10 @@ function ProjectBilling() {
         taxAmount: formTotals.tax,
         notes: form.notes.trim() || null,
         items: form.items
-          .filter((it) => it.expenseID || it.description.trim() || Number(it.rate) !== 0)
+          .filter(keptLine)
           .map((it) => ({
             description: it.description.trim(),
-            quantity: Number(it.quantity) || 1,
+            quantity: Number(it.quantity),
             rate: Number(it.rate) || 0,
             phaseID: it.phaseID ?? null,
             expenseID: it.expenseID ?? null,
@@ -579,7 +584,7 @@ function ProjectBilling() {
                   return (
                     <div className={`pbl-item-row ${isExpense ? "expense" : ""}`} key={idx}>
                       <input className="col-desc" type="text" maxLength={200} placeholder="e.g. Foundation milestone" value={it.description} onChange={(e) => setItem(idx, "description", e.target.value)} title={isExpense ? "Reimbursement of a recoverable project expense" : undefined} />
-                      <input className="col-qty" type="number" min="0" step="any" value={it.quantity} readOnly={isExpense} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
+                      <input className={`col-qty ${badQty(it) ? "err" : ""}`} type="number" min="0" step="any" value={it.quantity} readOnly={isExpense} aria-invalid={badQty(it) || undefined} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
                       <input className="col-rate" type="number" min="0" step="any" placeholder="0" value={it.rate} readOnly={isExpense} onChange={(e) => setItem(idx, "rate", e.target.value)} />
                       <span className="col-amt pbl-item-amt">{money(amt)}</span>
                       <button className="col-x pbl-item-x" onClick={() => removeItem(idx)} disabled={form.items.length === 1} title="Remove line">
@@ -588,6 +593,7 @@ function ProjectBilling() {
                     </div>
                   );
                 })}
+                {anyBadQty && <div className="pbl-item-err">Quantity must be more than 0 on every line.</div>}
                 <button className="pbl-additem" onClick={addItem}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                   Add line

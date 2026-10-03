@@ -139,6 +139,17 @@
 
 /* Sections */
 .mka-section { margin-bottom: 24px; }
+.mka-section.stale { opacity: 0.5; pointer-events: none; }
+.mka-banner span { flex: 1; }
+.mka-retry {
+    padding: 6px 14px;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
 .mka-section-title { font-size: 12px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.6px; margin-bottom: 12px; }
 
 /* Worker row */

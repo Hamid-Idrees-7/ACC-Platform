@@ -16,6 +16,19 @@ const AuthContext = createContext();
 const TRANSITION_MIN_MS = 700;                                                       // shortest time the card stays up
 const TRANSITION_OUT_MS = 300;                                                       // how long the card takes to fade out
 
+// The company details cached for the signed-in person (see CompanyContext) are not left
+// behind in the browser after sign-out. Display preferences stay, so the theme is right
+// straight away on the next sign-in.
+const clearCompanyCache = () => {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("acc-company-"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // storage blocked: nothing to clear
+  }
+};
+
 // A message for the sign-in page (shown once, in this tab).
 const leaveNote = (note, demo) => {
   try {
@@ -62,12 +75,14 @@ const readSavedUser = () => {
     if (stored && token && expiresAt && expiresAt <= Date.now()) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      clearCompanyCache();
       leaveNote(stored.demo ? "Your demo session has ended. Thanks for exploring ACC!" : "Your session has expired. Please sign in again.", !!stored.demo);
     } else if (stored && token && firstTab && !stored.demo && !stored.keepSignedIn) {
       api.post("/auth/logout", { reason: null }, { timeout: 8000, headers: { Authorization: `Bearer ${token}` } })
         .catch(() => {});
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      clearCompanyCache();
       leaveNote("Session ended. Use \"Remember me\" to stay logged in.", false);
     } else if (stored) {
       if (firstTab && stored.keepSignedIn) localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
@@ -166,6 +181,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback((to = null) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    clearCompanyCache();
     setExitTo(typeof to === "string" ? to : null);
     setUser(null);
   }, []);

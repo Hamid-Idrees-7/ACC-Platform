@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { formatQty, money, amountInWords, currencySymbol } from "../utils/format";
 import { projectService } from "../services/projectService";
 import "./StockModal.css";
@@ -25,7 +25,10 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
   const total = qty * unitCost;
   const notEnough = isIssue && qty > current;
 
+  // Phases of the project picked last; a slower answer for an earlier pick is ignored.
+  const pickedProject = useRef("");
   const onProjectChange = async (pid) => {
+    pickedProject.current = pid;
     setProjectId(pid);
     setPhaseId("");
     setPhases([]);
@@ -33,9 +36,9 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
     if (pid) {
       try {
         const p = await projectService.getById(pid);
-        setPhases(p.phases || []);
+        if (pickedProject.current === pid) setPhases(p.phases || []);
       } catch {
-        setPhases([]);
+        if (pickedProject.current === pid) setPhases([]);
       }
     }
   };

@@ -28,7 +28,10 @@ const isAuthCall = (url) => /\/auth\/(login|logout|refresh|forgot-password|reset
 
 // Renews the token of the current session while the user keeps working. Only one renewal
 // runs at a time; every request waiting for it then uses the new token.
+// Near the session's hard limit (12 hours, or 30 days with Remember me) the server can't
+// renew any more; that token is then not tried again, so requests don't each wait on it.
 let renewing = null;
+let notRenewable = null;
 const renewToken = (token) => {
   if (!renewing) {
     renewing = axios
@@ -39,8 +42,10 @@ const renewToken = (token) => {
           localStorage.setItem("token", res.data.token);
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        // Refused by the server (not just offline): don't ask again for this token.
         // The request itself gets a 401 if the session is really over.
+        if (err.response) notRenewable = token;
       })
       .finally(() => {
         renewing = null;
@@ -56,7 +61,7 @@ api.interceptors.request.use(async (config) => {
   if (token && !isAuthCall(config.url) && !isDemoVisitor()) {
     const expiresAt = tokenExpiresAt(token);
     const left = expiresAt ? expiresAt - Date.now() : null;
-    if (left !== null && left > 0 && left < RENEW_BEFORE_MS) {
+    if (left !== null && left > 0 && left < RENEW_BEFORE_MS && token !== notRenewable) {
       await renewToken(token);
       token = localStorage.getItem("token");
     }

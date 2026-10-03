@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
@@ -6,7 +6,7 @@ import { useCompany } from "../context/CompanyContext";
 import { offDayOf } from "../config/companyConfig";
 import { attendanceService } from "../services/attendanceService";
 import DatePicker from "../components/DatePicker";
-import { formatDayMonth, formatDateShort } from "../utils/dates";
+import { formatDayMonth, formatDateShort, toISODate as toISO, todayISO, addDaysISO } from "../utils/dates";
 import { moneyCompact } from "../utils/format";
 import "./MarkAttendance.css";
 import { useLiveRefresh } from "../hooks/useLive";
@@ -16,8 +16,6 @@ import { useLoader } from "../hooks/useLoader";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
-const toISO = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
-const todayISO = () => toISO(new Date());
 
 // Compact money for wage tags: 75000 is 75.0K, 120000 is 1.20 Lac (or 120.0K)
 const money = (n) => moneyCompact(n);
@@ -36,6 +34,9 @@ function MarkAttendance() {
   const askedDate = params.get("date");
   const [date, setDate] = useState(/^\d{4}-\d{2}-\d{2}$/.test(askedDate || "") && askedDate <= todayISO() ? askedDate : todayISO());
   const [sheet, setSheet] = useState(null);
+  // The date the shown sheet belongs to. It differs from date while another day loads
+  // (or failed to load), and the old marks must never be saved onto the new day.
+  const [sheetDate, setSheetDate] = useState(null);
   const [marks, setMarks] = useState({});
   const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
@@ -52,16 +53,25 @@ function MarkAttendance() {
     return m;
   };
 
+  // Only the answer for the day asked last is used; an older, slower one is ignored.
+  const wanted = useRef("");
+  const showSheet = (data, d) => {
+    setSheet(data);
+    setSheetDate(d);
+    setMarks(marksFromSheet(data));
+  };
+
   const load = async (d) => {
+    const key = `${id}|${d}`;
+    wanted.current = key;
     setLoading(true);
     try {
       const data = await attendanceService.getSheet(id, d);
-      setSheet(data);
-      setMarks(marksFromSheet(data));
+      if (wanted.current === key) showSheet(data, d);
     } catch {
-      showToast("Could not load attendance.", "error");
+      if (wanted.current === key) showToast("Could not load attendance for this date.", "error");
     } finally {
-      setLoading(false);
+      if (wanted.current === key) setLoading(false);
     }
   };
 
@@ -70,10 +80,10 @@ function MarkAttendance() {
   const dirty = !!sheet && JSON.stringify(marks) !== JSON.stringify(marksFromSheet(sheet));
   useUnsavedChanges(dirty);
   useLiveRefresh(["attendance", "assignments", "calendar"], async () => {
+    const key = `${id}|${date}`;
     try {
       const data = await attendanceService.getSheet(id, date);
-      setSheet(data);
-      setMarks(marksFromSheet(data));
+      if (wanted.current === key) showSheet(data, date);
     } catch {
       return;
     }
@@ -82,10 +92,11 @@ function MarkAttendance() {
   const isToday = date === todayISO();
   const isFuture = date > todayISO();
   const readOnly = sheet?.isReadOnly || !canMark;
-  const canEdit = !readOnly && !isFuture;
+  const stale = sheetDate !== date;
+  const canEdit = !readOnly && !isFuture && !stale;
   const offDay = offDayOf(calendar, date);
 
-  const shiftDate = (days) => { const x = new Date(date); x.setDate(x.getDate() + days); setDate(toISO(x)); };
+  const shiftDate = (days) => setDate(addDaysISO(date, days));
 
   const allWorkers = useMemo(
     () => (sheet ? [...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])] : []),
@@ -118,15 +129,16 @@ function MarkAttendance() {
   };
 
   const save = async () => {
-    if (readOnly) return;
+    if (!canEdit || saving) return;
+    // Saved for the day these marks were made on
+    const day = sheetDate;
     setSaving(true);
     try {
       const entries = onSiteWorkers
         .filter((w) => marks[w.assignmentID]?.status)
         .map((w) => ({ assignmentID: w.assignmentID, status: marks[w.assignmentID].status, note: marks[w.assignmentID].note?.trim() || null }));
-      const updated = await attendanceService.save(id, date, entries);
-      setSheet(updated);
-      setMarks(marksFromSheet(updated));
+      const updated = await attendanceService.save(id, day, entries);
+      if (wanted.current === `${id}|${day}`) showSheet(updated, day);
       showToast("Attendance saved.");
     } catch {
       showToast("Could not save attendance.", "error");
@@ -258,11 +270,17 @@ function MarkAttendance() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
               Mark All Present
             </button>
-            <button className="mka-save" onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Attendance"}</button>
+            <button className="mka-save" onClick={save} disabled={saving || !canEdit}>{saving ? "Saving..." : "Save Attendance"}</button>
           </div>
         )}
       </div>
 
+      {stale && !loading && (
+        <div className="mka-banner warn">
+          <span>Attendance for {dmy(date)} could not be loaded. The list below is still {dmy(sheetDate)}.</span>
+          <button className="mka-retry" onClick={() => load(date)}>Retry</button>
+        </div>
+      )}
       {sheet.isReadOnly && (
         <div className="mka-banner cancel">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
@@ -287,13 +305,13 @@ function MarkAttendance() {
       )}
 
       {sheet.monthlyStaff.length > 0 && (
-        <div className="mka-section">
+        <div className={`mka-section ${stale ? "stale" : ""}`}>
           <div className="mka-section-title">MONTHLY STAFF</div>
           {sheet.monthlyStaff.map(renderWorker)}
         </div>
       )}
       {sheet.dailyWorkers.length > 0 && (
-        <div className="mka-section">
+        <div className={`mka-section ${stale ? "stale" : ""}`}>
           <div className="mka-section-title">DAILY WORKERS</div>
           {sheet.dailyWorkers.map(renderWorker)}
         </div>
