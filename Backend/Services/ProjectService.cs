@@ -443,6 +443,12 @@ namespace Backend.Services
             };
         }
 
+        // Just the phases, in order (without the money and team work of the full detail).
+        public async Task<List<ProjectPhaseDto>> GetPhaseListAsync(int projectId)
+        {
+            return (await _repository.GetPhasesAsync(projectId)).Select(PhaseDto).ToList();
+        }
+
         private static ProjectPhaseDto PhaseDto(ProjectPhase ph)
         {
             return new ProjectPhaseDto

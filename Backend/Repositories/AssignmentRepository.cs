@@ -56,6 +56,13 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<Assignment>> GetByEmployeeAsync(int employeeId)
+        {
+            return await _context.Assignments
+                .Where(a => a.EmployeeID == employeeId)
+                .ToListAsync();
+        }
+
         public async Task<bool> AnyForEmployeeAsync(int employeeId)
         {
             return await _context.Assignments.AnyAsync(a => a.EmployeeID == employeeId);

@@ -86,7 +86,7 @@ namespace Backend.Services
             return session;
         }
 
-        public async Task<SessionCheck> CheckAsync(int loginId, int userId)
+        public async Task<SessionCheck> CheckAsync(int loginId, int userId, bool markSeen = true)
         {
             var session = await _repository.GetAsync(loginId);
             if (session == null || session.UserID != userId || session.Result != LoginResults.SignedIn)
@@ -123,7 +123,7 @@ namespace Backend.Services
                 return SessionCheck.Ended(SessionEndReasons.TimedOut);
             }
 
-            if (session.LastSeenAt == null || now - session.LastSeenAt.Value >= SecurityOptions.LastSeenInterval)
+            if (markSeen && (session.LastSeenAt == null || now - session.LastSeenAt.Value >= SecurityOptions.LastSeenInterval))
             {
                 session.LastSeenAt = now;
                 await _repository.SaveChangesAsync();

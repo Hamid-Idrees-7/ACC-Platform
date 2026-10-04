@@ -108,6 +108,11 @@ namespace Backend.Alerts
             private readonly Dictionary<int, Material> _materials;
             private readonly Dictionary<int, Project> _projects;
 
+            // Grouped once per run, so per-project checks don't scan whole tables again
+            private readonly ILookup<int?, MaterialTransaction> _stockByProject;
+            private readonly ILookup<int, Invoice> _invoicesByProject;
+            private readonly ILookup<int, InvoicePayment> _paymentsByInvoice;
+
             public Finder(AlertFacts facts)
             {
                 _f = facts;
@@ -124,6 +129,9 @@ namespace Backend.Alerts
                 _attendance = facts.Attendance.GroupBy(a => a.AssignmentID).ToDictionary(g => g.Key, g => g.ToList());
                 _employees = facts.Employees.ToDictionary(e => e.EmployeeID);
                 _materials = facts.Materials.ToDictionary(m => m.MaterialID);
+                _stockByProject = facts.MaterialTransactions.ToLookup(t => t.ProjectID);
+                _invoicesByProject = facts.Invoices.ToLookup(i => i.ProjectID);
+                _paymentsByInvoice = facts.InvoicePayments.ToLookup(p => p.InvoiceID);
             }
 
             private static bool IsClosed(Project p) => p.Status is "Completed" or "Cancelled";
@@ -153,8 +161,8 @@ namespace Backend.Alerts
 
             private decimal ProjectCost(Project project)
             {
-                var materials = _f.MaterialTransactions
-                    .Where(t => t.Type == "Issue" && t.ProjectID == project.ProjectID)
+                var materials = _stockByProject[project.ProjectID]
+                    .Where(t => t.Type == "Issue")
                     .Sum(t => t.Quantity * t.Rate);
 
                 var assignments = _assignments.GetValueOrDefault(project.ProjectID) ?? new List<Assignment>();
@@ -234,7 +242,7 @@ namespace Backend.Alerts
             {
                 foreach (var p in _f.Projects.Where(p => p.Status == "Completed"))
                 {
-                    var invoices = _f.Invoices.Where(i => i.ProjectID == p.ProjectID).ToList();
+                    var invoices = _invoicesByProject[p.ProjectID].ToList();
                     var totalInvoiced = invoices.Sum(InvoiceTotal);
                     var reimbursed = invoices.Sum(i => _invoiceReimbursed.GetValueOrDefault(i.InvoiceID));
                     var contractInvoiced = totalInvoiced - reimbursed;
@@ -407,11 +415,12 @@ namespace Backend.Alerts
                 var times = new List<DateTime> { p.CreatedAt, p.UpdatedAt };
                 times.AddRange(PhasesOf(p.ProjectID).Select(ph => ph.UpdatedAt ?? ph.CreatedAt));
                 times.AddRange((_expenses.GetValueOrDefault(p.ProjectID) ?? new List<ProjectExpense>()).Select(e => e.UpdatedAt));
-                times.AddRange(_f.MaterialTransactions.Where(t => t.ProjectID == p.ProjectID).Select(t => t.CreatedAt));
-                var invoices = _f.Invoices.Where(i => i.ProjectID == p.ProjectID).ToList();
-                var invoiceIds = invoices.Select(i => i.InvoiceID).ToHashSet();
-                times.AddRange(invoices.Select(i => i.CreatedAt));
-                times.AddRange(_f.InvoicePayments.Where(pay => invoiceIds.Contains(pay.InvoiceID)).Select(pay => pay.CreatedAt));
+                times.AddRange(_stockByProject[p.ProjectID].Select(t => t.CreatedAt));
+                foreach (var invoice in _invoicesByProject[p.ProjectID])
+                {
+                    times.Add(invoice.CreatedAt);
+                    times.AddRange(_paymentsByInvoice[invoice.InvoiceID].Select(pay => pay.CreatedAt));
+                }
                 foreach (var a in _assignments.GetValueOrDefault(p.ProjectID) ?? new List<Assignment>())
                 {
                     times.Add(a.UpdatedAt);

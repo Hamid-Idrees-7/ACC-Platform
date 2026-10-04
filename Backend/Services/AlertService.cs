@@ -185,8 +185,8 @@ namespace Backend.Services
             {
                 var user = await _users.GetByIdAsync(userId);
                 if (user?.EmployeeID != null)
-                    sites = (await _assignments.GetAllAsync())
-                        .Where(a => a.EmployeeID == user.EmployeeID.Value && FieldService.IsCurrent(a, AppTime.Now.Date))
+                    sites = (await _assignments.GetByEmployeeAsync(user.EmployeeID.Value))
+                        .Where(a => FieldService.IsCurrent(a, AppTime.Now.Date))
                         .Select(a => a.ProjectID)
                         .ToHashSet();
             }

@@ -22,6 +22,13 @@ namespace Backend.Services
         public static Task<IDisposable> ForSalaryAsync(string database, int employeeId) =>
             AcquireAsync($"{database}:salary:{employeeId}");
 
+        // A demo database was dropped: its locks are no longer needed.
+        public static void Forget(string database)
+        {
+            foreach (var key in Gates.Keys.Where(k => k.StartsWith(database + ":", StringComparison.Ordinal)))
+                Gates.TryRemove(key, out _);
+        }
+
         private static async Task<IDisposable> AcquireAsync(string key)
         {
             var gate = Gates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));

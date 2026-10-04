@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Backend.Demo;
 using Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Auth
 {
@@ -21,8 +22,22 @@ namespace Backend.Auth
         public async Task InvokeAsync(HttpContext context, ISessionService sessions)
         {
             var endpoint = context.GetEndpoint();
+            var mainOnly = endpoint?.Metadata.GetMetadata<UseMainDatabaseAttribute>() != null;
+            var needsSignIn = endpoint?.Metadata.GetMetadata<IAuthorizeData>() != null &&
+                              endpoint.Metadata.GetMetadata<IAllowAnonymous>() == null;
+
+            // A signed-in endpoint pinned to the main database never takes a demo token.
+            if (mainOnly && needsSignIn && context.User.FindFirst(DemoClaims.Database) != null)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsJsonAsync(new { message = "This isn't available in the demo." });
+                return;
+            }
+
+            // Public endpoints pinned to the main database (sign-in, contact form, demo start)
+            // work with any token the browser still holds; everything else checks the session.
             var skip = context.User.Identity?.IsAuthenticated != true ||
-                       endpoint?.Metadata.GetMetadata<UseMainDatabaseAttribute>() != null ||
+                       (mainOnly && !needsSignIn) ||
                        endpoint?.Metadata.GetMetadata<SkipSessionCheckAttribute>() != null;
 
             if (!skip)

@@ -48,6 +48,10 @@ namespace Backend.Auth
 
         // Rate limit on the public contact form, per IP address.
         public const string ContactFormRateLimitPolicy = "contact-form";
+
+        // Requests per minute for each signed-in user (all endpoints together)
+        public const int RequestsPerMinute = 600;
+        public const int DemoRequestsPerMinute = 240;
     }
 
     // Marks an endpoint that works even when the caller's session has already ended

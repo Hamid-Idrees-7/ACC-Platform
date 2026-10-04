@@ -119,6 +119,19 @@ namespace Backend.Data
             modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserID, n.Type, n.IsRead });
             modelBuilder.Entity<Inquiry>().HasIndex(i => new { i.Phone, i.CreatedAt });
 
+            // Lookups by project, person, invoice, month and day, which grow with every year of data.
+            modelBuilder.Entity<Assignment>().HasIndex(a => a.ProjectID);
+            modelBuilder.Entity<Assignment>().HasIndex(a => a.EmployeeID);
+            modelBuilder.Entity<Attendance>().HasIndex(a => a.Date);
+            modelBuilder.Entity<Invoice>().HasIndex(i => i.ProjectID);
+            modelBuilder.Entity<InvoiceItem>().HasIndex(i => i.InvoiceID);
+            modelBuilder.Entity<InvoicePayment>().HasIndex(p => p.InvoiceID);
+            modelBuilder.Entity<MaterialTransaction>().HasIndex(t => t.ProjectID);
+            modelBuilder.Entity<MaterialRequest>().HasIndex(r => r.Status);
+            modelBuilder.Entity<SalaryPayment>().HasIndex(p => new { p.Year, p.Month });
+            // Old read notifications are cleared by date
+            modelBuilder.Entity<Notification>().HasIndex(n => new { n.IsRead, n.CreatedAt });
+
             modelBuilder.Entity<Alert>()
                 .HasOne<User>()
                 .WithMany()

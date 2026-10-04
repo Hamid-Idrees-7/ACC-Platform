@@ -19,8 +19,9 @@ namespace Backend.Services
         // A successful sign-in: creates the session the token will point to.
         Task<LoginActivity> StartAsync(User user, ClientInfo client, bool keepSignedIn);
 
-        // Is the session behind a token still valid? Also keeps "last active" up to date.
-        Task<SessionCheck> CheckAsync(int loginId, int userId);
+        // Is the session behind a token still valid? Also keeps "last active" up to date, unless
+        // markSeen is false (a background check that isn't the user doing anything).
+        Task<SessionCheck> CheckAsync(int loginId, int userId, bool markSeen = true);
 
         // Extends a session while the user keeps working; null when it can't be extended.
         Task<DateTime?> RenewAsync(int loginId, int userId);

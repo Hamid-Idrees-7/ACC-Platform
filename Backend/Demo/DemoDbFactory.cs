@@ -90,6 +90,10 @@ namespace Backend.Demo
             }
 
             await db.Database.ExecuteSqlRawAsync(drop, ct);
+
+            // Nothing of that visitor stays behind: live connections close, its locks go.
+            Backend.Live.LiveConnections.AbortDatabase(databaseName);
+            Backend.Services.Locks.Forget(databaseName);
         }
     }
 }

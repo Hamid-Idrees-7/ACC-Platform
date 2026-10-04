@@ -8,6 +8,14 @@ namespace Backend.Repositories
         // and to read the selected date's status in memory)
         Task<List<Attendance>> GetByAssignmentIdsAsync(List<int> assignmentIds);
 
+        // Every row between two days (inclusive)
+        Task<List<Attendance>> GetBetweenAsync(DateTime from, DateTime to);
+
+        // One day's rows for some assignments (tracked), and saving that day's changes in one go;
+        // false when another save added one of the same rows at that moment.
+        Task<List<Attendance>> GetForDayAsync(List<int> assignmentIds, DateTime date);
+        Task<bool> TrySaveDayAsync(List<Attendance> added);
+
         // One assignment's record for one date, used for the upsert
         Task<Attendance?> GetByAssignmentAndDateAsync(int assignmentId, DateTime date);
 

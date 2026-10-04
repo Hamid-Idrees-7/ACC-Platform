@@ -68,7 +68,9 @@ builder.Services.AddSingleton<StartupWarmUp>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<StartupWarmUp>());
 builder.Services.AddHostedService<DemoPoolService>();
 
+// Live connections close when the token runs out (MapHub below), and when the sign-in ends (LiveSessionSweeper).
 builder.Services.AddSignalR();
+builder.Services.AddHostedService<LiveSessionSweeper>();
 builder.Services.AddSingleton<LiveChangeInterceptor>();
 builder.Services.AddSingleton<AlertScheduler>();
 builder.Services.AddHostedService<AlertWorker>();
@@ -83,6 +85,24 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Every signed-in user: far more than a person clicking around needs, too few for a script
+    // looping on the API. A demo visitor gets less (their database shares the server).
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null || httpContext.Request.Path.StartsWithSegments("/hubs"))
+            return RateLimitPartition.GetNoLimiter("anonymous");
+
+        var demo = httpContext.User.FindFirst(DemoClaims.Database)?.Value;
+        return RateLimitPartition.GetSlidingWindowLimiter((demo ?? "main") + ":" + userId, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = demo != null ? SecurityOptions.DemoRequestsPerMinute : SecurityOptions.RequestsPerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0
+        });
+    });
     options.AddPolicy(DemoOptions.StartRateLimitPolicy, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: ClientPartition.For(httpContext),
@@ -143,7 +163,8 @@ builder.Services.AddRateLimiter(options =>
             SecurityOptions.PasswordResetRateLimitPolicy => "Too many password reset attempts from your network. Please wait a few minutes and try again.",
             SecurityOptions.PasswordCheckRateLimitPolicy => "Too many password attempts. Please wait a few minutes and try again.",
             SecurityOptions.ContactFormRateLimitPolicy => "You have sent several messages already. Please wait a few minutes, or call us instead.",
-            _ => "Too many demo attempts from your network. Please wait a few minutes and try again."
+            DemoOptions.StartRateLimitPolicy => "Too many demo attempts from your network. Please wait a few minutes and try again.",
+            _ => "You're going a bit fast. Please wait a moment and try again."
         };
         await context.HttpContext.Response.WriteAsJsonAsync(new { message }, cancellationToken);
     };
@@ -227,7 +248,12 @@ builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
-// JWT authentication
+// JWT authentication. The signing key comes from User Secrets or the host's settings, never
+// the repository; the app refuses to start without a strong one.
+var jwtKey = System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "");
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:Key is missing or too short. Set a random key of at least 32 characters in User Secrets (development) or the host's environment settings.");
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
@@ -243,8 +269,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(jwtKey)
     };
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
     {
@@ -285,6 +310,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // An unexpected error is logged on the server; the browser only gets a plain message.
+    app.UseExceptionHandler(error => error.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new { message = "Something went wrong. Please try again." });
+    }));
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 
@@ -304,6 +339,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
-app.MapHub<LiveHub>("/hubs/live");
+app.MapHub<LiveHub>("/hubs/live", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();

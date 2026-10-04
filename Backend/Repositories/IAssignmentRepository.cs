@@ -11,6 +11,7 @@ namespace Backend.Repositories
         Task<bool> DeleteAsync(int id);
 
         Task<List<Assignment>> GetByProjectAsync(int projectId);
+        Task<List<Assignment>> GetByEmployeeAsync(int employeeId);
         Task<bool> AnyForEmployeeAsync(int employeeId);
     }
 }

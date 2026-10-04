@@ -16,5 +16,6 @@ namespace Backend.Repositories
 
         // Read notifications older than this are removed, so the table doesn't grow forever.
         Task PurgeReadAsync(DateTime before);
+        Task PurgeAllAsync(DateTime before);
     }
 }

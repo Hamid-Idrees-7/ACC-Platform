@@ -40,9 +40,9 @@ namespace Backend.Services
             if (user?.EmployeeID == null) return new List<int>();
 
             var today = AppTime.Now.Date;
-            var assignments = await _assignmentRepository.GetAllAsync();
+            var assignments = await _assignmentRepository.GetByEmployeeAsync(user.EmployeeID.Value);
             return assignments
-                .Where(a => a.EmployeeID == user.EmployeeID.Value && IsCurrent(a, today))
+                .Where(a => IsCurrent(a, today))
                 .Select(a => a.ProjectID)
                 .Distinct()
                 .ToList();
@@ -149,8 +149,7 @@ namespace Backend.Services
             var myProjectIds = await GetMyProjectIdsAsync(userId);
             if (!myProjectIds.Contains(projectId)) return null;
 
-            var detail = await _projectService.GetProjectDetailAsync(projectId);
-            return detail?.Phases ?? new List<ProjectPhaseDto>();
+            return await _projectService.GetPhaseListAsync(projectId);
         }
 
         public async Task<List<ProjectPhaseDto>?> UpdateProgressAsync(int userId, int projectId, FieldProgressDto dto)
@@ -158,11 +157,8 @@ namespace Backend.Services
             var myProjectIds = await GetMyProjectIdsAsync(userId);
             if (!myProjectIds.Contains(projectId)) return null;
 
-            var detail = await _projectService.GetProjectDetailAsync(projectId);
-            if (detail == null) return null;
-
             // The phase must belong to this project, so an engineer can't touch another site's phase.
-            var phase = detail.Phases.FirstOrDefault(p => p.PhaseID == dto.PhaseID);
+            var phase = (await _projectService.GetPhaseListAsync(projectId)).FirstOrDefault(p => p.PhaseID == dto.PhaseID);
             if (phase == null) return null;
 
             int progress = Math.Clamp(dto.Progress, 0, 100);
@@ -170,8 +166,7 @@ namespace Backend.Services
 
             await _projectService.UpdatePhaseAsync(dto.PhaseID, new UpdatePhaseDto { Status = status, Progress = progress });
 
-            var updated = await _projectService.GetProjectDetailAsync(projectId);
-            return updated?.Phases ?? new List<ProjectPhaseDto>();
+            return await _projectService.GetPhaseListAsync(projectId);
         }
 
         public async Task<FieldRequestOptionsDto?> GetRequestOptionsAsync(int userId, int projectId)
@@ -180,14 +175,14 @@ namespace Backend.Services
             if (!myProjectIds.Contains(projectId)) return null;
 
             var materials = await _materialService.GetAllMaterialsAsync();
-            var detail = await _projectService.GetProjectDetailAsync(projectId);
+            var phases = await _projectService.GetPhaseListAsync(projectId);
             return new FieldRequestOptionsDto
             {
                 // Name, unit and stock only: purchase costs stay in the office.
                 Materials = materials.Where(m => m.Status == "Active")
                     .Select(m => { m.AvgCost = 0; m.StockValue = 0; return m; })
                     .ToList(),
-                Phases = detail?.Phases ?? new List<ProjectPhaseDto>()
+                Phases = phases
             };
         }
 
@@ -214,8 +209,7 @@ namespace Backend.Services
             // A chosen phase must belong to this project, not to another site.
             if (dto.PhaseID.HasValue)
             {
-                var detail = await _projectService.GetProjectDetailAsync(projectId);
-                var phaseBelongs = detail?.Phases.Any(p => p.PhaseID == dto.PhaseID.Value) ?? false;
+                var phaseBelongs = (await _projectService.GetPhaseListAsync(projectId)).Any(p => p.PhaseID == dto.PhaseID.Value);
                 if (!phaseBelongs)
                     return (null, "That phase doesn't belong to this site.");
             }

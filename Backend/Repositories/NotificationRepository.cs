@@ -58,6 +58,11 @@ namespace Backend.Repositories
             await _context.Notifications.Where(n => n.IsRead && n.CreatedAt < before).ExecuteDeleteAsync();
         }
 
+        public async Task PurgeAllAsync(DateTime before)
+        {
+            await _context.Notifications.Where(n => n.CreatedAt < before).ExecuteDeleteAsync();
+        }
+
         // Only if it belongs to this user
         public async Task<bool> MarkAsReadAsync(int id, int userId)
         {

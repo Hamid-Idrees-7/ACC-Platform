@@ -6,6 +6,7 @@ namespace Backend.Services
     {
         Task<List<ProjectDto>> GetAllProjectsAsync();
         Task<ProjectDetailDto?> GetProjectDetailAsync(int id);
+        Task<List<ProjectPhaseDto>> GetPhaseListAsync(int projectId);
         Task<ProjectDto> CreateProjectAsync(CreateProjectDto dto);
         Task<ProjectDto?> UpdateProjectAsync(int id, CreateProjectDto dto);
         Task<bool> DeleteProjectAsync(int id);

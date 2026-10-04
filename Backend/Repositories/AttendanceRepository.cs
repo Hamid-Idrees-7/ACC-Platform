@@ -22,6 +22,43 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
+        // Every row from one day to another (inclusive), read with the date index.
+        public async Task<List<Attendance>> GetBetweenAsync(DateTime from, DateTime to)
+        {
+            var first = from.Date;
+            var last = to.Date;
+            return await _context.Attendances.AsNoTracking()
+                .Where(a => a.Date >= first && a.Date <= last)
+                .ToListAsync();
+        }
+
+        // The rows of one day for some assignments, tracked so they can be changed and saved together.
+        public async Task<List<Attendance>> GetForDayAsync(List<int> assignmentIds, DateTime date)
+        {
+            if (assignmentIds.Count == 0) return new List<Attendance>();
+            var day = date.Date;
+            return await _context.Attendances
+                .Where(a => a.Date == day && assignmentIds.Contains(a.AssignmentID))
+                .ToListAsync();
+        }
+
+        // Saves the changed rows of a day and the new ones in one go. False if another save
+        // added one of the same rows at that moment; nothing is saved then.
+        public async Task<bool> TrySaveDayAsync(List<Attendance> added)
+        {
+            _context.Attendances.AddRange(added);
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                foreach (var row in added) _context.Entry(row).State = EntityState.Detached;
+                return false;
+            }
+        }
+
         public async Task<Attendance?> GetByAssignmentAndDateAsync(int assignmentId, DateTime date)
         {
             var day = date.Date;

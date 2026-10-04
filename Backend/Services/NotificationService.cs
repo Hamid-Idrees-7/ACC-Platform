@@ -51,9 +51,11 @@ namespace Backend.Services
                         .ToHashSet();
         }
 
+        // Read ones after 90 days, and anything after a year (eg activity nobody opened).
         public async Task PurgeOldAsync()
         {
             await _repository.PurgeReadAsync(AppTime.Now.AddDays(-90));
+            await _repository.PurgeAllAsync(AppTime.Now.AddDays(-365));
         }
 
         public async Task<List<NotificationDto>> GetForUserAsync(int userId, string type)

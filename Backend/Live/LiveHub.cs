@@ -16,7 +16,15 @@ namespace Backend.Live
             if (int.TryParse(Context.User?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 await Groups.AddToGroupAsync(Context.ConnectionId, LiveGroups.User(database, userId));
 
+            // Closed again when this sign-in ends (see LiveSessionSweeper)
+            LiveConnections.Add(Context);
             await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            LiveConnections.Remove(Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
         }
     }
 

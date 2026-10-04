@@ -52,10 +52,10 @@ namespace Backend.Services
             var projectNames = projects.ToDictionary(p => p.ProjectID, p => p.Title);
 
             // Daily attendance for this month, grouped per assignment.
-            var dailyIds = assignments.Where(a => a.WageType == "Daily").Select(a => a.AssignmentID).ToList();
-            var attendance = await _attendanceRepository.GetByAssignmentIdsAsync(dailyIds);
+            var dailyIds = assignments.Where(a => a.WageType == "Daily").Select(a => a.AssignmentID).ToHashSet();
+            var attendance = await _attendanceRepository.GetBetweenAsync(monthStart, monthEnd);
             var attByAssignment = attendance
-                .Where(r => r.Date.Date >= monthStart && r.Date.Date <= monthEnd)
+                .Where(r => dailyIds.Contains(r.AssignmentID))
                 .GroupBy(r => r.AssignmentID)
                 .ToDictionary(g => g.Key, g => g.ToList());
 

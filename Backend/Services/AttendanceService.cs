@@ -168,11 +168,41 @@ namespace Backend.Services
                 foreach (var employeeId in dailyPeople)
                     gates.Add(await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, employeeId));
 
-                var paidError = await PaidDaysErrorAsync(entries, day, NameOf);
+                var existing = (await _attendanceRepository.GetForDayAsync(entries.Select(e => e.A.AssignmentID).ToList(), day))
+                    .ToDictionary(r => r.AssignmentID);
+
+                var paidError = await PaidDaysErrorAsync(entries, existing, day, NameOf);
                 if (paidError != null) return (null, paidError);
 
+                // The whole sheet in one save
+                var added = new List<Attendance>();
                 foreach (var (a, status, note) in entries)
-                    await SaveOneAsync(a.AssignmentID, day, status, note);
+                {
+                    if (existing.TryGetValue(a.AssignmentID, out var row))
+                    {
+                        if (row.Status == status && row.Note == note) continue;
+                        row.Status = status;
+                        row.Note = note;
+                        row.UpdatedAt = AppTime.Now;
+                    }
+                    else
+                    {
+                        added.Add(new Attendance
+                        {
+                            AssignmentID = a.AssignmentID,
+                            Date = day,
+                            Status = status,
+                            Note = note,
+                            CreatedAt = AppTime.Now,
+                            UpdatedAt = AppTime.Now
+                        });
+                    }
+                }
+
+                // Someone saved the same day at the same moment: go row by row instead.
+                if (!await _attendanceRepository.TrySaveDayAsync(added))
+                    foreach (var (a, status, note) in entries)
+                        await SaveOneAsync(a.AssignmentID, day, status, note);
             }
             finally
             {
@@ -183,15 +213,14 @@ namespace Backend.Services
         }
 
         // A Present day turning Absent in a month whose pay was already made for it.
-        private async Task<string?> PaidDaysErrorAsync(List<(Assignment A, string Status, string? Note)> entries, DateTime day,
-            Func<Assignment, string> nameOf)
+        private async Task<string?> PaidDaysErrorAsync(List<(Assignment A, string Status, string? Note)> entries,
+            Dictionary<int, Attendance> existing, DateTime day, Func<Assignment, string> nameOf)
         {
-            var turningAbsent = new List<Assignment>();
-            foreach (var (a, status, _) in entries.Where(e => e.A.WageType == "Daily" && e.Status == "Absent"))
-            {
-                var existing = await _attendanceRepository.GetByAssignmentAndDateAsync(a.AssignmentID, day);
-                if (existing?.Status == "Present") turningAbsent.Add(a);
-            }
+            var turningAbsent = entries
+                .Where(e => e.A.WageType == "Daily" && e.Status == "Absent" &&
+                            existing.TryGetValue(e.A.AssignmentID, out var row) && row.Status == "Present")
+                .Select(e => e.A)
+                .ToList();
             if (turningAbsent.Count == 0) return null;
 
             var monthStart = new DateTime(day.Year, day.Month, 1);
