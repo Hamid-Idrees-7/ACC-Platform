@@ -78,7 +78,7 @@ namespace Backend.Services
                 return LoginResult.Fail(403, "Your account is disabled. Please contact administration.");
             }
 
-            user.LastLogin = DateTime.Now;
+            user.LastLogin = AppTime.Now;
             await _context.SaveChangesAsync();
 
             var session = await _sessions.StartAsync(user, client, dto.KeepSignedIn);
@@ -86,7 +86,7 @@ namespace Backend.Services
 
             await _notificationService.NotifyPersonalAsync(
                 user.UserID, LoginNotification.Category, LoginNotification.Title,
-                LoginNotification.Message(DateTime.Now));
+                LoginNotification.Message(AppTime.Now));
 
             await _alerts.CheckNewDeviceAsync(user, client, session.LoginActivityID);
 

@@ -49,8 +49,8 @@ namespace Backend.Models.Entities
 
         public DateTime? LastLogin { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 }

@@ -14,6 +14,10 @@ namespace Backend.Services
         private readonly IAttendanceRepository _attendanceRepository;
         private readonly IProjectExpenseRepository _expenseRepository;
         private readonly IBillingRepository _billingRepository;
+        private readonly IAssignmentService _assignmentService;
+        private readonly IMaterialRequestService _materialRequestService;
+
+        private const decimal MaxBudget = 1_000_000_000_000m;
 
         private static readonly string[] StandardPhases =
         {
@@ -40,7 +44,9 @@ namespace Backend.Services
             IEmployeeRepository employeeRepository,
             IAttendanceRepository attendanceRepository,
             IProjectExpenseRepository expenseRepository,
-            IBillingRepository billingRepository)
+            IBillingRepository billingRepository,
+            IAssignmentService assignmentService,
+            IMaterialRequestService materialRequestService)
         {
             _repository = repository;
             _clientRepository = clientRepository;
@@ -50,6 +56,8 @@ namespace Backend.Services
             _attendanceRepository = attendanceRepository;
             _expenseRepository = expenseRepository;
             _billingRepository = billingRepository;
+            _assignmentService = assignmentService;
+            _materialRequestService = materialRequestService;
         }
 
         public async Task<List<ProjectDto>> GetAllProjectsAsync()
@@ -204,12 +212,12 @@ namespace Backend.Services
                 AreaSize = dto.AreaSize.Trim(),
                 Location = dto.Location.Trim(),
                 Description = dto.Description?.Trim(),
-                StartDate = dto.StartDate,
-                ExpectedEndDate = dto.ExpectedEndDate,
-                Budget = dto.Budget,
+                StartDate = dto.StartDate?.Date,
+                ExpectedEndDate = dto.ExpectedEndDate?.Date,
+                Budget = Math.Round(dto.Budget, 2),
                 Status = "In Progress",
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             var created = await _repository.AddAsync(project);
@@ -223,7 +231,7 @@ namespace Backend.Services
                     OrderNo = i + 1,
                     Status = "Pending",
                     Progress = 0,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = AppTime.Now
                 }).ToList();
                 await _repository.AddPhasesAsync(phases);
             }
@@ -242,10 +250,10 @@ namespace Backend.Services
             project.AreaSize = dto.AreaSize.Trim();
             project.Location = dto.Location.Trim();
             project.Description = dto.Description?.Trim();
-            project.StartDate = dto.StartDate;
-            project.ExpectedEndDate = dto.ExpectedEndDate;
-            project.Budget = dto.Budget;
-            project.UpdatedAt = DateTime.Now;
+            project.StartDate = dto.StartDate?.Date;
+            project.ExpectedEndDate = dto.ExpectedEndDate?.Date;
+            project.Budget = Math.Round(dto.Budget, 2);
+            project.UpdatedAt = AppTime.Now;
 
             await _repository.UpdateAsync(project);
             return await ToDtoAsync(project);
@@ -279,19 +287,52 @@ namespace Backend.Services
             return null;
         }
 
-        public async Task<ProjectDetailDto?> ChangeStatusAsync(int id, string status)
+        // The rules for a new or edited project. Null when it is fine; otherwise the reason.
+        public async Task<string?> CheckAsync(CreateProjectDto dto, int? id)
         {
-            var newStatus = status?.Trim() ?? "";
-            if (!AllowedStatuses.Contains(newStatus)) return null;
+            var client = await _clientRepository.GetByIdAsync(dto.ClientID);
+            if (client == null) return "Choose a client.";
+
+            var existing = id == null ? null : await _repository.GetByIdAsync(id.Value);
+            if ((existing == null || existing.ClientID != dto.ClientID) && client.Status != "Active")
+                return $"{client.FullName} is inactive. Set the client Active first, or choose another client.";
+
+            var today = AppTime.Today;
+            if (dto.StartDate is DateTime s && (s.Year < 2000 || s.Date > today.AddYears(10)))
+                return "Enter a valid start date.";
+            if (dto.ExpectedEndDate is DateTime e && (e.Year < 2000 || e.Date > today.AddYears(20)))
+                return "Enter a valid expected end date.";
+            if (dto.StartDate != null && dto.ExpectedEndDate != null && dto.ExpectedEndDate.Value.Date < dto.StartDate.Value.Date)
+                return "The expected end date can't be before the start date.";
+
+            if (dto.Budget < 0) return "The budget can't be negative.";
+            if (dto.Budget > MaxBudget) return "The budget is too large.";
+            return null;
+        }
+
+        // Completed and Cancelled close the project: its open assignments end today (so pay and
+        // site access stop) and waiting material requests are closed. Either can be reopened
+        // later; the ended assignments stay ended and people are assigned again.
+        public async Task<ProjectStatusResult> ChangeStatusAsync(int id, string status)
+        {
+            var newStatus = AllowedStatuses.FirstOrDefault(s => s.Equals(status?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (newStatus == null) return new ProjectStatusResult(null, "Choose a valid status.", 0, 0);
 
             var project = await _repository.GetByIdAsync(id);
-            if (project == null) return null;
+            if (project == null) return new ProjectStatusResult(null, null, 0, 0);
 
             project.Status = newStatus;
-            project.UpdatedAt = DateTime.Now;
+            project.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(project);
 
-            return await GetProjectDetailAsync(id);
+            int ended = 0, closed = 0;
+            if (newStatus == "Completed" || newStatus == "Cancelled")
+            {
+                ended = await _assignmentService.EndOpenAsync(projectId: id);
+                closed = await _materialRequestService.CloseForProjectAsync(id, $"The project was marked {newStatus.ToLower()}.");
+            }
+
+            return new ProjectStatusResult(await GetProjectDetailAsync(id), null, ended, closed);
         }
 
         public async Task<ProjectPhaseDto?> AddPhaseAsync(int projectId, CreatePhaseDto dto)
@@ -309,7 +350,7 @@ namespace Backend.Services
                 OrderNo = nextOrder,
                 Status = "Pending",
                 Progress = 0,
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             };
             await _repository.AddPhaseAsync(phase);
             return PhaseDto(phase);
@@ -322,7 +363,7 @@ namespace Backend.Services
 
             phase.Status = string.IsNullOrWhiteSpace(dto.Status) ? phase.Status : dto.Status.Trim();
             phase.Progress = Math.Clamp(dto.Progress, 0, 100);
-            phase.UpdatedAt = DateTime.Now;
+            phase.UpdatedAt = AppTime.Now;
 
             await _repository.UpdatePhaseAsync(phase);
             return PhaseDto(phase);

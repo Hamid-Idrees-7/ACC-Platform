@@ -48,6 +48,14 @@ namespace Backend.Repositories
             // The FK cascade removes this material's transactions with it.
             _context.Materials.Remove(material);
             await _context.SaveChangesAsync();
+
+            // Field requests still waiting for it can never be met now.
+            await _context.MaterialRequests
+                .Where(r => r.MaterialID == id && r.Status == "Pending")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.Status, "Rejected")
+                    .SetProperty(r => r.ResolveNote, "This material was removed.")
+                    .SetProperty(r => r.ResolvedAt, AppTime.Now));
             return true;
         }
 

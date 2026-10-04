@@ -21,7 +21,7 @@ namespace Backend.Models.Entities
         [Column(TypeName = "date")]
         public DateTime EndDate { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
 
         [MaxLength(100)]
         public string? CreatedBy { get; set; }

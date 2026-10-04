@@ -39,7 +39,7 @@ namespace Backend.Services
                 return (false, "Please enter a valid phone number.");
 
             // Block the phone number if it sent too many messages in the last few minutes.
-            var since = DateTime.Now.AddMinutes(-RateLimitMinutes);
+            var since = AppTime.Now.AddMinutes(-RateLimitMinutes);
             var recentCount = await _repository.CountRecentByPhoneAsync(dto.Phone.Trim(), since);
             if (recentCount >= MaxMessagesPerWindow)
             {
@@ -54,7 +54,7 @@ namespace Backend.Services
                 Service = dto.Service?.Trim(),
                 Message = dto.Message.Trim(),
                 IsRead = false,
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             };
 
             await _repository.AddAsync(inquiry);

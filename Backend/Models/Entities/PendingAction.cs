@@ -43,7 +43,7 @@ namespace Backend.Models.Entities
         [MaxLength(300)]
         public string? Reason { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
         public DateTime? ResolvedAt { get; set; }
     }
 }

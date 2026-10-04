@@ -53,7 +53,7 @@ namespace Backend.Services
             {
                 var projInvoices = invoices.Where(i => i.ProjectID == p.ProjectID).ToList();
 
-                decimal billed = 0m, received = 0m;
+                decimal billed = 0m, received = 0m, reimbursed = 0m;
                 int paidCount = 0, overdueCount = 0;
 
                 foreach (var inv in projInvoices)
@@ -66,6 +66,7 @@ namespace Backend.Services
 
                     billed += total;
                     received += paid;
+                    reimbursed += itemsByInvoice.GetValueOrDefault(inv.InvoiceID)?.Where(x => x.ExpenseID.HasValue).Sum(x => x.Amount) ?? 0m;
 
                     if (status == "Paid") { paidCount++; overview.PaidCount++; overview.PaidAmount += total; }
                     else
@@ -89,6 +90,7 @@ namespace Backend.Services
                     PaidCount = paidCount,
                     OverdueCount = overdueCount,
                     Billed = billed,
+                    ContractBilled = billed - reimbursed,
                     Received = received,
                     Outstanding = billed - received
                 });
@@ -193,7 +195,7 @@ namespace Backend.Services
             var project = await _projectRepository.GetByIdAsync(dto.ProjectID);
             if (project == null) return (null, "Project not found.");
 
-            var issueDate = dto.IssueDate == default ? DateTime.Now : dto.IssueDate;
+            var issueDate = dto.IssueDate == default ? AppTime.Now : dto.IssueDate;
             var headerError = CheckHeader(dto, issueDate);
             if (headerError != null) return (null, headerError);
 
@@ -209,7 +211,7 @@ namespace Backend.Services
                 DueDate = dto.DueDate,
                 TaxAmount = Math.Round(dto.TaxAmount, 2),
                 Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim(),
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             };
 
             return (await _billingRepository.AddInvoiceAsync(invoice, items!), null);
@@ -270,16 +272,16 @@ namespace Backend.Services
             var invoice = await _billingRepository.GetInvoiceByIdAsync(dto.InvoiceID);
             if (invoice == null) return (false, null);
 
-            if (dto.Amount <= 0) return (true, "Enter an amount greater than zero.");
             var amount = Math.Round(dto.Amount, 2);
+            if (amount <= 0) return (true, "Enter an amount greater than zero.");
 
             var method = string.IsNullOrWhiteSpace(dto.Method) ? "Cash" : dto.Method.Trim();
             if (method.Length > 30) return (true, "The payment method can be at most 30 characters.");
             var reference = string.IsNullOrWhiteSpace(dto.Reference) ? null : dto.Reference.Trim();
             if (reference?.Length > 255) return (true, "The reference can be at most 255 characters.");
 
-            var paymentDate = dto.PaymentDate == default ? DateTime.Now : dto.PaymentDate;
-            if (paymentDate.Year < 2000 || paymentDate.Date > DateTime.Now.Date.AddDays(1))
+            var paymentDate = dto.PaymentDate == default ? AppTime.Now : dto.PaymentDate;
+            if (paymentDate.Year < 2000 || paymentDate.Date > AppTime.Now.Date.AddDays(1))
                 return (true, "Enter a valid payment date (not in the future).");
 
             var ids = new List<int> { dto.InvoiceID };
@@ -297,7 +299,7 @@ namespace Backend.Services
                 PaymentDate = paymentDate,
                 Method = method,
                 Reference = reference,
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             });
             return (true, null);
         }
@@ -341,7 +343,7 @@ namespace Backend.Services
                 Remaining = invoiceDto.Due,
                 Notes = invoice.Notes,
                 Payments = invoiceDto.Payments,
-                GeneratedAt = DateTime.Now
+                GeneratedAt = AppTime.Now
             };
         }
 
@@ -419,10 +421,11 @@ namespace Backend.Services
                 // A normal line: a positive quantity, a rate that isn't negative, sensible sizes.
                 var text = (i.Description ?? string.Empty).Trim();
                 if (text.Length > 200) return (null, "A line description can be at most 200 characters.");
-                if (i.Quantity <= 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" needs a quantity greater than zero.");
-                if (i.Rate < 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" can't have a negative rate.");
+                // Rounded first, so 0.004 can't pass the check and be saved as 0
                 var qty = Math.Round(i.Quantity, 2);
                 var rate = Math.Round(i.Rate, 2);
+                if (qty <= 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" needs a quantity greater than zero.");
+                if (rate < 0) return (null, $"\"{(text.Length > 0 ? text : "A line")}\" can't have a negative rate.");
                 if (qty > 1_000_000_000m || rate > MaxAmount || qty * rate > MaxAmount)
                     return (null, $"\"{(text.Length > 0 ? text : "A line")}\" is too large.");
                 if (i.PhaseID != null && !phaseIds.Contains(i.PhaseID.Value))
@@ -487,7 +490,7 @@ namespace Backend.Services
         private static string DeriveStatus(decimal total, decimal paid, decimal due, DateTime? dueDate)
         {
             if (total > 0 && due <= 0) return "Paid";
-            if (due > 0 && dueDate.HasValue && dueDate.Value.Date < DateTime.Now.Date) return "Overdue";
+            if (due > 0 && dueDate.HasValue && dueDate.Value.Date < AppTime.Now.Date) return "Overdue";
             if (paid > 0) return "Partial";
             return "Unpaid";
         }

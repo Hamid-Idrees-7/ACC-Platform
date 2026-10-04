@@ -54,7 +54,7 @@ namespace Backend.Services
                 Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
                 RequestedByUserID = userId,
                 Status = "Pending",
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             });
 
             var mapped = await MapManyAsync(new List<MaterialRequest> { request });
@@ -99,14 +99,24 @@ namespace Backend.Services
 
             // Issue the stock with the material module's own logic, which blocks negative
             // stock, closed projects and a phase from another project.
-            var result = await _materialService.IssueAsync(request.MaterialID, new IssueDto
+            StockResult result;
+            try
             {
-                ProjectName = project.Title,
-                ProjectID = request.ProjectID,
-                PhaseID = request.PhaseID,
-                Quantity = request.Quantity,
-                Note = "Issued from an approved field request."
-            });
+                result = await _materialService.IssueAsync(request.MaterialID, new IssueDto
+                {
+                    ProjectName = project.Title,
+                    ProjectID = request.ProjectID,
+                    PhaseID = request.PhaseID,
+                    Quantity = request.Quantity,
+                    Note = "Issued from an approved field request."
+                });
+            }
+            catch
+            {
+                // Nothing was issued: the request goes back to Pending instead of staying stuck.
+                await _repository.ReleaseClaimAsync(requestId);
+                throw;
+            }
 
             if (!result.Success)
             {
@@ -116,7 +126,7 @@ namespace Backend.Services
 
             request.Status = "Approved";
             request.ResolvedByUserID = adminUserId;
-            request.ResolvedAt = DateTime.Now;
+            request.ResolvedAt = AppTime.Now;
             await _repository.UpdateAsync(request);
 
             // Let the engineer know their request went through and the stock was issued.
@@ -154,8 +164,16 @@ namespace Backend.Services
             request.Status = "Rejected";
             request.ResolveNote = reason?.Length > 255 ? reason[..255] : reason;
             request.ResolvedByUserID = adminUserId;
-            request.ResolvedAt = DateTime.Now;
-            await _repository.UpdateAsync(request);
+            request.ResolvedAt = AppTime.Now;
+            try
+            {
+                await _repository.UpdateAsync(request);
+            }
+            catch
+            {
+                await _repository.ReleaseClaimAsync(requestId);
+                throw;
+            }
 
             // Let the engineer know it was rejected, carrying the reason if one was given.
             var m = (await MapManyAsync(new List<MaterialRequest> { request }))[0];
@@ -174,6 +192,34 @@ namespace Backend.Services
                 excludeUserId: adminUserId, link: NotificationLinks.MaterialRequest(request.RequestID));
 
             return (true, null);
+        }
+
+        // A project was closed: its waiting requests can never be met, so they are rejected with
+        // the reason and each engineer is told. Returns how many were closed.
+        public async Task<int> CloseForProjectAsync(int projectId, string reason)
+        {
+            var waiting = (await _repository.GetAllAsync())
+                .Where(r => r.ProjectID == projectId && r.Status == "Pending")
+                .ToList();
+
+            int closed = 0;
+            foreach (var request in waiting)
+            {
+                if (!await _repository.TryClaimAsync(request.RequestID)) continue;   // resolved just now
+
+                request.Status = "Rejected";
+                request.ResolveNote = reason;
+                request.ResolvedAt = AppTime.Now;
+                await _repository.UpdateAsync(request);
+                closed++;
+
+                var m = (await MapManyAsync(new List<MaterialRequest> { request }))[0];
+                await _notificationService.NotifyPersonalAsync(
+                    request.RequestedByUserID, "Material Requests", "Request closed",
+                    $"Your request for {m.Quantity.ToString("0.##")} {m.Unit} of {m.MaterialName} ({m.ProjectTitle}) was closed.",
+                    reason: reason, link: NotificationLinks.MyRequests);
+            }
+            return closed;
         }
 
         // Loads the reference data once for the whole list.

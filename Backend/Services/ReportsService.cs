@@ -66,7 +66,7 @@ namespace Backend.Services
 
             decimal totalBudget = 0, totalMaterial = 0, totalLabour = 0, totalExpense = 0, totalProfit = 0;
             decimal recoverableTotal = 0, recoverableInvoiced = 0;
-            var liveProjectIds = new HashSet<int>();
+            var countedProjectIds = new HashSet<int>();
             int active = 0, completed = 0, cancelled = 0;
             var statusCounts = new Dictionary<string, int>();
             var labourByProject = new List<SliceDto>();
@@ -83,29 +83,30 @@ namespace Backend.Services
                 decimal cost = fin?.ActualCost ?? 0m;
                 decimal profit = fin?.Profit ?? (budget - cost);
 
-                // A cancelled project's budget is never earned, so it stays out of the company's
-                // budget, cost and profit totals. It still shows in the projects table and the
-                // status breakdown.
+                // A cancelled project's budget is never earned, so it stays out of the budget total.
+                // What was already spent on it is still a real cost, and what was billed for its
+                // work is its only income: its profit (usually a loss) is billed work minus cost.
                 bool isCancelled = p.Status == "Cancelled";
-                if (!isCancelled)
-                {
+                var b = billByProject.GetValueOrDefault(p.ProjectID);
+                if (isCancelled)
+                    profit = (b?.ContractBilled ?? 0m) - cost;
+                else
                     totalBudget += budget;
-                    totalMaterial += material;
-                    totalLabour += labour;
-                    totalExpense += expense;
-                    totalProfit += profit;
-                    recoverableTotal += fin?.RecoverableTotal ?? 0m;
-                    recoverableInvoiced += fin?.RecoverableInvoiced ?? 0m;
-                    liveProjectIds.Add(p.ProjectID);
-                    if (labour > 0) labourByProject.Add(new SliceDto { Label = p.Title, Value = labour });
-                }
+
+                totalMaterial += material;
+                totalLabour += labour;
+                totalExpense += expense;
+                totalProfit += profit;
+                recoverableTotal += fin?.RecoverableTotal ?? 0m;
+                recoverableInvoiced += fin?.RecoverableInvoiced ?? 0m;
+                countedProjectIds.Add(p.ProjectID);
+                if (labour > 0) labourByProject.Add(new SliceDto { Label = p.Title, Value = labour });
 
                 if (p.Status == "Completed") completed++;
                 else if (p.Status == "In Progress") active++;
                 else if (isCancelled) cancelled++;
                 statusCounts[p.Status] = statusCounts.GetValueOrDefault(p.Status, 0) + 1;
 
-                var b = billByProject.GetValueOrDefault(p.ProjectID);
                 report.Projects.Add(new ProjectReportRowDto
                 {
                     ProjectID = p.ProjectID,
@@ -116,7 +117,7 @@ namespace Backend.Services
                     Budget = budget,
                     Cost = cost,
                     Profit = profit,
-                    MarginPercent = budget > 0 ? Math.Round(profit / budget * 100m, 1) : 0m,
+                    MarginPercent = !isCancelled && budget > 0 ? Math.Round(profit / budget * 100m, 1) : 0m,
                     Billed = b?.Billed ?? 0m,
                     Received = b?.Received ?? 0m,
                     Outstanding = b?.Outstanding ?? 0m
@@ -127,10 +128,10 @@ namespace Backend.Services
 
             decimal totalCost = totalMaterial + totalLabour + totalExpense;
 
-            // Company expense cost by category, for live (non-cancelled) projects only.
+            // Company expense cost by category (cancelled projects' spend included, as in the totals).
             var allExpenses = await _expenseRepository.GetAllAsync();
             var expensesByCategory = allExpenses
-                .Where(e => !e.IsRecoverable && liveProjectIds.Contains(e.ProjectID))
+                .Where(e => !e.IsRecoverable && countedProjectIds.Contains(e.ProjectID))
                 .GroupBy(e => e.Category)
                 .Select(g => new SliceDto { Label = g.Key, Value = g.Sum(e => e.Amount) })
                 .Where(s => s.Value > 0)
@@ -183,7 +184,7 @@ namespace Backend.Services
             var subtotalByInvoice = items.GroupBy(x => x.InvoiceID)
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
-            var now = DateTime.Now;
+            var now = AppTime.Now;
             var months = new List<(int Year, int Month, string Label)>();
             for (int i = 5; i >= 0; i--)
             {
@@ -282,7 +283,7 @@ namespace Backend.Services
             int absent = attendance.Count(r => r.Status == "Absent");
 
             // Current-month payroll (reuses salary logic).
-            var now = DateTime.Now;
+            var now = AppTime.Now;
             var period = await _salaryService.GetPeriodAsync(now.Year, now.Month, null);
 
             // Employee count per designation.

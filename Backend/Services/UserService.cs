@@ -68,8 +68,8 @@ namespace Backend.Services
                 SecondaryPhone = dto.SecondaryPhone?.Trim(),
                 EmployeeID = dto.EmployeeID,
                 IsActive = dto.IsActive,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             var created = await _repository.AddAsync(user);
@@ -120,7 +120,7 @@ namespace Backend.Services
             user.SecondaryPhone = dto.SecondaryPhone?.Trim();
             user.EmployeeID = dto.EmployeeID;
             user.IsActive = dto.IsActive;
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
 
             if (newPassword)
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password!);
@@ -161,7 +161,7 @@ namespace Backend.Services
             if (user == null) return (false, "User not found.");
 
             user.IsActive = !user.IsActive;
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(user);
 
             // Disabled: signed out of every device at once.

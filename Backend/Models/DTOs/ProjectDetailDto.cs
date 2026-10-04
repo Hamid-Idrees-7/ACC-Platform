@@ -17,6 +17,9 @@ namespace Backend.Models.DTOs
         public string Status { get; set; } = string.Empty;
         public int OverallProgress { get; set; }
 
+        // False when the viewer may not see money: financials, wages and material amounts are 0.
+        public bool ShowMoney { get; set; } = true;
+
         public ProjectFinancialsDto Financials { get; set; } = new();
         public List<ProjectPhaseDto> Phases { get; set; } = new();
         public List<AssignmentDto> Team { get; set; } = new();

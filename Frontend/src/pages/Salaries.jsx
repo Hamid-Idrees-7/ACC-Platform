@@ -154,7 +154,7 @@ function Salaries() {
       const updated = await salaryService.revert(confirmUndo.paymentID);
       if (period.current === shownKey) setData(updated);
       setConfirmUndo(null); showToast("Payment undone.", "warn");
-    } catch { showToast("Could not revert.", "error"); }
+    } catch (err) { showToast(err.response?.data?.message || "Could not undo this payment.", "error"); }
     finally { setBusy(false); }
   };
 

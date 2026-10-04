@@ -20,7 +20,7 @@ namespace Backend.Demo
 
         public static async Task SeedAsync(AppDbContext db, CancellationToken ct = default)
         {
-            var now = DateTime.Now;
+            var now = AppTime.Now;
 
             var admin = NewUser(AdminUsername, "Visitor Admin", "visitor.admin@acc.example", "Admin",
                 "Demo account with full access to every module, approvals and access control.", now.AddMonths(-14));

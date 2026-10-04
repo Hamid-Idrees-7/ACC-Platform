@@ -426,7 +426,7 @@ namespace Backend.Demo
             int sessionId, string databaseName, DateTime expiresAtUtc, string roleKey, string roleLabel,
             ClientInfo client, int? previousLoginId, CancellationToken ct)
         {
-            var now = DateTime.Now;
+            var now = AppTime.Now;
             var utcNow = DateTime.UtcNow;
             user.LastLogin = now;
 

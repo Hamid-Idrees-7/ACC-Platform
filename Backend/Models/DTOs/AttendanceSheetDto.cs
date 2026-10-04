@@ -13,6 +13,9 @@ namespace Backend.Models.DTOs
         // A cancelled project is read-only: past records are shown but no new marking.
         public bool IsReadOnly { get; set; }
 
+        // False when the viewer may not see wages: every WageAmount is 0.
+        public bool ShowWages { get; set; } = true;
+
         public List<AttendanceWorkerDto> MonthlyStaff { get; set; } = new();
         public List<AttendanceWorkerDto> DailyWorkers { get; set; } = new();
 

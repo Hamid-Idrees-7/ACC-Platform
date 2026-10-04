@@ -37,8 +37,8 @@ namespace Backend.Services
                 City = dto.City,
                 ClientType = dto.ClientType,
                 Status = dto.Status,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             return await _repository.AddAsync(client);

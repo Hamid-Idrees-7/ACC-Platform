@@ -34,7 +34,7 @@ namespace Backend.Repositories
                 existing.IdleMinutes = preference.IdleMinutes;
                 existing.NotificationSound = preference.NotificationSound;
                 existing.MutedNotifications = preference.MutedNotifications;
-                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedAt = AppTime.Now;
             }
             await _context.SaveChangesAsync();
         }

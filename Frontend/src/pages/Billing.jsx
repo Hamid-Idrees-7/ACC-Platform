@@ -139,7 +139,9 @@ function Billing() {
               <div className="bil-grid">
                 {paging.pageItems.map((p) => {
                   const st = projectStatus(p);
-                  const pct = p.budget > 0 ? Math.min(100, Math.round((p.billed / p.budget) * 100)) : 0;
+                  // Work billed against the budget; reimbursed expenses are passed on, not work
+                  const work = p.contractBilled ?? p.billed;
+                  const pct = p.budget > 0 ? Math.min(100, Math.round((work / p.budget) * 100)) : 0;
                   return (
                     <button key={p.projectID} className={`bil-card ${st}`} onClick={() => openProject(p)}>
                       <div className="bil-card-head">
@@ -174,7 +176,7 @@ function Billing() {
                         </div>
                         <div className="bil-bar"><span style={{ width: `${pct}%` }} className={pct >= 100 ? "full" : ""} /></div>
                         <div className="bil-progress-sub">
-                          <span>{money(p.billed)}</span>
+                          <span>{money(work)}</span>
                           <span>of {money(p.budget)}</span>
                         </div>
                       </div>

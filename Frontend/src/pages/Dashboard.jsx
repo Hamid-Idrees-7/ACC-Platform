@@ -107,7 +107,7 @@ function Dashboard() {
     { label: "Active Users", value: metrics.loaded ? String(metrics.users) : "—", icon: "users" },
     { label: "Active Employees", value: metrics.loaded ? String(metrics.employees) : "—", icon: "user" },
     { label: "Active Projects", value: metrics.loaded ? String(metrics.projects) : "—", icon: "building" },
-    { label: "Total Revenue", value: metrics.loaded ? moneyShort(metrics.revenue) : "—", words: metrics.loaded ? amountInWords(metrics.revenue) : "", icon: "dollar" },
+    { label: "Total Received", value: metrics.loaded ? moneyShort(metrics.revenue) : "—", words: metrics.loaded ? amountInWords(metrics.revenue) : "", icon: "dollar" },
   ];
 
   const statIcon = (name) => {

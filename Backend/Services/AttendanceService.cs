@@ -10,6 +10,7 @@ namespace Backend.Services
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IAttendanceRepository _attendanceRepository;
+        private readonly ISalaryRepository _salaryRepository;
 
         // Roles that lead a site, used to pick the site incharge
         private static readonly string[] LeadKeywords =
@@ -19,12 +20,14 @@ namespace Backend.Services
             IProjectRepository projectRepository,
             IAssignmentRepository assignmentRepository,
             IEmployeeRepository employeeRepository,
-            IAttendanceRepository attendanceRepository)
+            IAttendanceRepository attendanceRepository,
+            ISalaryRepository salaryRepository)
         {
             _projectRepository = projectRepository;
             _assignmentRepository = assignmentRepository;
             _employeeRepository = employeeRepository;
             _attendanceRepository = attendanceRepository;
+            _salaryRepository = salaryRepository;
         }
 
         private static bool IsLead(string role) =>
@@ -68,7 +71,7 @@ namespace Backend.Services
             if (project == null) return null;
 
             var day = date.Date;
-            var today = DateTime.Now.Date;
+            var today = AppTime.Now.Date;
 
             // Contract workers get a fixed lump sum, so no attendance is tracked for them
             var assignments = (await _assignmentRepository.GetByProjectAsync(projectId))
@@ -118,63 +121,122 @@ namespace Backend.Services
             };
         }
 
-        public async Task<AttendanceSheetDto?> SaveAsync(int projectId, MarkAttendanceDto dto)
+        public async Task<(AttendanceSheetDto? Sheet, string? Error)> SaveAsync(int projectId, MarkAttendanceDto dto)
         {
             var project = await _projectRepository.GetByIdAsync(projectId);
-            if (project == null) return null;
+            if (project == null) return (null, null);
 
             var day = dto.Date.Date;
 
             // Cancelled projects are read-only, and the future can't be marked.
-            if (project.Status == "Cancelled" || day > DateTime.Now.Date)
-                return await GetSheetAsync(projectId, dto.Date);
+            if (project.Status == "Cancelled")
+                return (null, "This project is cancelled, so attendance can't be marked.");
+            if (day > AppTime.Today)
+                return (null, "Attendance can only be marked up to today.");
 
             var assignments = (await _assignmentRepository.GetByProjectAsync(projectId))
                 .Where(a => a.WageType != "Contract")
                 .ToDictionary(a => a.AssignmentID, a => a);
+            var names = (await _employeeRepository.GetAllAsync()).ToDictionary(e => e.EmployeeID, e => e.FullName);
+            string NameOf(Assignment a) => names.GetValueOrDefault(a.EmployeeID, "A worker");
 
+            // Every entry is checked first; nothing is saved unless all of them are valid.
+            var entries = new List<(Assignment A, string Status, string? Note)>();
             foreach (var entry in dto.Entries.GroupBy(e => e.AssignmentID).Select(g => g.Last()))
             {
-                if (!assignments.TryGetValue(entry.AssignmentID, out var a)) continue;
+                if (!assignments.TryGetValue(entry.AssignmentID, out var a))
+                    return (null, "Some workers are no longer on this site. Reload the page and try again.");
 
-                // Only mark days that fall inside the assignment's period.
-                var startDay = a.StartDate.Date;
-                var endDay = a.EndDate?.Date;
-                bool onSite = day >= startDay && (endDay == null || day <= endDay);
-                if (!onSite) continue;
+                // Only days inside the assignment's period can be marked.
+                bool onSite = day >= a.StartDate.Date && (a.EndDate == null || day <= a.EndDate.Value.Date);
+                if (!onSite)
+                    return (null, $"{NameOf(a)} isn't on this site on {day:dd MMM yyyy}, so nothing was saved.");
 
                 // A worker can be Present on more than one site in a day; each site pays its own day.
                 var status = entry.Status == "Absent" ? "Absent" : "Present";
-
                 var note = string.IsNullOrWhiteSpace(entry.Note) ? null : entry.Note.Trim();
                 if (note?.Length > 255) note = note[..255];
-
-                var existing = await _attendanceRepository.GetByAssignmentAndDateAsync(entry.AssignmentID, day);
-                if (existing == null)
-                {
-                    var added = await _attendanceRepository.TryAddAsync(new Attendance
-                    {
-                        AssignmentID = entry.AssignmentID,
-                        Date = day,
-                        Status = status,
-                        Note = note,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-                    });
-                    if (added) continue;
-
-                    // Saved by someone else at the same moment: update that row instead.
-                    existing = await _attendanceRepository.GetByAssignmentAndDateAsync(entry.AssignmentID, day);
-                    if (existing == null) continue;
-                }
-
-                existing.Status = status;
-                existing.Note = note;
-                existing.UpdatedAt = DateTime.Now;
-                await _attendanceRepository.UpdateAsync(existing);
+                entries.Add((a, status, note));
             }
 
-            return await GetSheetAsync(projectId, dto.Date);
+            // Daily pay depends on Present days, so the save waits for any payment being made for
+            // the same people, and a paid Present day can't quietly turn Absent.
+            var dailyPeople = entries.Where(e => e.A.WageType == "Daily").Select(e => e.A.EmployeeID).Distinct().OrderBy(id => id);
+            var gates = new List<IDisposable>();
+            try
+            {
+                foreach (var employeeId in dailyPeople)
+                    gates.Add(await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, employeeId));
+
+                var paidError = await PaidDaysErrorAsync(entries, day, NameOf);
+                if (paidError != null) return (null, paidError);
+
+                foreach (var (a, status, note) in entries)
+                    await SaveOneAsync(a.AssignmentID, day, status, note);
+            }
+            finally
+            {
+                foreach (var gate in gates) gate.Dispose();
+            }
+
+            return (await GetSheetAsync(projectId, dto.Date), null);
+        }
+
+        // A Present day turning Absent in a month whose pay was already made for it.
+        private async Task<string?> PaidDaysErrorAsync(List<(Assignment A, string Status, string? Note)> entries, DateTime day,
+            Func<Assignment, string> nameOf)
+        {
+            var turningAbsent = new List<Assignment>();
+            foreach (var (a, status, _) in entries.Where(e => e.A.WageType == "Daily" && e.Status == "Absent"))
+            {
+                var existing = await _attendanceRepository.GetByAssignmentAndDateAsync(a.AssignmentID, day);
+                if (existing?.Status == "Present") turningAbsent.Add(a);
+            }
+            if (turningAbsent.Count == 0) return null;
+
+            var monthStart = new DateTime(day.Year, day.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var payments = await _salaryRepository.GetForPeriodAsync(day.Year, day.Month);
+            var records = await _attendanceRepository.GetByAssignmentIdsAsync(turningAbsent.Select(a => a.AssignmentID).ToList());
+
+            foreach (var a in turningAbsent)
+            {
+                var paid = payments.Where(p => p.SourceType == "Daily" && p.AssignmentID == a.AssignmentID).Sum(p => p.PaidAmount);
+                if (paid <= 0) continue;
+                int presentAfter = records.Count(r => r.AssignmentID == a.AssignmentID && r.Status == "Present" &&
+                    r.Date.Date >= monthStart && r.Date.Date <= monthEnd && r.Date.Date != day &&
+                    r.Date.Date >= a.StartDate.Date && (a.EndDate == null || r.Date.Date <= a.EndDate.Value.Date));
+                if (presentAfter * a.WageAmount < paid)
+                    return $"{nameOf(a)}'s pay for {monthStart:MMMM yyyy} already covers this day. Undo that payment in Salaries before marking the day Absent.";
+            }
+            return null;
+        }
+
+        private async Task SaveOneAsync(int assignmentId, DateTime day, string status, string? note)
+        {
+            var existing = await _attendanceRepository.GetByAssignmentAndDateAsync(assignmentId, day);
+            if (existing == null)
+            {
+                var added = await _attendanceRepository.TryAddAsync(new Attendance
+                {
+                    AssignmentID = assignmentId,
+                    Date = day,
+                    Status = status,
+                    Note = note,
+                    CreatedAt = AppTime.Now,
+                    UpdatedAt = AppTime.Now
+                });
+                if (added) return;
+
+                // Saved by someone else at the same moment: update that row instead.
+                existing = await _attendanceRepository.GetByAssignmentAndDateAsync(assignmentId, day);
+                if (existing == null) return;
+            }
+
+            existing.Status = status;
+            existing.Note = note;
+            existing.UpdatedAt = AppTime.Now;
+            await _attendanceRepository.UpdateAsync(existing);
         }
 
         // The site incharge is the project's lead assignment (engineer, supervisor and so on),

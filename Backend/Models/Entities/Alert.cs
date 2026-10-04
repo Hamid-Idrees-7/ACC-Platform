@@ -38,8 +38,8 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string Status { get; set; } = AlertStatuses.Open;
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
         public DateTime? ResolvedAt { get; set; }
     }
 
@@ -53,7 +53,7 @@ namespace Backend.Models.Entities
 
         public int? Threshold { get; set; }
 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }

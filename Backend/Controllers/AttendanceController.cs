@@ -13,10 +13,21 @@ namespace Backend.Controllers
     public class AttendanceController : ControllerBase
     {
         private readonly IAttendanceService _service;
+        private readonly IPermissionService _permissionService;
 
-        public AttendanceController(IAttendanceService service)
+        public AttendanceController(IAttendanceService service, IPermissionService permissionService)
         {
             _service = service;
+            _permissionService = permissionService;
+        }
+
+        // Wages only for people who may see them (see MoneyAccess).
+        private async Task<AttendanceSheetDto> ForViewerAsync(AttendanceSheetDto sheet)
+        {
+            if (await MoneyAccess.CanSeeAsync(User, _permissionService, MoneyAccess.Wages)) return sheet;
+            sheet.ShowWages = false;
+            foreach (var w in sheet.MonthlyStaff.Concat(sheet.DailyWorkers)) w.WageAmount = 0;
+            return sheet;
         }
 
         // GET: /api/attendance  = project cards for the list page
@@ -33,11 +44,11 @@ namespace Backend.Controllers
         [RequirePermission("Attendance", "View")]
         public async Task<IActionResult> GetSheet(int projectId, [FromQuery] DateTime? date)
         {
-            var sheet = await _service.GetSheetAsync(projectId, date ?? DateTime.Now);
+            var sheet = await _service.GetSheetAsync(projectId, date ?? AppTime.Now);
             if (sheet == null)
                 return NotFound(new { message = "Project not found" });
 
-            return Ok(sheet);
+            return Ok(await ForViewerAsync(sheet));
         }
 
         // POST: /api/attendance/5  = save the marked rows for a date
@@ -45,11 +56,13 @@ namespace Backend.Controllers
         [RequirePermission("Attendance", "Mark")]
         public async Task<IActionResult> Save(int projectId, [FromBody] MarkAttendanceDto dto)
         {
-            var sheet = await _service.SaveAsync(projectId, dto);
+            var (sheet, error) = await _service.SaveAsync(projectId, dto);
+            if (error != null)
+                return BadRequest(new { message = error });
             if (sheet == null)
                 return NotFound(new { message = "Project not found" });
 
-            return Ok(sheet);
+            return Ok(await ForViewerAsync(sheet));
         }
     }
 }

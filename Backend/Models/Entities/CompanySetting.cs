@@ -81,7 +81,7 @@ namespace Backend.Models.Entities
         [MaxLength(80)]
         public string WeeklyOffDays { get; set; } = CompanyOptions.DefaultWeeklyOff;
 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }

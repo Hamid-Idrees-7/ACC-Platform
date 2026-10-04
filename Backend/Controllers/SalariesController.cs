@@ -44,7 +44,7 @@ namespace Backend.Controllers
         [RequirePermission("Salaries", "View")]
         public async Task<IActionResult> GetPeriod([FromQuery] int year, [FromQuery] int month, [FromQuery] int? projectId)
         {
-            var now = DateTime.Now;
+            var now = AppTime.Now;
             if (year == 0) year = now.Year;
             if (month == 0) month = now.Month;
             if (month < 1 || month > 12 || year < 2000 || year > 2100)
@@ -77,7 +77,9 @@ namespace Backend.Controllers
         public async Task<IActionResult> Revert(int paymentId)
         {
             var payment = await _service.DescribePaymentAsync(paymentId);
-            var data = await _service.RevertAsync(paymentId);
+            var (data, error) = await _service.RevertAsync(paymentId);
+            if (error != null)
+                return BadRequest(new { message = error });
             if (data == null)
                 return NotFound(new { message = "Payment not found" });
 

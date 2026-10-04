@@ -26,6 +26,6 @@ namespace Backend.Models.Entities
         // The action needs admin approval before it takes effect (eg Delete)
         public bool RequiresApproval { get; set; } = false;
 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 }

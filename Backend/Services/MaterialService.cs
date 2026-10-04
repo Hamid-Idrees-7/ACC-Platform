@@ -42,8 +42,8 @@ namespace Backend.Services
                 Unit = dto.Unit.Trim(),
                 LowStockThreshold = dto.LowStockThreshold,
                 Status = dto.Status,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             var created = await _repository.AddAsync(material);
@@ -59,7 +59,7 @@ namespace Backend.Services
                     Quantity = Math.Round(dto.InitialStock.Value, 2),
                     Rate = Math.Round(dto.InitialRate ?? 0m, 2),
                     Note = "Opening stock",
-                    CreatedAt = DateTime.Now
+                    CreatedAt = AppTime.Now
                 });
             }
 
@@ -76,7 +76,7 @@ namespace Backend.Services
             material.Unit = dto.Unit.Trim();
             material.LowStockThreshold = dto.LowStockThreshold;
             material.Status = dto.Status;
-            material.UpdatedAt = DateTime.Now;
+            material.UpdatedAt = AppTime.Now;
 
             await _repository.UpdateAsync(material);
             return await ToDtoAsync(material);
@@ -140,14 +140,17 @@ namespace Backend.Services
             if (material == null)
                 return new StockResult { Success = false, Error = "Material not found" };
 
-            if (dto.Quantity <= 0)
+            // Rounded first, so 0.004 can't pass the check and be saved as 0
+            var quantity = Math.Round(dto.Quantity, 2);
+            var rate = Math.Round(dto.Rate, 2);
+            if (quantity <= 0)
                 return new StockResult { Success = false, Error = "Quantity must be greater than zero." };
-            if (dto.Quantity > MaxQuantity)
+            if (quantity > MaxQuantity)
                 return new StockResult { Success = false, Error = "The quantity is too large." };
 
-            if (dto.Rate < 0)
+            if (rate < 0)
                 return new StockResult { Success = false, Error = "Rate cannot be negative." };
-            if (dto.Rate > MaxRate)
+            if (rate > MaxRate)
                 return new StockResult { Success = false, Error = "The rate is too large." };
 
             using var _ = await Locks.ForStockAsync(_repository.DatabaseName, id);
@@ -156,13 +159,13 @@ namespace Backend.Services
             {
                 MaterialID = id,
                 Type = "Restock",
-                Quantity = Math.Round(dto.Quantity, 2),
-                Rate = Math.Round(dto.Rate, 2),
+                Quantity = quantity,
+                Rate = rate,
                 Note = dto.Note?.Trim(),
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             });
 
-            material.UpdatedAt = DateTime.Now;
+            material.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(material);
 
             return new StockResult { Success = true, Material = await ToDtoAsync(material) };
@@ -174,21 +177,22 @@ namespace Backend.Services
             if (material == null)
                 return new StockResult { Success = false, Error = "Material not found" };
 
-            if (dto.Quantity <= 0)
-                return new StockResult { Success = false, Error = "Quantity must be greater than zero." };
             var quantity = Math.Round(dto.Quantity, 2);
+            if (quantity <= 0)
+                return new StockResult { Success = false, Error = "Quantity must be greater than zero." };
+            if (quantity > MaxQuantity)
+                return new StockResult { Success = false, Error = "The quantity is too large." };
 
-            // Stock goes to a real, open project, and the phase must be one of its own.
-            var projectName = dto.ProjectName.Trim();
-            if (dto.ProjectID != null)
-            {
-                var project = await _projectRepository.GetByIdAsync(dto.ProjectID.Value);
-                if (project == null)
-                    return new StockResult { Success = false, Error = "Project not found." };
-                if (project.Status == "Completed" || project.Status == "Cancelled")
-                    return new StockResult { Success = false, Error = $"{project.Title} is {project.Status.ToLower()}, so stock can't be issued to it." };
-                projectName = project.Title;
-            }
+            // Stock always goes to a real, open project (so its cost lands on that project),
+            // and the phase must be one of its own.
+            if (dto.ProjectID == null)
+                return new StockResult { Success = false, Error = "Choose a project." };
+            var project = await _projectRepository.GetByIdAsync(dto.ProjectID.Value);
+            if (project == null)
+                return new StockResult { Success = false, Error = "Project not found." };
+            if (project.Status == "Completed" || project.Status == "Cancelled")
+                return new StockResult { Success = false, Error = $"{project.Title} is {project.Status.ToLower()}, so stock can't be issued to it." };
+            var projectName = project.Title;
             if (dto.PhaseID != null)
             {
                 var phase = await _projectRepository.GetPhaseByIdAsync(dto.PhaseID.Value);
@@ -209,7 +213,7 @@ namespace Backend.Services
             // so later purchases never rewrite the cost of past issues.
             var costAtIssue = Math.Round(ledger.AvgCost, 2);
 
-            await _repository.AddTransactionAsync(new MaterialTransaction
+            var issue = new MaterialTransaction
             {
                 MaterialID = id,
                 Type = "Issue",
@@ -219,13 +223,14 @@ namespace Backend.Services
                 ProjectID = dto.ProjectID,
                 PhaseID = dto.PhaseID,
                 Note = dto.Note?.Trim(),
-                CreatedAt = DateTime.Now
-            });
+                CreatedAt = AppTime.Now
+            };
+            await _repository.AddTransactionAsync(issue);
 
-            material.UpdatedAt = DateTime.Now;
+            material.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(material);
 
-            return new StockResult { Success = true, Material = await ToDtoAsync(material) };
+            return new StockResult { Success = true, Material = await ToDtoAsync(material), Transaction = issue };
         }
 
         public async Task<MaterialHistoryDto?> GetHistoryAsync(int id)
@@ -313,6 +318,13 @@ namespace Backend.Services
             // stock has already been issued (would push stock negative).
             if (tx.Type == "Restock")
             {
+                // Issues made after this purchase were costed with its price in the average.
+                // Taking the purchase out now would leave the remaining stock at a wrong cost.
+                var later = (await _repository.GetTransactionsAsync(tx.MaterialID))
+                    .Count(t => t.Type == "Issue" && !t.IsCancelled && t.TransactionID > tx.TransactionID);
+                if (later > 0)
+                    return new StockResult { Success = false, Error = $"{later} issue{(later == 1 ? " was" : "s were")} costed with this purchase's price after it was made. Cancel those issues first (newest first), then this purchase." };
+
                 var stock = await _repository.GetStockAsync(tx.MaterialID);
                 if (stock - tx.Quantity < 0)
                 {
@@ -327,7 +339,7 @@ namespace Backend.Services
             var material = await _repository.GetByIdAsync(tx.MaterialID);
             if (material != null)
             {
-                material.UpdatedAt = DateTime.Now;
+                material.UpdatedAt = AppTime.Now;
                 await _repository.UpdateAsync(material);
             }
 

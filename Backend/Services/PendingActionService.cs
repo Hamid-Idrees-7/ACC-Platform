@@ -81,7 +81,7 @@ namespace Backend.Services
                 TargetID = dto.TargetID,
                 TargetName = Shorten(dto.TargetName?.Trim() ?? "", 150),
                 Status = "Pending",
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             };
             await _repository.AddAsync(action);
 
@@ -121,7 +121,17 @@ namespace Backend.Services
 
             if (status == "Approved")
             {
-                var performError = await PerformActionAsync(action);
+                string? performError;
+                try
+                {
+                    performError = await PerformActionAsync(action);
+                }
+                catch
+                {
+                    // The delete didn't go through: back to Pending, never stuck in Processing.
+                    await _repository.ReleaseClaimAsync(id);
+                    throw;
+                }
                 if (performError != null)
                 {
                     await _repository.ReleaseClaimAsync(id);
@@ -131,7 +141,7 @@ namespace Backend.Services
 
             action.Status = status;
             action.Reason = dto.Reason?.Trim();
-            action.ResolvedAt = DateTime.Now;
+            action.ResolvedAt = AppTime.Now;
             await _repository.UpdateAsync(action);
 
             // Tell the requester the outcome.

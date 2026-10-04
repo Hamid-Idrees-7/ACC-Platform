@@ -11,6 +11,7 @@ namespace Backend.Services
         private readonly IProjectRepository _projectRepository;
         private readonly IAttendanceRepository _attendanceRepository;
         private readonly ISalaryRepository _salaryRepository;
+        private readonly ISalaryService _salaryService;
 
         private static readonly string[] WageTypes = { "Daily", "Monthly", "Contract" };
         private static readonly string[] Statuses = { "Active", "Completed" };
@@ -21,13 +22,15 @@ namespace Backend.Services
             IEmployeeRepository employeeRepository,
             IProjectRepository projectRepository,
             IAttendanceRepository attendanceRepository,
-            ISalaryRepository salaryRepository)
+            ISalaryRepository salaryRepository,
+            ISalaryService salaryService)
         {
             _repository = repository;
             _employeeRepository = employeeRepository;
             _projectRepository = projectRepository;
             _attendanceRepository = attendanceRepository;
             _salaryRepository = salaryRepository;
+            _salaryService = salaryService;
         }
 
         public async Task<List<AssignmentDto>> GetAllAsync()
@@ -66,8 +69,8 @@ namespace Backend.Services
                 EndDate = clean.EndDate,
                 Status = clean.Status,
                 Notes = dto.Notes?.Trim(),
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             var created = await _repository.AddAsync(assignment);
@@ -79,21 +82,28 @@ namespace Backend.Services
             var assignment = await _repository.GetByIdAsync(id);
             if (assignment == null) return (null, "Assignment not found.");
 
+            // No salary payment for this person can run while the dates are checked and saved.
+            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, assignment.EmployeeID);
+
             var (clean, error) = await ValidateAsync(dto, assignment);
             if (error != null) return (null, error);
 
-            var employee = await _employeeRepository.GetByIdAsync(dto.EmployeeID);
+            // The role is the one the person had when placed; it only changes with the person.
+            if (assignment.EmployeeID != dto.EmployeeID)
+            {
+                var employee = await _employeeRepository.GetByIdAsync(dto.EmployeeID);
+                assignment.Role = (employee?.Designation ?? dto.Role).Trim();
+            }
 
             assignment.EmployeeID = dto.EmployeeID;
             assignment.ProjectID = dto.ProjectID;
-            assignment.Role = (employee?.Designation ?? dto.Role).Trim();
             assignment.WageType = clean.WageType;
             assignment.WageAmount = clean.WageAmount;
             assignment.StartDate = clean.StartDate;
             assignment.EndDate = clean.EndDate;
             assignment.Status = clean.Status;
             assignment.Notes = dto.Notes?.Trim();
-            assignment.UpdatedAt = DateTime.Now;
+            assignment.UpdatedAt = AppTime.Now;
 
             await _repository.UpdateAsync(assignment);
             return (await ToDtoAsync(assignment), null);
@@ -115,19 +125,53 @@ namespace Backend.Services
             return null;
         }
 
-        // End marks the assignment Completed with today's date as the end date.
+        // End marks the assignment Completed, ending today (or on its own earlier end date, or on
+        // its start date if it hasn't started yet).
         public async Task<AssignmentDto?> EndAsync(int id)
         {
             var assignment = await _repository.GetByIdAsync(id);
             if (assignment == null) return null;
 
-            var today = DateTime.Now.Date;
-            assignment.Status = "Completed";
-            assignment.EndDate = assignment.StartDate.Date > today ? assignment.StartDate.Date : today;
-            assignment.UpdatedAt = DateTime.Now;
-
+            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, assignment.EmployeeID);
+            EndOn(assignment, AppTime.Today);
             await _repository.UpdateAsync(assignment);
             return await ToDtoAsync(assignment);
+        }
+
+        // Ends every open assignment of a project or a person (project closed, employee inactive).
+        // Returns how many were ended.
+        public async Task<int> EndOpenAsync(int? projectId = null, int? employeeId = null)
+        {
+            var today = AppTime.Today;
+            var open = (await _repository.GetAllAsync())
+                .Where(a => (projectId == null || a.ProjectID == projectId) && (employeeId == null || a.EmployeeID == employeeId))
+                .Where(a => a.Status == "Active" || a.EndDate == null || a.EndDate.Value.Date > today)
+                .ToList();
+
+            foreach (var a in open)
+            {
+                using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, a.EmployeeID);
+
+                // A placement that hasn't started yet never happened: it is removed, not ended.
+                if (a.StartDate.Date > today && !await HasHistoryAsync(a))
+                {
+                    await _repository.DeleteAsync(a.AssignmentID);
+                    continue;
+                }
+
+                EndOn(a, today);
+                await _repository.UpdateAsync(a);
+            }
+            return open.Count;
+        }
+
+        // Pay so far is earned up to the end day, so ending never lowers a paid month.
+        private static void EndOn(Assignment a, DateTime today)
+        {
+            var end = a.EndDate?.Date is DateTime e && e < today ? e : today;
+            a.Status = "Completed";
+            a.EndDate = a.StartDate.Date > end ? a.StartDate.Date : end;
+            a.UpdatedAt = AppTime.Now;
         }
 
         private record CleanAssignment(string WageType, decimal WageAmount, DateTime StartDate, DateTime? EndDate, string Status);
@@ -136,7 +180,7 @@ namespace Backend.Services
         private async Task<(CleanAssignment, string?)> ValidateAsync(CreateAssignmentDto dto, Assignment? existing)
         {
             var clean = new CleanAssignment("", 0, default, null, "");
-            var today = DateTime.Now.Date;
+            var today = AppTime.Now.Date;
 
             var wageType = WageTypes.FirstOrDefault(w => w.Equals(dto.WageType?.Trim(), StringComparison.OrdinalIgnoreCase));
             if (wageType == null) return (clean, "Choose a wage type: Daily, Monthly or Contract.");
@@ -189,6 +233,21 @@ namespace Backend.Services
                     return (clean, $"Attendance is marked from {range.Value.First:dd MMM yyyy}, so the start date can't be later than that.");
                 if (range != null && end != null && end < range.Value.Last.Date)
                     return (clean, $"Attendance is marked until {range.Value.Last:dd MMM yyyy}, so the end date can't be earlier than that.");
+
+                // Paid months must still earn what was paid for them with the new dates.
+                var changed = new Assignment
+                {
+                    AssignmentID = existing.AssignmentID,
+                    EmployeeID = existing.EmployeeID,
+                    ProjectID = existing.ProjectID,
+                    WageType = existing.WageType,
+                    WageAmount = existing.WageAmount,
+                    StartDate = start,
+                    EndDate = end,
+                    Status = status
+                };
+                var paidError = await _salaryService.PaidHistoryErrorAsync(existing, changed);
+                if (paidError != null) return (clean, paidError);
             }
 
             return (new CleanAssignment(wageType, wage, start, end, status), null);

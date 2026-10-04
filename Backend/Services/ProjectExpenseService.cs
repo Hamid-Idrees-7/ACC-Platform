@@ -91,8 +91,8 @@ namespace Backend.Services
                 Reference = clean.Reference,
                 IsRecoverable = clean.IsRecoverable,
                 CreatedByUserID = userId,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             await _repository.AddAsync(expense);
@@ -125,7 +125,7 @@ namespace Backend.Services
             expense.PaidTo = clean.PaidTo;
             expense.Reference = clean.Reference;
             expense.IsRecoverable = clean.IsRecoverable;
-            expense.UpdatedAt = DateTime.Now;
+            expense.UpdatedAt = AppTime.Now;
 
             await _repository.UpdateAsync(expense);
             return new ExpenseSaveResult(await GetByIdAsync(id));
@@ -170,16 +170,16 @@ namespace Backend.Services
             if (description.Length > 200)
                 return (null, "Description can be at most 200 characters.");
 
-            if (dto.Amount <= 0)
-                return (null, "Amount must be greater than zero.");
-            if (dto.Amount > MaxAmount)
-                return (null, "Amount is too large. Please check the number.");
             var amount = Math.Round(dto.Amount, 2);
+            if (amount <= 0)
+                return (null, "Amount must be greater than zero.");
+            if (amount > MaxAmount)
+                return (null, "Amount is too large. Please check the number.");
 
             if (dto.ExpenseDate == default)
                 return (null, "Pick the date the expense was paid.");
             var date = dto.ExpenseDate.Date;
-            if (date > DateTime.Now.Date)
+            if (date > AppTime.Now.Date)
                 return (null, "Expense date can't be in the future.");
             if (date.Year < 2000)
                 return (null, "Expense date is not valid.");

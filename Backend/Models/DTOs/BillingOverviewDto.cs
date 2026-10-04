@@ -27,6 +27,7 @@ namespace Backend.Models.DTOs
         public int PaidCount { get; set; }
         public int OverdueCount { get; set; }
         public decimal Billed { get; set; }         // total invoiced
+        public decimal ContractBilled { get; set; } // invoiced for the work itself (without reimbursed expenses)
         public decimal Received { get; set; }
         public decimal Outstanding { get; set; }    // billed minus received
     }

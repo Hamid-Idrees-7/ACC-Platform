@@ -104,7 +104,7 @@ namespace Backend.Services
                 return (false, "This link has expired or was already used. Please ask for a new one.", "code");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
             await _repository.SaveChangesAsync();
 
             // Whoever knew the old password is signed out everywhere.

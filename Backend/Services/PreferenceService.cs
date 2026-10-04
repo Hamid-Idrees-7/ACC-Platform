@@ -79,7 +79,7 @@ namespace Backend.Services
                 IdleMinutes = idleMinutes,
                 NotificationSound = sound,
                 MutedNotifications = muted,
-                UpdatedAt = DateTime.Now
+                UpdatedAt = AppTime.Now
             };
             await _repository.SaveAsync(preference);
             return (ToDto(preference), null);

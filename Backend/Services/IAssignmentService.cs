@@ -14,5 +14,8 @@ namespace Backend.Services
         // Why the assignment can't be deleted, or null when it can.
         Task<string?> GetDeleteBlockerAsync(int id);
         Task<AssignmentDto?> EndAsync(int id);
+
+        // Ends every open assignment of a project or of a person. Returns how many.
+        Task<int> EndOpenAsync(int? projectId = null, int? employeeId = null);
     }
 }

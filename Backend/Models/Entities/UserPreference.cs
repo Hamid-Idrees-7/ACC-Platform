@@ -42,7 +42,7 @@ namespace Backend.Models.Entities
         [MaxLength(300)]
         public string? MutedNotifications { get; set; }
 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 
     // The allowed values for each preference, shared by validation and defaults.

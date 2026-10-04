@@ -189,7 +189,7 @@ namespace Backend.Services
                 BankIBAN = iban,
                 // Kept as it is: the weekly off days are edited in Settings > Calendar
                 WeeklyOffDays = current.WeeklyOffDays,
-                UpdatedAt = DateTime.Now,
+                UpdatedAt = AppTime.Now,
                 UpdatedBy = Clean(updatedBy) ?? "Admin"
             };
             await _repository.SaveAsync(settings);

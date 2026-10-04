@@ -48,7 +48,7 @@ namespace Backend.Repositories
             existing.City = client.City;
             existing.ClientType = client.ClientType;
             existing.Status = client.Status;
-            existing.UpdatedAt = DateTime.Now;
+            existing.UpdatedAt = AppTime.Now;
 
             await _context.SaveChangesAsync();
             return existing;

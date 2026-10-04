@@ -31,6 +31,7 @@ function Employees() {
   const [formModal, setFormModal] = useState(null);
   const [detailEmp, setDetailEmp] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmDisable, setConfirmDisable] = useState(null);
 
   const [toast, setToast] = useState(null);
   const showToast = (text, type = "success") => {
@@ -110,6 +111,7 @@ function Employees() {
     try {
       await employeeService.update(emp.employeeID, { ...emp, status: newStatus, joiningDate: emp.joiningDate ? emp.joiningDate.split("T")[0] : null });
       showToast(`Employee "${emp.fullName}" ${newStatus === "Active" ? "enabled" : "disabled"}.`, newStatus === "Active" ? "success" : "warn");
+      setConfirmDisable(null);
       setDetailEmp(null);
       loadEmployees({ quiet: true });
     } catch {
@@ -295,7 +297,7 @@ function Employees() {
                   </button>
                 )}
                 {canEdit && (
-                  <button className={detailEmp.status === "Active" ? "emp-detail-disable" : "emp-detail-enable"} onClick={() => handleToggleStatus(detailEmp)}>
+                  <button className={detailEmp.status === "Active" ? "emp-detail-disable" : "emp-detail-enable"} onClick={() => (detailEmp.status === "Active" ? setConfirmDisable(detailEmp) : handleToggleStatus(detailEmp))}>
                     {detailEmp.status === "Active" ? "Disable" : "Enable"}
                   </button>
                 )}
@@ -323,6 +325,22 @@ function Employees() {
             <div className="emp-confirm-actions">
               <button className="emp-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="emp-confirm-delete" onClick={() => handleDelete(confirmDelete.employeeID)}>Delete</button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {confirmDisable && (
+        <ModalOverlay className="emp-detail-overlay" onClose={() => setConfirmDisable(null)}>
+          <div className="emp-confirm">
+            <h3>Disable this employee?</h3>
+            <p>
+              <strong>{confirmDisable.fullName}</strong> is marked Inactive. Their open assignments end today, so their
+              pay stops and they lose site access. Their history and payslips stay.
+            </p>
+            <div className="emp-confirm-actions">
+              <button className="emp-confirm-cancel" data-close onClick={() => setConfirmDisable(null)}>Cancel</button>
+              <button className="emp-confirm-delete" onClick={() => handleToggleStatus(confirmDisable)}>Disable</button>
             </div>
           </div>
         </ModalOverlay>

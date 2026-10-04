@@ -124,13 +124,12 @@ namespace Backend.Controllers
                 return BadRequest(new { message = result.Error });
 
             var material = result.Material!;
+            var added = $"{Math.Round(dto.Quantity, 2):0.##} {material.Unit} of {material.Name}";
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Material", "Stock added",
-                $"You restocked {dto.Quantity} {material.Unit} of {material.Name}.",
+                GetUserId(), "Material", "Stock added", $"You restocked {added}.",
                 link: NotificationLinks.MaterialHistory(id));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Material", "Stock added",
-                $"{GetUserName()} restocked {dto.Quantity} {material.Unit} of {material.Name}.",
+                "Material", "Stock added", $"{GetUserName()} restocked {added}.",
                 link: NotificationLinks.MaterialHistory(id));
 
             return Ok(material);
@@ -146,13 +145,13 @@ namespace Backend.Controllers
                 return BadRequest(new { message = result.Error });
 
             var material = result.Material!;
+            var issued = result.Transaction!;
+            var what = $"{issued.Quantity:0.##} {material.Unit} of {material.Name} to {issued.ProjectName}";
             await _notificationService.NotifyPersonalAsync(
-                GetUserId(), "Material", "Stock issued",
-                $"You issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.",
+                GetUserId(), "Material", "Stock issued", $"You issued {what}.",
                 link: NotificationLinks.MaterialHistory(id));
             await _notificationService.NotifyAdminsActivityAsync(
-                "Material", "Stock issued",
-                $"{GetUserName()} issued {dto.Quantity} {material.Unit} of {material.Name} to {dto.ProjectName}.",
+                "Material", "Stock issued", $"{GetUserName()} issued {what}.",
                 link: NotificationLinks.MaterialHistory(id));
 
             return Ok(material);

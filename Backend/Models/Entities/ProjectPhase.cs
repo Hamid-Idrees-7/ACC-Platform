@@ -26,7 +26,7 @@ namespace Backend.Models.Entities
         // Completion percentage, 0 to 100
         public int Progress { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
 
         public DateTime? UpdatedAt { get; set; }
     }

@@ -14,8 +14,8 @@ namespace Backend.Services
         // project isn't theirs (or doesn't exist).
         Task<AttendanceSheetDto?> GetSheetAsync(int userId, int projectId, DateTime date);
 
-        // Mark attendance for one of the engineer's own projects. Null if not theirs.
-        Task<AttendanceSheetDto?> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto);
+        // Mark attendance for one of the engineer's own projects. Both null if not theirs.
+        Task<(AttendanceSheetDto? Sheet, string? Error)> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto);
 
         // The phases of one of the engineer's own projects. Null if not theirs.
         Task<List<ProjectPhaseDto>?> GetPhasesAsync(int userId, int projectId);

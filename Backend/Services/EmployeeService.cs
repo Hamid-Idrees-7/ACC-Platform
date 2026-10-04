@@ -8,11 +8,13 @@ namespace Backend.Services
     {
         private readonly IEmployeeRepository _repository;
         private readonly IAssignmentRepository _assignmentRepository;
+        private readonly IAssignmentService _assignmentService;
 
-        public EmployeeService(IEmployeeRepository repository, IAssignmentRepository assignmentRepository)
+        public EmployeeService(IEmployeeRepository repository, IAssignmentRepository assignmentRepository, IAssignmentService assignmentService)
         {
             _repository = repository;
             _assignmentRepository = assignmentRepository;
+            _assignmentService = assignmentService;
         }
 
         public async Task<List<EmployeeDto>> GetAllEmployeesAsync()
@@ -40,9 +42,9 @@ namespace Backend.Services
                 City = dto.City?.Trim(),
                 Designation = dto.Designation.Trim(),
                 JoiningDate = dto.JoiningDate,
-                Status = dto.Status,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                Status = CleanStatus(dto.Status),
+                CreatedAt = AppTime.Now,
+                UpdatedAt = AppTime.Now
             };
 
             var created = await _repository.AddAsync(employee);
@@ -53,6 +55,7 @@ namespace Backend.Services
         {
             var employee = await _repository.GetByIdAsync(id);
             if (employee == null) return null;
+            var wasActive = employee.Status == "Active";
 
             employee.FullName = dto.FullName.Trim();
             employee.Phone = dto.Phone.Trim();
@@ -63,10 +66,15 @@ namespace Backend.Services
             employee.City = dto.City?.Trim();
             employee.Designation = dto.Designation.Trim();
             employee.JoiningDate = dto.JoiningDate;
-            employee.Status = dto.Status;
-            employee.UpdatedAt = DateTime.Now;
+            employee.Status = CleanStatus(dto.Status);
+            employee.UpdatedAt = AppTime.Now;
 
             await _repository.UpdateAsync(employee);
+
+            // Someone who leaves stops earning and loses site access from today.
+            if (wasActive && employee.Status != "Active")
+                await _assignmentService.EndOpenAsync(employeeId: id);
+
             return ToDto(employee);
         }
 
@@ -81,6 +89,10 @@ namespace Backend.Services
         {
             return await _assignmentRepository.AnyForEmployeeAsync(id);
         }
+
+        // Active or Inactive only
+        private static string CleanStatus(string? status) =>
+            string.Equals(status?.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
 
         private EmployeeDto ToDto(Employee e)
         {

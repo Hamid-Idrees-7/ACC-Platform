@@ -40,8 +40,8 @@ namespace Backend.Models.Entities
         public string? Note { get; set; }
 
         public int PaidByUserID { get; set; }
-        public DateTime PaidAt { get; set; } = DateTime.Now;
+        public DateTime PaidAt { get; set; } = AppTime.Now;
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
     }
 }

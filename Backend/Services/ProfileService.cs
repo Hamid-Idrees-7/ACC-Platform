@@ -83,7 +83,7 @@ namespace Backend.Services
             user.Phone = Fit(dto.Phone!.Trim(), phone);
             user.SecondaryPhone = secondary == null ? null : Fit(dto.SecondaryPhone!.Trim(), secondary);
             user.Bio = bio;
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -127,7 +127,7 @@ namespace Backend.Services
                 return (false, "New password must be different from your current password.", "next");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
 
             await _context.SaveChangesAsync();
             await DeleteUnusedResetLinksAsync(userId);
@@ -162,7 +162,7 @@ namespace Backend.Services
                 return (false, "That's already your username.");
 
             user.Username = newUsername;
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
             await _context.SaveChangesAsync();
 
             // The username is inside every token: all devices sign in again with the new one.
@@ -201,7 +201,7 @@ namespace Backend.Services
             if (user == null) return (false, "User not found.");
 
             user.ProfilePicture = picture;
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = AppTime.Now;
 
             await _context.SaveChangesAsync();
             return (true, "Profile picture updated.");

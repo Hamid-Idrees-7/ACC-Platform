@@ -33,6 +33,6 @@ namespace Backend.Models.DTOs
 
         public List<InvoicePaymentDto> Payments { get; set; } = new();
 
-        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public DateTime GeneratedAt { get; set; } = AppTime.Now;
     }
 }

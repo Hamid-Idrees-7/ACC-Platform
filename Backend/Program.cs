@@ -16,6 +16,9 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// "Today" for the whole app follows the company's time zone (App:TimeZone)
+Backend.AppTime.Configure(builder.Configuration["App:TimeZone"]);
+
 // No request needs more than this (the largest is a company logo of about 600 KB).
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 2 * 1024 * 1024);
 

@@ -10,7 +10,8 @@ namespace Backend.Services
         Task<ProjectDto?> UpdateProjectAsync(int id, CreateProjectDto dto);
         Task<bool> DeleteProjectAsync(int id);
         Task<string?> GetDeleteBlockerAsync(int id);
-        Task<ProjectDetailDto?> ChangeStatusAsync(int id, string status);
+        Task<ProjectStatusResult> ChangeStatusAsync(int id, string status);
+        Task<string?> CheckAsync(CreateProjectDto dto, int? id);
 
         Task<ProjectPhaseDto?> AddPhaseAsync(int projectId, CreatePhaseDto dto);
         Task<ProjectPhaseDto?> UpdatePhaseAsync(int phaseId, UpdatePhaseDto dto);
@@ -21,4 +22,8 @@ namespace Backend.Services
     }
 
     public record PhaseSummary(int ProjectID, string ProjectTitle, string PhaseName, int Progress, string Status);
+
+    // Project is null when it wasn't found or Error says why the change was refused.
+    // EndedAssignments and ClosedRequests count what closing the project ended.
+    public record ProjectStatusResult(ProjectDetailDto? Project, string? Error, int EndedAssignments, int ClosedRequests);
 }

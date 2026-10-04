@@ -20,22 +20,28 @@ namespace Backend.Services
         {
             using var hold = await _scheduler.LockAsync(_repository.DatabaseName, ct);
 
-            var now = DateTime.Now;
+            var now = AppTime.Now;
             var rules = new AlertRuleSet(await _repository.GetRulesAsync());
             var facts = await _repository.LoadFactsAsync(now);
 
+            var open = await _repository.GetOpenAsync();
+
             if (rules.IsEnabled(AlertTypes.SalaryPending))
             {
+                // The last three months, plus any older month whose "not fully paid" alert is
+                // still open, so that alert only closes once the month is really paid.
                 var month = new DateTime(now.Year, now.Month, 1);
-                for (var back = 1; back <= 3; back++)
-                {
-                    var period = month.AddMonths(-back);
+                var months = Enumerable.Range(1, 3).Select(back => month.AddMonths(-back)).ToHashSet();
+                foreach (var alert in open.Where(a => a.Type == AlertTypes.SalaryPending))
+                    if (DateTime.TryParseExact(alert.Key, "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None, out var older) && older < month)
+                        months.Add(older);
+
+                foreach (var period in months.OrderByDescending(m => m))
                     facts.SalaryPeriods.Add(await _salaries.GetPeriodAsync(period.Year, period.Month, null));
-                }
             }
 
             var found = AlertConditions.Find(facts, rules);
-            var open = await _repository.GetOpenAsync();
             var changes = AlertReconciler.Reconcile(open, found, rules, now);
             await _repository.ApplyAsync(changes, now - AlertCatalog.KeepResolved);
             return changes;

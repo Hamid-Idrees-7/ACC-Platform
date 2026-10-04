@@ -44,7 +44,7 @@ namespace Backend.Services
             var viewer = await ViewerAsync(userId, isAdmin);
             var resolved = status == AlertStatuses.Resolved;
             var alerts = resolved
-                ? await _repository.GetResolvedSinceAsync(DateTime.Now - AlertCatalog.KeepResolved)
+                ? await _repository.GetResolvedSinceAsync(AppTime.Now - AlertCatalog.KeepResolved)
                 : await _repository.GetOpenAsync();
 
             var visible = alerts.Where(viewer.CanSee);
@@ -74,8 +74,8 @@ namespace Backend.Services
             if (AlertCatalog.Get(alert.Type) is not { Personal: true }) return false;
 
             alert.Status = AlertStatuses.Resolved;
-            alert.ResolvedAt = DateTime.Now;
-            alert.UpdatedAt = DateTime.Now;
+            alert.ResolvedAt = AppTime.Now;
+            alert.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(alert);
             return true;
         }
@@ -116,7 +116,7 @@ namespace Backend.Services
             var rule = await _repository.GetRuleAsync(type) ?? new AlertRule { Type = type };
             rule.Enabled = dto.Enabled;
             rule.Threshold = info.HasThreshold ? dto.Threshold ?? rule.Threshold ?? info.DefaultThreshold : null;
-            rule.UpdatedAt = DateTime.Now;
+            rule.UpdatedAt = AppTime.Now;
             rule.UpdatedBy = string.IsNullOrWhiteSpace(updatedBy) ? null : updatedBy.Trim();
             await _repository.SaveRuleAsync(rule);
 
@@ -135,7 +135,7 @@ namespace Backend.Services
                 if (earlier.Count == 0) return;
                 if (earlier.Select(DeviceInfo.From).Any(d => d.Browser == device.Browser && d.Os == device.Os)) return;
 
-                var now = DateTime.Now;
+                var now = AppTime.Now;
                 var from = string.IsNullOrWhiteSpace(client.IpAddress) ? "" : $" (IP address {client.IpAddress})";
                 var alert = AlertConditions.Make(AlertTypes.NewDevice, $"{loginActivityId}",
                     $"New sign-in from {device.Browser} on {device.Os}",
@@ -186,7 +186,7 @@ namespace Backend.Services
                 var user = await _users.GetByIdAsync(userId);
                 if (user?.EmployeeID != null)
                     sites = (await _assignments.GetAllAsync())
-                        .Where(a => a.EmployeeID == user.EmployeeID.Value && FieldService.IsCurrent(a, DateTime.Now.Date))
+                        .Where(a => a.EmployeeID == user.EmployeeID.Value && FieldService.IsCurrent(a, AppTime.Now.Date))
                         .Select(a => a.ProjectID)
                         .ToHashSet();
             }

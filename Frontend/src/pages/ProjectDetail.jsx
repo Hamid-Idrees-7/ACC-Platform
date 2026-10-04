@@ -88,14 +88,24 @@ function ProjectDetail() {
 
   const cancelled = project?.status === "Cancelled";
 
+  // Closing a project (Completed, Cancelled) and reopening a closed one are confirmed first.
+  const isClosed = (s) => s === "Completed" || s === "Cancelled";
+  const [confirmStatus, setConfirmStatus] = useState(null);
+  const pickStatus = (status) => {
+    if (status === project.status) return;
+    if (isClosed(status) || isClosed(project.status)) setConfirmStatus(status);
+    else changeStatus(status);
+  };
+
   const changeStatus = async (status) => {
     setSavingStatus(true);
     try {
       const updated = await projectService.changeStatus(project.projectID, status);
       setProject(updated);
+      setConfirmStatus(null);
       showToast(`Status changed to ${status}.`);
-    } catch {
-      showToast("Could not change status.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not change status.", "error");
     } finally {
       setSavingStatus(false);
     }
@@ -176,6 +186,8 @@ function ProjectDetail() {
   }
 
   const f = project.financials || {};
+  // Wages, costs and profit are left out for people who don't work with money
+  const showMoney = project.showMoney !== false;
   const phaseCounts = {
     completed: project.phases.filter((p) => p.status === "Completed").length,
     inprogress: project.phases.filter((p) => p.status === "In Progress").length,
@@ -226,14 +238,14 @@ function ProjectDetail() {
           </div>
           <div className="pd-status-change">
             <span>Change status:</span>
-            <select value={project.status} disabled={!canManage || savingStatus} onChange={(e) => changeStatus(e.target.value)}>
+            <select value={project.status} disabled={!canManage || savingStatus} onChange={(e) => pickStatus(e.target.value)}>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
 
         {cancelled && (
-          <div className="pd-cancelled-note">This project is <strong>Cancelled</strong> and read-only. Change status above to reactivate.</div>
+          <div className="pd-cancelled-note">This project is <strong>Cancelled</strong> and read-only. Change status above to reopen it.</div>
         )}
 
         {/* Info cards */}
@@ -245,7 +257,8 @@ function ProjectDetail() {
           <div className="pd-info"><span>EXPECTED END</span><strong>{project.expectedEndDate ? formatDate(project.expectedEndDate) : "—"}</strong></div>
         </div>
 
-        {/* Financials */}
+        {/* Financials (only for people who work with money) */}
+        {showMoney && (
         <div className="pd-fin-card">
           <div className="pd-fin-head">
             <span>PROJECT FINANCIALS</span>
@@ -295,6 +308,7 @@ function ProjectDetail() {
           </div>
           <div className="pd-fin-note">Material, contract labour, daily wages (from marked attendance) and the company's own project expenses are this project's real costs. Expenses paid on the client's behalf are billed back, so they don't change profit. Monthly salaried staff are company payroll — paid regardless of any project — so they are not charged here.</div>
         </div>
+        )}
 
         {/* Phases + Team */}
         <div className="pd-columns">
@@ -380,7 +394,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
+                        {showMoney && <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>}
                       </div>
                     ))}
                   </div>
@@ -399,7 +413,7 @@ function ProjectDetail() {
                           <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
                           <div className="pd-team-role">{m.role}</div>
                         </div>
-                        <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>
+                        {showMoney && <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>}
                       </div>
                     ))}
                   </div>
@@ -424,7 +438,7 @@ function ProjectDetail() {
               <div key={idx} className="pd-mat-phase">
                 <div className="pd-mat-phase-head">
                   <span>{pm.phaseName}</span>
-                  <span className="pd-mat-sub">{money(pm.subtotal)} <em>({amountInWords(pm.subtotal)})</em></span>
+                  {showMoney && <span className="pd-mat-sub">{money(pm.subtotal)} <em>({amountInWords(pm.subtotal)})</em></span>}
                 </div>
                 {pm.items.map((it, j) => (
                   <div key={j} className="pd-mat-line">
@@ -432,18 +446,18 @@ function ProjectDetail() {
                       <div className="pd-mat-name">{it.materialName}</div>
                       <div className="pd-mat-qty">{formatQty(it.quantity)} {it.unit}</div>
                     </div>
-                    <span className="pd-mat-amt">{money(it.amount)}</span>
+                    {showMoney && <span className="pd-mat-amt">{money(it.amount)}</span>}
                   </div>
                 ))}
               </div>
             ))}
-            <div className="pd-mat-grand">
+            {showMoney && <div className="pd-mat-grand">
               <span>Grand Total — All Materials</span>
               <div className="pd-mat-grand-amt">
                 <strong>{money(project.financials.materialCost)}</strong>
                 <em>({amountInWords(project.financials.materialCost)})</em>
               </div>
-            </div>
+            </div>}
           </div>
         )}
       </div>
@@ -489,6 +503,36 @@ function ProjectDetail() {
       )}
 
       {/* Delete phase confirm */}
+      {confirmStatus && (
+        <ModalOverlay className="pd-overlay" onClose={() => !savingStatus && setConfirmStatus(null)}>
+          <div className="pd-confirm">
+            {isClosed(confirmStatus) ? (
+              <>
+                <h3>Mark this project {confirmStatus}?</h3>
+                <p>
+                  Open assignments on <strong>{project.title}</strong> end today, so their pay and site access stop.
+                  Material requests still waiting for it are closed. You can reopen it later, but people have to be assigned again.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3>Reopen this project?</h3>
+                <p>
+                  <strong>{project.title}</strong> becomes {confirmStatus} again. The assignments that ended when it was
+                  closed stay ended, so assign the team again from Assignments.
+                </p>
+              </>
+            )}
+            <div className="pd-modal-actions">
+              <button className="pd-modal-cancel" data-close onClick={() => setConfirmStatus(null)} disabled={savingStatus}>Keep {project.status}</button>
+              <button className={isClosed(confirmStatus) ? "pd-confirm-del" : "pd-modal-save"} onClick={() => changeStatus(confirmStatus)} disabled={savingStatus}>
+                {savingStatus ? "Saving..." : isClosed(confirmStatus) ? `Mark ${confirmStatus}` : "Reopen"}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
       {confirmPhase && (
         <ModalOverlay className="pd-overlay" onClose={() => setConfirmPhase(null)}>
           <div className="pd-confirm">

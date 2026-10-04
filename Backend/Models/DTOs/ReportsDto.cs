@@ -9,7 +9,7 @@ namespace Backend.Models.DTOs
         public List<ProjectReportRowDto> Projects { get; set; } = new();
         public MaterialsReportDto Materials { get; set; } = new();
         public WorkforceReportDto Workforce { get; set; } = new();
-        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public DateTime GeneratedAt { get; set; } = AppTime.Now;
     }
 
     public class FinancialReportDto

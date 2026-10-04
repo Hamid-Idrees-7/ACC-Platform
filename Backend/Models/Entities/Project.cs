@@ -41,7 +41,7 @@ namespace Backend.Models.Entities
         [MaxLength(20)]
         public string Status { get; set; } = "In Progress";
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 }

@@ -43,17 +43,18 @@ namespace Backend.Repositories
             var project = await _context.Projects.FindAsync(id);
             if (project == null) return false;
 
-            // Field requests still waiting for this project can never be met now.
+            // The FK cascade removes this project's phases with it.
+            _context.Projects.Remove(project);
+            await _context.SaveChangesAsync();
+
+            // Field requests still waiting for this project can never be met now (only once the
+            // delete has gone through, so a refused delete leaves them as they were).
             await _context.MaterialRequests
                 .Where(r => r.ProjectID == id && r.Status == "Pending")
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(r => r.Status, "Rejected")
                     .SetProperty(r => r.ResolveNote, "The project was deleted.")
-                    .SetProperty(r => r.ResolvedAt, DateTime.Now));
-
-            // The FK cascade removes this project's phases with it.
-            _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
+                    .SetProperty(r => r.ResolvedAt, AppTime.Now));
             return true;
         }
 

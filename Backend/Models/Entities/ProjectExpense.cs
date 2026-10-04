@@ -48,7 +48,7 @@ namespace Backend.Models.Entities
 
         public int CreatedByUserID { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 }

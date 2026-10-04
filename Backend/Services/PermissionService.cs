@@ -40,7 +40,7 @@ namespace Backend.Services
                     Action = dto.Action.Trim(),
                     IsAllowed = dto.IsAllowed,
                     RequiresApproval = dto.RequiresApproval,
-                    UpdatedAt = DateTime.Now
+                    UpdatedAt = AppTime.Now
                 });
                 if (added) return;
 
@@ -51,7 +51,7 @@ namespace Backend.Services
 
             existing.IsAllowed = dto.IsAllowed;
             existing.RequiresApproval = dto.RequiresApproval;
-            existing.UpdatedAt = DateTime.Now;
+            existing.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(existing);
         }
 

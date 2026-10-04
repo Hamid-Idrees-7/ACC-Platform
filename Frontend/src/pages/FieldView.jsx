@@ -5,7 +5,7 @@ import { useCompany } from "../context/CompanyContext";
 import { offDayOf } from "../config/companyConfig";
 import { fieldService } from "../services/fieldService";
 import { formatQty, numberInWords } from "../utils/format";
-import { formatDateShort } from "../utils/dates";
+import { formatDateShort, toISODate } from "../utils/dates";
 import "./FieldView.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import ModalOverlay from "../components/ModalOverlay";
@@ -141,12 +141,14 @@ function FieldView() {
 
     setBusy(true);
     try {
-      const updated = await fieldService.markAttendance(active.projectID, { date: todayISO(), entries });
+      // Saved for the day the sheet shows, even if midnight passed while marking
+      const day = sheet?.date ? toISODate(sheet.date) : todayISO();
+      const updated = await fieldService.markAttendance(active.projectID, { date: day, entries });
       setSheet(updated);
       showToast("Attendance saved.");
       loadSite({ quiet: true });   // refresh the card counts
-    } catch {
-      showToast("Could not save attendance.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not save attendance.", "error");
     } finally {
       setBusy(false);
     }

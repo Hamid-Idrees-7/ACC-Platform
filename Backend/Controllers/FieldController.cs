@@ -48,7 +48,7 @@ namespace Backend.Controllers
         [RequirePermission("Field", "View")]
         public async Task<IActionResult> Sheet(int projectId, [FromQuery] DateTime? date)
         {
-            var sheet = await _service.GetSheetAsync(GetUserId(), projectId, date ?? DateTime.Now);
+            var sheet = await _service.GetSheetAsync(GetUserId(), projectId, date ?? AppTime.Now);
             if (sheet == null)
                 return NotFound(new { message = "This site is not assigned to you." });
             return Ok(sheet);
@@ -59,7 +59,9 @@ namespace Backend.Controllers
         [RequirePermission("Field", "Manage")]
         public async Task<IActionResult> MarkAttendance(int projectId, [FromBody] MarkAttendanceDto dto)
         {
-            var sheet = await _service.MarkAttendanceAsync(GetUserId(), projectId, dto);
+            var (sheet, error) = await _service.MarkAttendanceAsync(GetUserId(), projectId, dto);
+            if (error != null)
+                return BadRequest(new { message = error });
             if (sheet == null)
                 return NotFound(new { message = "This site is not assigned to you." });
             return Ok(sheet);

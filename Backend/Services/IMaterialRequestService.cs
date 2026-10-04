@@ -17,5 +17,8 @@ namespace Backend.Services
         // if there is not enough stock or the request is already resolved.
         Task<(bool Success, string? Error)> ApproveAsync(int requestId, int adminUserId);
         Task<(bool Success, string? Error)> RejectAsync(int requestId, int adminUserId, string? note);
+
+        // Rejects a closed project's waiting requests and tells each engineer. Returns how many.
+        Task<int> CloseForProjectAsync(int projectId, string reason);
     }
 }

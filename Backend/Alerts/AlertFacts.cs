@@ -5,7 +5,7 @@ namespace Backend.Alerts
 {
     public class AlertFacts
     {
-        public DateTime Now { get; set; } = DateTime.Now;
+        public DateTime Now { get; set; } = AppTime.Now;
         public List<Project> Projects { get; set; } = new();
         public List<ProjectPhase> Phases { get; set; } = new();
         public List<ProjectExpense> Expenses { get; set; } = new();

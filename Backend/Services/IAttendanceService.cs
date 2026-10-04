@@ -11,6 +11,7 @@ namespace Backend.Services
         Task<AttendanceSheetDto?> GetSheetAsync(int projectId, DateTime date);
 
         // Saves the marked rows for a project and date, then returns the refreshed sheet.
-        Task<AttendanceSheetDto?> SaveAsync(int projectId, MarkAttendanceDto dto);
+        // Nothing is saved if any row is refused; Error says why. Both null: project not found.
+        Task<(AttendanceSheetDto? Sheet, string? Error)> SaveAsync(int projectId, MarkAttendanceDto dto);
     }
 }

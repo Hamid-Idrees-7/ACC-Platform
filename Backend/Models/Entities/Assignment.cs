@@ -38,7 +38,7 @@ namespace Backend.Models.Entities
         [MaxLength(255)]
         public string? Notes { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
+        public DateTime UpdatedAt { get; set; } = AppTime.Now;
     }
 }

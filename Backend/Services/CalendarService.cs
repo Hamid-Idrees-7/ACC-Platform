@@ -54,7 +54,7 @@ namespace Backend.Services
             var (clean, error, field) = await ValidateAsync(dto, null);
             if (error != null) return (null, error, field);
 
-            clean!.CreatedAt = DateTime.Now;
+            clean!.CreatedAt = AppTime.Now;
             clean.CreatedBy = string.IsNullOrWhiteSpace(createdBy) ? null : createdBy.Trim();
             await _repository.AddHolidayAsync(clean);
             return (await GetAsync(), null, null);

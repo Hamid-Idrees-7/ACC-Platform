@@ -144,9 +144,9 @@ namespace Backend.Services
             var monthStart = new DateTime(dto.Year, dto.Month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-            if (dto.PaidAmount <= 0) return (null, "Enter an amount greater than zero.");
-            if (dto.PaidAmount > MaxPayment) return (null, "The amount is too large.");
             var paid = Math.Round(dto.PaidAmount, 2);
+            if (paid <= 0) return (null, "Enter an amount greater than zero.");
+            if (paid > MaxPayment) return (null, "The amount is too large.");
 
             var note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
             if (note?.Length > 255) return (null, "The note can be at most 255 characters.");
@@ -199,21 +199,32 @@ namespace Backend.Services
                 PaidAmount = paid,
                 Note = note,
                 PaidByUserID = userId,
-                PaidAt = DateTime.Now,
-                CreatedAt = DateTime.Now
+                PaidAt = AppTime.Now,
+                CreatedAt = AppTime.Now
             });
 
             return (await GetPeriodAsync(dto.Year, dto.Month, null), null);
         }
 
-        public async Task<SalaryPeriodDto?> RevertAsync(int paymentId)
+        // Undo removes the latest payment of a line, so the line's history always stays in order.
+        public async Task<(SalaryPeriodDto? Period, string? Error)> RevertAsync(int paymentId)
         {
             var payment = await _salaryRepository.GetByIdAsync(paymentId);
-            if (payment == null) return null;
+            if (payment == null) return (null, null);
+
+            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, payment.EmployeeID);
+
+            var latest = (await _salaryRepository.GetForPeriodAsync(payment.Year, payment.Month))
+                .Where(p => SameLine(p, payment.EmployeeID, payment.SourceType, payment.AssignmentID))
+                .OrderBy(p => p.PaidAt).ThenBy(p => p.PaymentID)
+                .LastOrDefault();
+            if (latest == null) return (null, null);   // undone a moment ago
+            if (latest.PaymentID != paymentId)
+                return (null, "Only the latest payment of a line can be undone. Refresh the page and try again.");
 
             int year = payment.Year, month = payment.Month;
             await _salaryRepository.DeleteAsync(paymentId);
-            return await GetPeriodAsync(year, month, null);
+            return (await GetPeriodAsync(year, month, null), null);
         }
 
         public async Task<PayslipDto?> GetPayslipAsync(int employeeId, int year, int month)
@@ -241,7 +252,7 @@ namespace Backend.Services
                 TotalCalculated = lines.Sum(l => l.CalculatedAmount),
                 TotalPaid = lines.Sum(l => l.PaidAmount),
                 TotalDue = lines.Sum(l => l.DueAmount),
-                GeneratedAt = DateTime.Now
+                GeneratedAt = AppTime.Now
             };
         }
 
@@ -250,6 +261,50 @@ namespace Backend.Services
             var payment = await _salaryRepository.GetByIdAsync(paymentId);
             if (payment == null) return null;
             return new SalaryPaymentSummary(await EmployeeNameAsync(payment.EmployeeID), payment.Year, payment.Month, payment.PaidAmount);
+        }
+
+        // An edit to an assignment's dates must not leave a month earning less than was already
+        // paid for it (a contract moved to another month, a monthly start moved later, and so on).
+        // Only a change that lowers a paid month is refused, so older data never blocks other edits.
+        public async Task<string?> PaidHistoryErrorAsync(Assignment original, Assignment changed)
+        {
+            var payments = await _salaryRepository.GetForEmployeeAsync(changed.EmployeeID);
+            var relevant = changed.WageType == "Monthly"
+                ? payments.Where(p => p.SourceType == "Monthly").ToList()
+                : payments.Where(p => p.AssignmentID == changed.AssignmentID).ToList();
+            if (relevant.Count == 0) return null;
+
+            List<Attendance>? records = null;
+            List<Assignment>? otherMonthly = null;
+
+            async Task<decimal> EarnedAsync(Assignment a, DateTime monthStart)
+            {
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                if (a.WageType == "Contract")
+                    return a.StartDate.Year == monthStart.Year && a.StartDate.Month == monthStart.Month ? a.WageAmount : 0m;
+                if (a.WageType == "Daily")
+                {
+                    records ??= await _attendanceRepository.GetByAssignmentIdsAsync(new List<int> { a.AssignmentID });
+                    return records.Count(r => r.Status == "Present" && r.Date.Date >= monthStart && r.Date.Date <= monthEnd && InPeriod(a, r.Date)) * a.WageAmount;
+                }
+                otherMonthly ??= (await _assignmentRepository.GetAllAsync())
+                    .Where(x => x.EmployeeID == a.EmployeeID && x.WageType == "Monthly" && x.AssignmentID != a.AssignmentID)
+                    .ToList();
+                var list = otherMonthly.Append(a).Where(x => Overlaps(x, monthStart, monthEnd)).ToList();
+                return list.Count == 0 ? 0m : MonthlyPay(list, monthStart, EarnedTo(monthEnd)).Amount;
+            }
+
+            foreach (var month in relevant.GroupBy(p => new DateTime(p.Year, p.Month, 1)).OrderBy(g => g.Key))
+            {
+                decimal paid = month.Sum(p => p.PaidAmount);
+                decimal before = await EarnedAsync(original, month.Key);
+                decimal after = await EarnedAsync(changed, month.Key);
+                if (after < before && after < paid)
+                    return $"{MonthNames[month.Key.Month]} {month.Key.Year} is already paid ({await _companyService.FormatMoneyAsync(paid)}), " +
+                           $"and with these dates it would earn only {await _companyService.FormatMoneyAsync(after)}. " +
+                           "Keep the dates, or undo that payment in Salaries first.";
+            }
+            return null;
         }
 
         public async Task<string> EmployeeNameAsync(int employeeId)
@@ -309,7 +364,7 @@ namespace Backend.Services
 
         // Pay is earned up to today: the whole month once it is over, nothing for a future month.
         private static DateTime EarnedTo(DateTime monthEnd) =>
-            monthEnd < DateTime.Now.Date ? monthEnd : DateTime.Now.Date;
+            monthEnd < AppTime.Now.Date ? monthEnd : AppTime.Now.Date;
 
         private static bool SameLine(SalaryPayment p, int employeeId, string type, int? assignmentId) =>
             p.EmployeeID == employeeId && p.SourceType == type && p.AssignmentID == assignmentId;

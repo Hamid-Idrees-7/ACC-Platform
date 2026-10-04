@@ -41,6 +41,22 @@ namespace Backend.Controllers
         private string GetUserRole() =>
             User.FindFirst(ClaimTypes.Role)?.Value ?? "";
 
+        // Project money and wages only for people who work with money (see MoneyAccess).
+        private async Task<ProjectDetailDto> ForViewerAsync(ProjectDetailDto project)
+        {
+            if (await MoneyAccess.CanSeeAsync(User, _permissionService, MoneyAccess.ProjectMoney)) return project;
+
+            project.ShowMoney = false;
+            project.Financials = new ProjectFinancialsDto();
+            foreach (var member in project.Team) member.WageAmount = 0;
+            foreach (var phase in project.MaterialsByPhase)
+            {
+                phase.Subtotal = 0;
+                foreach (var item in phase.Items) item.Amount = 0;
+            }
+            return project;
+        }
+
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
@@ -62,7 +78,7 @@ namespace Backend.Controllers
             if (project == null)
                 return NotFound(new { message = "Project not found" });
 
-            return Ok(project);
+            return Ok(await ForViewerAsync(project));
         }
 
         // POST: /api/projects
@@ -70,6 +86,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Add")]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
+            var invalid = await _service.CheckAsync(dto, null);
+            if (invalid != null)
+                return BadRequest(new { message = invalid });
+
             var project = await _service.CreateProjectAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
@@ -87,6 +107,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateProjectDto dto)
         {
+            var invalid = await _service.CheckAsync(dto, id);
+            if (invalid != null)
+                return BadRequest(new { message = invalid });
+
             var project = await _service.UpdateProjectAsync(id, dto);
             if (project == null)
                 return NotFound(new { message = "Project not found" });
@@ -99,15 +123,21 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> ChangeStatus(int id, [FromBody] UpdateProjectStatusDto dto)
         {
-            var project = await _service.ChangeStatusAsync(id, dto.Status);
+            var result = await _service.ChangeStatusAsync(id, dto.Status);
+            if (result.Error != null)
+                return BadRequest(new { message = result.Error });
+            var project = result.Project;
             if (project == null)
-                return NotFound(new { message = "Project not found or invalid status." });
+                return NotFound(new { message = "Project not found" });
 
+            var ended = result.EndedAssignments > 0
+                ? $" {result.EndedAssignments} open assignment{(result.EndedAssignments == 1 ? " was" : "s were")} ended."
+                : "";
             await _notificationService.NotifyAdminsActivityAsync(
-                "Project", "Status changed", $"{GetUserName()} set project \"{project.Title}\" to {project.Status}.",
+                "Project", "Status changed", $"{GetUserName()} set project \"{project.Title}\" to {project.Status}.{ended}",
                 link: NotificationLinks.Project(project.ProjectID));
 
-            return Ok(project);
+            return Ok(await ForViewerAsync(project));
         }
 
         // POST: /api/projects/5/phases

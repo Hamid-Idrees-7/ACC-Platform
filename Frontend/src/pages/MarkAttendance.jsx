@@ -140,8 +140,8 @@ function MarkAttendance() {
       const updated = await attendanceService.save(id, day, entries);
       if (wanted.current === `${id}|${day}`) showSheet(updated, day);
       showToast("Attendance saved.");
-    } catch {
-      showToast("Could not save attendance.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not save attendance.", "error");
     } finally {
       setSaving(false);
     }
@@ -171,7 +171,7 @@ function MarkAttendance() {
             </span>
           </button>
           <div className="mka-worker-right">
-            <span className="mka-wage">{wageLabel(w)}</span>
+            {sheet.showWages !== false && <span className="mka-wage">{wageLabel(w)}</span>}
             {w.onSiteThisDate ? (
               <div className="mka-mark">
                 <button className={`mka-btn present ${mk.status === "Present" ? "on" : ""}`} disabled={!canEdit} onClick={() => setStatus(w, "Present")}>Present</button>

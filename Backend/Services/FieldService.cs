@@ -39,7 +39,7 @@ namespace Backend.Services
             var user = await _userRepository.GetByIdAsync(userId);
             if (user?.EmployeeID == null) return new List<int>();
 
-            var today = DateTime.Now.Date;
+            var today = AppTime.Now.Date;
             var assignments = await _assignmentRepository.GetAllAsync();
             return assignments
                 .Where(a => a.EmployeeID == user.EmployeeID.Value && IsCurrent(a, today))
@@ -64,7 +64,7 @@ namespace Backend.Services
             var allProjects = await _projectService.GetAllProjectsAsync();
             var mine = allProjects.Where(p => myProjectIds.Contains(p.ProjectID)).ToList();
 
-            var today = DateTime.Now;
+            var today = AppTime.Now;
             var cards = new List<FieldProjectCardDto>();
 
             foreach (var p in mine)
@@ -113,16 +113,35 @@ namespace Backend.Services
         private static AttendanceSheetDto? WithoutWages(AttendanceSheetDto? sheet)
         {
             if (sheet == null) return null;
+            sheet.ShowWages = false;
             foreach (var w in sheet.MonthlyStaff.Concat(sheet.DailyWorkers)) w.WageAmount = 0;
             return sheet;
         }
 
-        public async Task<AttendanceSheetDto?> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto)
+        // How far back a site engineer may mark: today and the two days before. Older days
+        // are corrected in the office (Attendance), so paid history can't be rewritten from site.
+        private const int FieldDaysBack = 2;
+
+        public async Task<(AttendanceSheetDto? Sheet, string? Error)> MarkAttendanceAsync(int userId, int projectId, MarkAttendanceDto dto)
         {
             var myProjectIds = await GetMyProjectIdsAsync(userId);
-            if (!myProjectIds.Contains(projectId)) return null;   // not their site
+            if (!myProjectIds.Contains(projectId)) return (null, null);   // not their site
 
-            return WithoutWages(await _attendanceService.SaveAsync(projectId, dto));
+            var today = AppTime.Today;
+            var day = dto.Date.Date;
+            if (day < today.AddDays(-FieldDaysBack))
+                return (null, "From site you can mark today and the last two days only. Ask the office to correct older days.");
+
+            // Not before the engineer's own posting on this site started
+            var user = await _userRepository.GetByIdAsync(userId);
+            var mine = (await _assignmentRepository.GetByProjectAsync(projectId))
+                .Where(a => a.EmployeeID == user?.EmployeeID && IsCurrent(a, today))
+                .ToList();
+            if (mine.Count > 0 && day < mine.Min(a => a.StartDate.Date))
+                return (null, "That day is before your posting on this site started.");
+
+            var (sheet, error) = await _attendanceService.SaveAsync(projectId, dto);
+            return (WithoutWages(sheet), error);
         }
 
         public async Task<List<ProjectPhaseDto>?> GetPhasesAsync(int userId, int projectId)

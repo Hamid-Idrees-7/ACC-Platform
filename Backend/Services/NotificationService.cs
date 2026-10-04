@@ -53,7 +53,7 @@ namespace Backend.Services
 
         public async Task PurgeOldAsync()
         {
-            await _repository.PurgeReadAsync(DateTime.Now.AddDays(-90));
+            await _repository.PurgeReadAsync(AppTime.Now.AddDays(-90));
         }
 
         public async Task<List<NotificationDto>> GetForUserAsync(int userId, string type)
@@ -88,7 +88,7 @@ namespace Backend.Services
                 Link = link,
                 IsRead = false,
                 FromSelf = ActingUserId == userId,
-                CreatedAt = DateTime.Now
+                CreatedAt = AppTime.Now
             });
         }
 
@@ -114,7 +114,7 @@ namespace Backend.Services
                     Message = message,
                     Link = link,
                     IsRead = false,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = AppTime.Now
                 });
             }
         }
@@ -153,7 +153,7 @@ namespace Backend.Services
                     Link = link,
                     IsRead = false,
                     FromSelf = ActingUserId == u.UserID,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = AppTime.Now
                 });
             }
         }

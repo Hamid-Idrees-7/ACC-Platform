@@ -39,6 +39,6 @@ namespace Backend.Models.Entities
         // cost, or totals, but the record is kept for the audit trail.
         public bool IsCancelled { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = AppTime.Now;
     }
 }
