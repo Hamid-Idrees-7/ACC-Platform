@@ -123,7 +123,7 @@ namespace Backend.Controllers
                         Module = "Expenses",
                         Action = "Delete",
                         TargetID = id,
-                        TargetName = label
+                        TargetName = await _service.DescribeAsync(expense, withAmount: false)
                     },
                     GetUserId(), GetUserName(), GetUserRole());
 

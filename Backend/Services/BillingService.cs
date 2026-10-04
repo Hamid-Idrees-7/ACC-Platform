@@ -201,6 +201,8 @@ namespace Backend.Services
 
             var (items, error) = await BuildItemsAsync(dto.ProjectID, null, dto.Items);
             if (error != null) return (null, error);
+            if (items!.Sum(i => i.Amount) + Math.Round(dto.TaxAmount, 2) <= 0)
+                return (null, EmptyInvoice);
 
             var invoice = new Invoice
             {
@@ -216,6 +218,8 @@ namespace Backend.Services
 
             return (await _billingRepository.AddInvoiceAsync(invoice, items!), null);
         }
+
+        private const string EmptyInvoice = "The invoice total must be more than zero. Add a line with an amount.";
 
         public async Task<(bool Found, string? Error)> UpdateInvoiceAsync(int invoiceId, CreateInvoiceDto dto)
         {
@@ -236,6 +240,7 @@ namespace Backend.Services
             var tax = Math.Round(dto.TaxAmount, 2);
             var paid = (await _billingRepository.GetPaymentsByInvoiceIdsAsync(new List<int> { invoiceId })).Sum(p => p.Amount);
             var newTotal = items!.Sum(i => i.Amount) + tax;
+            if (newTotal <= 0) return (true, EmptyInvoice);
             if (newTotal < paid)
                 return (true, $"This invoice already has {await _companyService.FormatMoneyAsync(paid)} received, so its total can't go below that. Remove a payment first.");
 
@@ -281,7 +286,7 @@ namespace Backend.Services
             if (reference?.Length > 255) return (true, "The reference can be at most 255 characters.");
 
             var paymentDate = dto.PaymentDate == default ? AppTime.Now : dto.PaymentDate;
-            if (paymentDate.Year < 2000 || paymentDate.Date > AppTime.Now.Date.AddDays(1))
+            if (paymentDate.Year < 2000 || paymentDate.Date > AppTime.Today)
                 return (true, "Enter a valid payment date (not in the future).");
 
             var ids = new List<int> { dto.InvoiceID };

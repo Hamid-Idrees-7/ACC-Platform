@@ -12,6 +12,7 @@ namespace Backend.Services
         private readonly INotificationRepository _notificationRepository;
         private readonly ISessionService _sessions;
         private readonly IPasswordResetRepository _passwordResets;
+        private readonly IEmployeeRepository _employees;
 
         private const string OneAdminOnly = "There can be only one Admin. Choose another role, eg Manager.";
 
@@ -20,8 +21,10 @@ namespace Backend.Services
             IPermissionRepository permissionRepository,
             INotificationRepository notificationRepository,
             ISessionService sessions,
-            IPasswordResetRepository passwordResets)
+            IPasswordResetRepository passwordResets,
+            IEmployeeRepository employees)
         {
+            _employees = employees;
             _repository = repository;
             _permissionRepository = permissionRepository;
             _notificationRepository = notificationRepository;
@@ -43,6 +46,9 @@ namespace Backend.Services
 
         public async Task<(bool, string?, UserDto?)> CreateUserAsync(CreateUserDto dto)
         {
+            // Two saves at once can't both pass the username and employee checks
+            using var gate = await Locks.ForRecordsAsync(_repository.DatabaseName, "users");
+
             // Password is required when creating
             if (string.IsNullOrWhiteSpace(dto.Password))
                 return (false, "Password is required for a new user.", null);
@@ -56,6 +62,10 @@ namespace Backend.Services
             var passwordError = PasswordPolicy.Validate(dto.Password);
             if (passwordError != null)
                 return (false, passwordError, null);
+
+            var linkError = await EmployeeLinkErrorAsync(dto.EmployeeID, null);
+            if (linkError != null)
+                return (false, linkError, null);
 
             var user = new User
             {
@@ -78,6 +88,8 @@ namespace Backend.Services
 
         public async Task<(bool, string?, UserDto?)> UpdateUserAsync(int id, CreateUserDto dto, int currentUserId, int? keepLoginId)
         {
+            using var gate = await Locks.ForRecordsAsync(_repository.DatabaseName, "users");
+
             var user = await _repository.GetByIdAsync(id);
             if (user == null) return (false, "User not found.", null);
 
@@ -91,6 +103,10 @@ namespace Backend.Services
 
             if (await _repository.UsernameExistsAsync(dto.Username.Trim(), id))
                 return (false, "That username is already taken.", null);
+
+            var linkError = await EmployeeLinkErrorAsync(dto.EmployeeID, id);
+            if (linkError != null)
+                return (false, linkError, null);
 
             var newPassword = !string.IsNullOrWhiteSpace(dto.Password);
             if (newPassword)
@@ -151,7 +167,19 @@ namespace Backend.Services
             return deleted ? (true, null) : (false, "User not found.");
         }
 
-        public async Task<(bool, string?)> ToggleStatusAsync(int id, int currentUserId)
+        // A login can be linked to one existing employee, and each employee to one login only
+        // (the link decides whose sites Field View opens).
+        private async Task<string?> EmployeeLinkErrorAsync(int? employeeId, int? userId)
+        {
+            if (employeeId == null) return null;
+            var employee = await _employees.GetByIdAsync(employeeId.Value);
+            if (employee == null) return "That employee no longer exists. Choose another one.";
+            var other = (await _repository.GetAllLightAsync())
+                .FirstOrDefault(u => u.EmployeeID == employeeId && u.UserID != userId);
+            return other == null ? null : $"{employee.FullName} is already linked to the login \"{other.Username}\".";
+        }
+
+        public async Task<(bool, string?)> ToggleStatusAsync(int id, int currentUserId, bool? active = null)
         {
             // Nobody can disable their own account.
             if (id == currentUserId)
@@ -160,7 +188,10 @@ namespace Backend.Services
             var user = await _repository.GetByIdAsync(id);
             if (user == null) return (false, "User not found.");
 
-            user.IsActive = !user.IsActive;
+            var wanted = active ?? !user.IsActive;
+            if (user.IsActive == wanted) return (true, null);
+
+            user.IsActive = wanted;
             user.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(user);
 

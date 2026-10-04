@@ -38,6 +38,8 @@ function Materials() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadMaterials = async ({ quiet = false } = {}) => {
@@ -131,6 +133,8 @@ function Materials() {
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const res = await materialService.delete(id);
       setConfirmDelete(null);
@@ -142,6 +146,8 @@ function Materials() {
       }
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete material.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -337,7 +343,7 @@ function Materials() {
             <p><strong>{confirmDelete.name}</strong> and its full transaction history will be permanently deleted. This cannot be undone.</p>
             <div className="mat-confirm-actions">
               <button className="mat-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="mat-confirm-delete" onClick={() => handleDelete(confirmDelete.materialID)}>Delete</button>
+              <button className="mat-confirm-delete" onClick={() => handleDelete(confirmDelete.materialID)} disabled={busy}>Delete</button>
             </div>
           </div>
         </ModalOverlay>

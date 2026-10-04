@@ -619,6 +619,7 @@ namespace Backend.Demo
             try
             {
                 await _factory.DropDatabaseAsync(databaseName, ct);
+                _alerts.Forget(databaseName);
 
                 await using var main = _factory.CreateMain();
                 var rows = await main.DemoSessions.Where(s => s.DatabaseName == databaseName).ToListAsync(ct);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, startTransition } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useBlocker } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usePermissions } from "../context/PermissionContext";
 import { useDashboardTheme, usePreferences } from "../context/PreferencesContext";
@@ -13,7 +13,7 @@ import { playNotificationSound, unlockNotificationSound } from "../utils/notific
 import { onLive, isLiveConnected } from "../services/live";
 import { useLiveRefresh } from "../hooks/useLive";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { hasUnsavedChanges, LEAVE_REQUEST_EVENT } from "../hooks/useUnsavedChanges";
+import { hasUnsavedChanges, LEAVE_REQUEST_EVENT, isLeaveForced, leaveWithoutAsking } from "../hooks/useUnsavedChanges";
 import ModalOverlay from "./ModalOverlay";
 import DemoBar from "./DemoBar";
 import "./DashboardLayout.css";
@@ -124,6 +124,29 @@ function DashboardLayout({ title, children }) {
     window.addEventListener(LEAVE_REQUEST_EVENT, ask);
     return () => window.removeEventListener(LEAVE_REQUEST_EVENT, ask);
   }, []);
+
+  // Any other way of leaving with unsaved changes (browser Back, the phone's back gesture, a
+  // link) asks first too. A page that only replaces its own search (eg Settings tabs) asks itself.
+  const blocker = useBlocker(({ currentLocation, nextLocation, historyAction }) =>
+    !isLeaveForced() && hasUnsavedChanges() &&
+    (currentLocation.pathname !== nextLocation.pathname ||
+      (currentLocation.search !== nextLocation.search && historyAction !== "REPLACE")));
+  const asking = leaveTo !== null || blocker.state === "blocked";
+
+  const stay = () => {
+    if (blocker.state === "blocked") blocker.reset();
+    setLeaveTo(null);
+  };
+  const leave = () => {
+    if (blocker.state === "blocked") {
+      setLeaveTo(null);
+      blocker.proceed();
+      return;
+    }
+    const action = leaveTo;
+    setLeaveTo(null);
+    leaveWithoutAsking(action);
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -143,7 +166,7 @@ function DashboardLayout({ title, children }) {
     }
     sessionStorage.setItem(DEMO_NOTE_KEY, note);
     logout();
-    navigate("/login");
+    leaveWithoutAsking(() => navigate("/login"));
   }, [logout, navigate]);
 
   // The server says the session is over (time ran out, or it was ended elsewhere).
@@ -164,7 +187,7 @@ function DashboardLayout({ title, children }) {
         // notifications as read.
         startTransition(() => {
           login(data);
-          navigate("/dashboard");
+          leaveWithoutAsking(() => navigate("/dashboard"));
         });
       });
     } catch (err) {
@@ -417,14 +440,14 @@ function DashboardLayout({ title, children }) {
           {children}
         </main>
 
-        {leaveTo && (
-          <ModalOverlay className="dash-leave-overlay" onClose={() => setLeaveTo(null)} label="Unsaved changes">
+        {asking && (
+          <ModalOverlay className="dash-leave-overlay" onClose={stay} label="Unsaved changes">
             <div className="mdo-confirm">
               <h3>Leave without saving?</h3>
               <p>You have changes on this page that are not saved yet. If you leave now, they will be lost.</p>
               <div className="mdo-confirm-actions">
-                <button type="button" className="mdo-keep" data-close onClick={() => setLeaveTo(null)} autoFocus>Stay on this page</button>
-                <button type="button" className="mdo-discard" onClick={() => { const action = leaveTo; setLeaveTo(null); action(); }}>Leave</button>
+                <button type="button" className="mdo-keep" data-close onClick={stay} autoFocus>Stay on this page</button>
+                <button type="button" className="mdo-discard" onClick={leave}>Leave</button>
               </div>
             </div>
           </ModalOverlay>

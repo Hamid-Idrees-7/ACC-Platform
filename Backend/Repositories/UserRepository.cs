@@ -6,6 +6,8 @@ namespace Backend.Repositories
 {
     public class UserRepository : IUserRepository
     {
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
+
         private readonly AppDbContext _context;
 
         public UserRepository(AppDbContext context)

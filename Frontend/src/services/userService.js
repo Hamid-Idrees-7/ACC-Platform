@@ -21,9 +21,9 @@ export const userService = {
     return response.data;
   },
 
-  // Switches the user between active and disabled
-  toggleStatus: async (id) => {
-    const response = await api.put(`/users/${id}/toggle-status`);
+  // Sets the user active or disabled (the wanted state is sent, so a repeat does nothing)
+  toggleStatus: async (id, active) => {
+    const response = await api.put(`/users/${id}/toggle-status`, null, { params: { active } });
     return response.data;
   },
 

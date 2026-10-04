@@ -4,6 +4,9 @@ namespace Backend.Repositories
 {
     public interface IMaterialRepository
     {
+        // A transaction for several saves that belong together (null if one is already open)
+        Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?> BeginTransactionAsync();
+
         Task<List<Material>> GetAllAsync();
         Task<Material?> GetByIdAsync(int id);
         Task<Material> AddAsync(Material material);

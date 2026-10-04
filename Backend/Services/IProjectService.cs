@@ -16,6 +16,8 @@ namespace Backend.Services
 
         Task<ProjectPhaseDto?> AddPhaseAsync(int projectId, CreatePhaseDto dto);
         Task<ProjectPhaseDto?> UpdatePhaseAsync(int phaseId, UpdatePhaseDto dto);
+        Task<string?> CancelledErrorAsync(int projectId);
+        Task<int?> PhaseProjectIdAsync(int phaseId);
         Task<PhaseSummary?> DescribePhaseAsync(int phaseId);
         Task<bool> DeletePhaseAsync(int phaseId);
         Task<string?> GetPhaseDeleteBlockerAsync(int phaseId);

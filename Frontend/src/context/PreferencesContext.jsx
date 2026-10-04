@@ -4,6 +4,7 @@ import { profileService } from "../services/profileService";
 import { setNumberSystem } from "../utils/format";
 import { setDatePrefs } from "../utils/dates";
 import { DEFAULT_IDLE_MINUTES } from "../config/sessionConfig";
+import { hasUnsavedChanges } from "../hooks/useUnsavedChanges";
 
 // Settings > Appearance: theme, number format, date format and time format.
 // Settings > Security: automatic sign-out after inactivity (idleMinutes, 0 = off).
@@ -103,7 +104,7 @@ export function PreferencesProvider({ children }) {
         writeCache(user, merged);
         const before = prefsRef.current;
         setFor(identity, { prefs: merged });
-        if (!sameFormats(before, merged)) setFormatVersion((v) => v + 1);
+        if (!sameFormats(before, merged) && !hasUnsavedChanges()) setFormatVersion((v) => v + 1);
       })
       .catch(() => {
         // offline or not signed in any more: keep the cached settings

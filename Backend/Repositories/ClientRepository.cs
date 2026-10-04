@@ -7,6 +7,8 @@ namespace Backend.Repositories
     // Database access for clients. Only this layer talks to the DbContext.
     public class ClientRepository : IClientRepository
     {
+        public string DatabaseName => _context.Database.GetDbConnection().Database;
+
         private readonly AppDbContext _context;
 
         public ClientRepository(AppDbContext context)

@@ -71,6 +71,11 @@ namespace Backend.Controllers
         [RequirePermission("Employees", "Add")]
         public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
         {
+            using var gate = await _service.LockAsync();
+            var error = await _service.CheckAsync(dto, null);
+            if (error != null)
+                return BadRequest(new { message = error });
+
             var employee = await _service.CreateEmployeeAsync(dto);
 
             await _notificationService.NotifyPersonalAsync(
@@ -88,6 +93,11 @@ namespace Backend.Controllers
         [RequirePermission("Employees", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateEmployeeDto dto)
         {
+            using var gate = await _service.LockAsync();
+            var error = await _service.CheckAsync(dto, id);
+            if (error != null)
+                return BadRequest(new { message = error });
+
             var employee = await _service.UpdateEmployeeAsync(id, dto);
             if (employee == null)
                 return NotFound(new { message = "Employee not found" });
@@ -104,10 +114,10 @@ namespace Backend.Controllers
             if (employee == null)
                 return NotFound(new { message = "Employee not found" });
 
-            // An employee with any assignment is kept for the history;
-            // the message suggests setting them Inactive instead.
-            if (await _service.HasAssignmentsAsync(id))
-                return Conflict(new { message = $"\"{employee.FullName}\" has project assignments, so they can't be deleted. Keep them and set them to Inactive instead, so the assignment history stays." });
+            // Assignment history or a linked login keeps the employee; the message says what to do instead.
+            var blocker = await _service.GetDeleteBlockerAsync(id);
+            if (blocker != null)
+                return Conflict(new { message = blocker });
 
             // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Employees", "Delete"))

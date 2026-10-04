@@ -91,8 +91,33 @@ export const toISODate = (value) => {
   return d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "";
 };
 
-// Today as YYYY-MM-DD in local time.
-export const todayISO = () => toISODate(new Date());
+// "Today" follows the company's clock (Settings come with its time zone), so a laptop set to
+// another zone still opens the same day as the server. The device clock is used until it is known.
+let companyZone = null;
+let zoneFormat = null;
+
+export const setCompanyTimeZone = (zone) => {
+  if (!zone || zone === companyZone) return;
+  try {
+    zoneFormat = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" });
+    companyZone = zone;
+  } catch {
+    // a zone this browser doesn't know: keep the device clock
+  }
+};
+
+// Today as YYYY-MM-DD on the company clock.
+export const todayISO = () => {
+  if (zoneFormat) {
+    const parts = zoneFormat.formatToParts(new Date());
+    const get = (type) => parts.find((p) => p.type === type)?.value;
+    return `${get("year")}-${get("month")}-${get("day")}`;
+  }
+  return toISODate(new Date());
+};
+
+// Today on the company clock, as a local midnight date (for month pickers and calendars).
+export const companyToday = () => toDate(todayISO());
 
 // A YYYY-MM-DD date moved by a number of days.
 export const addDaysISO = (iso, days) => {

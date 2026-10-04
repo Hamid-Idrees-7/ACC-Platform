@@ -15,6 +15,7 @@ namespace Backend.Services
 
         // Refuses an assignment edit that would make a paid month earn less than was paid.
         Task<string?> PaidHistoryErrorAsync(Assignment original, Assignment changed);
+        Task<string?> MonthlyChangeErrorAsync(int employeeId, Assignment? before, Assignment? after);
     }
 
     public record SalaryPaymentSummary(string EmployeeName, int Year, int Month, decimal Amount);

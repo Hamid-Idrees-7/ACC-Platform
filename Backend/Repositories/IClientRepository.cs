@@ -5,6 +5,7 @@ namespace Backend.Repositories
     // Database operations for clients (implemented in ClientRepository).
     public interface IClientRepository
     {
+        string DatabaseName { get; }
         Task<IEnumerable<Client>> GetAllAsync();
 
         // Null when not found

@@ -72,6 +72,7 @@ builder.Services.AddHostedService<DemoPoolService>();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<LiveSessionSweeper>();
 builder.Services.AddSingleton<LiveChangeInterceptor>();
+builder.Services.AddSingleton<LiveTransactionInterceptor>();
 builder.Services.AddSingleton<AlertScheduler>();
 builder.Services.AddHostedService<AlertWorker>();
 
@@ -79,7 +80,9 @@ builder.Services.AddHostedService<AlertWorker>();
 // visitor's own database when the caller holds a demo token.
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseSqlServer(serviceProvider.GetRequiredService<DemoConnectionResolver>().GetConnectionString())
-           .AddInterceptors(serviceProvider.GetRequiredService<LiveChangeInterceptor>()));
+           .AddInterceptors(
+               serviceProvider.GetRequiredService<LiveChangeInterceptor>(),
+               serviceProvider.GetRequiredService<LiveTransactionInterceptor>()));
 
 // Starting a demo is limited per IP address so nobody can script it to fill the server.
 builder.Services.AddRateLimiter(options =>

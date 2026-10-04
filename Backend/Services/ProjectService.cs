@@ -116,6 +116,17 @@ namespace Backend.Services
             decimal profit = project.Budget - actualCost;
             decimal margin = project.Budget > 0 ? Math.Round(profit / project.Budget * 100m, 0) : 0m;
 
+            // A cancelled project never earns its budget: its result is the work billed (tax
+            // included, reimbursements left out) minus what was already spent. Reports uses this too.
+            if (project.Status == "Cancelled")
+            {
+                var invoices = await _billingRepository.GetInvoicesByProjectAsync(id);
+                var lines = await _billingRepository.GetItemsByInvoiceIdsAsync(invoices.Select(i => i.InvoiceID).ToList());
+                decimal workBilled = lines.Where(x => !x.ExpenseID.HasValue).Sum(x => x.Amount) + invoices.Sum(i => i.TaxAmount);
+                profit = workBilled - actualCost;
+                margin = 0m;
+            }
+
             var phaseNames = phases.ToDictionary(p => p.PhaseID, p => p.Name);
             var materialsByPhase = issues
                 .GroupBy(t => t.PhaseID)
@@ -287,6 +298,20 @@ namespace Backend.Services
             return null;
         }
 
+        private static readonly string[] PhaseStatuses = { "Pending", "In Progress", "Completed" };
+
+        // A cancelled project is read-only until it is reopened. Null when it can be changed.
+        public async Task<string?> CancelledErrorAsync(int projectId)
+        {
+            var project = await _repository.GetByIdAsync(projectId);
+            return project?.Status == "Cancelled"
+                ? $"{project.Title} is cancelled, so it can't be changed. Reopen it first by changing its status."
+                : null;
+        }
+
+        public async Task<int?> PhaseProjectIdAsync(int phaseId) =>
+            (await _repository.GetPhaseByIdAsync(phaseId))?.ProjectID;
+
         // The rules for a new or edited project. Null when it is fine; otherwise the reason.
         public async Task<string?> CheckAsync(CreateProjectDto dto, int? id)
         {
@@ -321,15 +346,26 @@ namespace Backend.Services
             var project = await _repository.GetByIdAsync(id);
             if (project == null) return new ProjectStatusResult(null, null, 0, 0);
 
-            project.Status = newStatus;
-            project.UpdatedAt = AppTime.Now;
-            await _repository.UpdateAsync(project);
-
+            // Assignments are ended and requests closed before the status is saved. If anything
+            // fails halfway, the project is still open and saving the status again finishes the
+            // job, so a closed project never keeps open assignments. (No transaction here: ending
+            // takes each person's salary lock, which must not wait while database rows are held.)
             int ended = 0, closed = 0;
             if (newStatus == "Completed" || newStatus == "Cancelled")
             {
                 ended = await _assignmentService.EndOpenAsync(projectId: id);
                 closed = await _materialRequestService.CloseForProjectAsync(id, $"The project was marked {newStatus.ToLower()}.");
+            }
+
+            project.Status = newStatus;
+            project.UpdatedAt = AppTime.Now;
+            await _repository.UpdateAsync(project);
+
+            // Once more, for anything added while the first pass ran (nothing new can be added now)
+            if (newStatus == "Completed" || newStatus == "Cancelled")
+            {
+                ended += await _assignmentService.EndOpenAsync(projectId: id);
+                closed += await _materialRequestService.CloseForProjectAsync(id, $"The project was marked {newStatus.ToLower()}.");
             }
 
             return new ProjectStatusResult(await GetProjectDetailAsync(id), null, ended, closed);
@@ -361,7 +397,8 @@ namespace Backend.Services
             var phase = await _repository.GetPhaseByIdAsync(phaseId);
             if (phase == null) return null;
 
-            phase.Status = string.IsNullOrWhiteSpace(dto.Status) ? phase.Status : dto.Status.Trim();
+            // Pending, In Progress or Completed only; anything else keeps the current status
+            phase.Status = PhaseStatuses.FirstOrDefault(s => s.Equals(dto.Status?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? phase.Status;
             phase.Progress = Math.Clamp(dto.Progress, 0, 100);
             phase.UpdatedAt = AppTime.Now;
 

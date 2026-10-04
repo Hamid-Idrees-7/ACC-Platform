@@ -119,30 +119,33 @@ namespace Backend.Services
             if (!await _repository.TryClaimAsync(id))
                 return (false, "This request has already been resolved.");
 
-            if (status == "Approved")
+            // The delete and the request's new status are saved together: if either fails,
+            // neither happens and the request goes back to Pending, never stuck in Processing.
+            try
             {
-                string? performError;
-                try
+                await using var transaction = await _repository.BeginTransactionAsync();
+                if (status == "Approved")
                 {
-                    performError = await PerformActionAsync(action);
+                    var performError = await PerformActionAsync(action);
+                    if (performError != null)
+                    {
+                        if (transaction != null) await transaction.RollbackAsync();
+                        await _repository.ReleaseClaimAsync(id);
+                        return (false, performError);
+                    }
                 }
-                catch
-                {
-                    // The delete didn't go through: back to Pending, never stuck in Processing.
-                    await _repository.ReleaseClaimAsync(id);
-                    throw;
-                }
-                if (performError != null)
-                {
-                    await _repository.ReleaseClaimAsync(id);
-                    return (false, performError);
-                }
-            }
 
-            action.Status = status;
-            action.Reason = dto.Reason?.Trim();
-            action.ResolvedAt = AppTime.Now;
-            await _repository.UpdateAsync(action);
+                action.Status = status;
+                action.Reason = dto.Reason?.Trim();
+                action.ResolvedAt = AppTime.Now;
+                await _repository.UpdateAsync(action);
+                if (transaction != null) await transaction.CommitAsync();
+            }
+            catch
+            {
+                await _repository.ReleaseClaimAsync(id);
+                throw;
+            }
 
             // Tell the requester the outcome.
             var verb = status == "Approved" ? "approved" : "rejected";
@@ -192,13 +195,17 @@ namespace Backend.Services
                         return "This client now has projects and can't be deleted. Remove those projects first.";
                     return await _clientRepository.DeleteAsync(action.TargetID) ? null : gone;
                 case "Employees":
-                    if (await _employeeService.HasAssignmentsAsync(action.TargetID))
-                        return "This employee now has project assignments and can't be deleted. Remove those assignments first.";
+                {
+                    var employeeBlocker = await _employeeService.GetDeleteBlockerAsync(action.TargetID);
+                    if (employeeBlocker != null) return employeeBlocker;
                     return await _employeeRepository.DeleteAsync(action.TargetID) ? null : gone;
+                }
                 case "Materials":
-                    if (await _materialService.HasIssuesAsync(action.TargetID))
-                        return "This material has now been issued to projects and can't be deleted. Cancel those issues first.";
+                {
+                    var materialBlocker = await _materialService.GetDeleteBlockerAsync(action.TargetID);
+                    if (materialBlocker != null) return materialBlocker;
                     return await _materialRepository.DeleteAsync(action.TargetID) ? null : gone;
+                }
                 case "Projects":
                 {
                     var blocker = await _projectService.GetDeleteBlockerAsync(action.TargetID);

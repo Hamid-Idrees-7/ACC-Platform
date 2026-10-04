@@ -34,6 +34,9 @@ namespace Backend.Models.DTOs
         // The number the next new invoice will get, eg INV-0042
         public string NextInvoiceNumber { get; set; } = string.Empty;
 
+        // The company clock, so the browser shows the same "today" as the server
+        public string TimeZone { get; set; } = string.Empty;
+
         // True until the admin saves the settings for the first time
         public bool IsDefault { get; set; }
         public DateTime? UpdatedAt { get; set; }

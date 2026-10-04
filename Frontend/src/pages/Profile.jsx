@@ -6,6 +6,7 @@ import "./Profile.css";
 import ModalOverlay from "../components/ModalOverlay";
 import { SkeletonPage } from "../components/Skeleton";
 import { formatPhone } from "../utils/format";
+import { clickable } from "../utils/a11y";
 
 // A read-only profile view. Editing happens in Settings.
 function Profile() {
@@ -47,7 +48,7 @@ function Profile() {
 
           <div className="pfv-avatar-wrap">
             {photo ? (
-              <img src={photo} alt="Profile" className="pfv-avatar-img" onClick={() => setViewPhoto(true)} title="Click to view" />
+              <img src={photo} alt="Profile" className="pfv-avatar-img" {...clickable(() => setViewPhoto(true))} title="Click to view" />
             ) : (
               <div className="pfv-avatar">{initials}</div>
             )}

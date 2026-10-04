@@ -5,6 +5,7 @@ import { attendanceService } from "../services/attendanceService";
 import "./Attendance.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { SkeletonCards } from "../components/Skeleton";
+import { clickable } from "../utils/a11y";
 
 // Groups are shown in this order; each has its own accent colour.
 const STATUS_GROUPS = [
@@ -78,7 +79,7 @@ function Attendance() {
                 <div
                   key={p.projectID}
                   className={`att-card ${p.status === "Cancelled" ? "cancelled" : ""}`}
-                  onClick={() => openProject(p)}
+                  {...clickable(() => openProject(p))}
                 >
                   <h3 className="att-card-title">{p.title}</h3>
                   <div className="att-card-loc">

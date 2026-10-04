@@ -33,6 +33,7 @@ namespace Backend.Services
             dto.IsDefault = saved == null || saved.UpdatedBy == null;
             dto.UpdatedAt = saved?.UpdatedAt;
             dto.NextInvoiceNumber = await NextNumberAsync(settings);
+            dto.TimeZone = AppTime.ZoneId;
             return dto;
         }
 

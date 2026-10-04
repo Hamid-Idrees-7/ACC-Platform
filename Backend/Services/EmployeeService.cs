@@ -9,9 +9,12 @@ namespace Backend.Services
         private readonly IEmployeeRepository _repository;
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly IAssignmentService _assignmentService;
+        private readonly IUserRepository _users;
 
-        public EmployeeService(IEmployeeRepository repository, IAssignmentRepository assignmentRepository, IAssignmentService assignmentService)
+        public EmployeeService(IEmployeeRepository repository, IAssignmentRepository assignmentRepository, IAssignmentService assignmentService,
+            IUserRepository users)
         {
+            _users = users;
             _repository = repository;
             _assignmentRepository = assignmentRepository;
             _assignmentService = assignmentService;
@@ -89,6 +92,33 @@ namespace Backend.Services
         {
             return await _assignmentRepository.AnyForEmployeeAsync(id);
         }
+
+        // Why an employee can't be deleted, or null if they can
+        public async Task<string?> GetDeleteBlockerAsync(int id)
+        {
+            var employee = await _repository.GetByIdAsync(id);
+            if (employee == null) return null;
+            if (await _assignmentRepository.AnyForEmployeeAsync(id))
+                return $"\"{employee.FullName}\" has project assignments, so they can't be deleted. Keep them and set them to Inactive instead, so the assignment history stays.";
+            var login = (await _users.GetAllLightAsync()).FirstOrDefault(u => u.EmployeeID == id);
+            if (login != null)
+                return $"\"{employee.FullName}\" is linked to the login \"{login.Username}\". Remove that link in Users first.";
+            return null;
+        }
+
+        // Held around the duplicate check and the save
+        public Task<IDisposable> LockAsync() => Locks.ForRecordsAsync(_repository.DatabaseName, "employees");
+
+        // The same CNIC can't belong to two employees (dashes and spaces are ignored)
+        public async Task<string?> CheckAsync(CreateEmployeeDto dto, int? id)
+        {
+            var cnic = Digits(dto.CNIC);
+            if (cnic.Length == 0) return null;
+            var same = (await _repository.GetAllAsync()).FirstOrDefault(e => e.EmployeeID != id && Digits(e.CNIC) == cnic);
+            return same == null ? null : $"{same.FullName} already has this CNIC.";
+        }
+
+        private static string Digits(string? value) => new((value ?? "").Where(char.IsDigit).ToArray());
 
         // Active or Inactive only
         private static string CleanStatus(string? status) =>

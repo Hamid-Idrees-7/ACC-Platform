@@ -8,6 +8,7 @@ import { useLiveRefresh } from "../hooks/useLive";
 import { SkeletonPage } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
+import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 
 function Billing() {
   const navigate = useNavigate();
@@ -23,8 +24,8 @@ function Billing() {
       try {
         setData(await billingService.getOverview());
         setError(false);
-      } catch {
-        setError(true);
+      } catch (err) {
+        setError(loadFailure(err));
       } finally {
         setLoading(false);
       }
@@ -76,6 +77,8 @@ function Billing() {
     <DashboardLayout title="Billing & Invoices">
       {loading ? (
         <SkeletonPage stats={4} rows={6} />
+      ) : error === "denied" ? (
+        <div className="bil-empty"><h3>{NO_ACCESS_TITLE}</h3><p>{NO_ACCESS_TEXT}</p></div>
       ) : error ? (
         <div className="bil-empty"><h3>Could not load billing</h3><p>Check your connection and refresh the page to try again.</p></div>
       ) : (

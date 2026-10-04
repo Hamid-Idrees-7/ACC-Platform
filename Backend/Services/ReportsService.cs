@@ -84,13 +84,10 @@ namespace Backend.Services
                 decimal profit = fin?.Profit ?? (budget - cost);
 
                 // A cancelled project's budget is never earned, so it stays out of the budget total.
-                // What was already spent on it is still a real cost, and what was billed for its
-                // work is its only income: its profit (usually a loss) is billed work minus cost.
+                // Its profit (billed work minus cost) already comes from the project's own figures.
                 bool isCancelled = p.Status == "Cancelled";
                 var b = billByProject.GetValueOrDefault(p.ProjectID);
-                if (isCancelled)
-                    profit = (b?.ContractBilled ?? 0m) - cost;
-                else
+                if (!isCancelled)
                     totalBudget += budget;
 
                 totalMaterial += material;

@@ -97,14 +97,15 @@ namespace Backend.Controllers
             return Ok(user);
         }
 
-        // PUT: /api/users/5/toggle-status
+        // PUT: /api/users/5/toggle-status?active=false
+        // The wanted state is sent, so a repeated click can't flip it back.
         [HttpPut("{id}/toggle-status")]
-        public async Task<IActionResult> ToggleStatus(int id)
+        public async Task<IActionResult> ToggleStatus(int id, [FromQuery] bool? active = null)
         {
             if (await GetLockedDemoLoginAsync(id) != null)
                 return BadRequest(new { message = DemoLoginLocked });
 
-            var (success, error) = await _service.ToggleStatusAsync(id, GetCurrentUserId());
+            var (success, error) = await _service.ToggleStatusAsync(id, GetCurrentUserId(), active);
             if (!success)
                 return BadRequest(new { message = error });
 

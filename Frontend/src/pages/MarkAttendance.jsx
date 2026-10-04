@@ -14,6 +14,7 @@ import { useUnsavedChanges, leaveSafely } from "../hooks/useUnsavedChanges";
 import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
@@ -42,6 +43,7 @@ function MarkAttendance() {
   const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [toast, showToast] = useToast(2500);
 
   const marksFromSheet = (data) => {
@@ -66,9 +68,12 @@ function MarkAttendance() {
     setLoading(true);
     try {
       const data = await attendanceService.getSheet(id, d);
-      if (wanted.current === key) showSheet(data, d);
-    } catch {
-      if (wanted.current === key) showToast("Could not load attendance for this date.", "error");
+      if (wanted.current === key) { showSheet(data, d); setLoadError(""); }
+    } catch (err) {
+      if (wanted.current === key) {
+        setLoadError(loadFailure(err));
+        showToast("Could not load attendance for this date.", "error");
+      }
     } finally {
       if (wanted.current === key) setLoading(false);
     }
@@ -135,9 +140,21 @@ function MarkAttendance() {
     const day = sheetDate;
     setSaving(true);
     try {
+      // Only rows changed here are sent, so a mark made from site meanwhile is never overwritten
+      const saved = marksFromSheet(sheet);
       const entries = onSiteWorkers
-        .filter((w) => marks[w.assignmentID]?.status)
+        .filter((w) => {
+          const m = marks[w.assignmentID];
+          const s = saved[w.assignmentID] || {};
+          return m?.status && (m.status !== s.status || (m.note?.trim() || "") !== (s.note || ""));
+        })
         .map((w) => ({ assignmentID: w.assignmentID, status: marks[w.assignmentID].status, note: marks[w.assignmentID].note?.trim() || null }));
+      if (entries.length === 0) {
+        // Only spaces or nothing changed: back to the saved marks, so the page isn't left "unsaved"
+        setMarks(saved);
+        showToast("Nothing new to save.", "error");
+        return;
+      }
       const updated = await attendanceService.save(id, day, entries);
       if (wanted.current === `${id}|${day}`) showSheet(updated, day);
       showToast("Attendance saved.");
@@ -231,7 +248,11 @@ function MarkAttendance() {
     return (
       <DashboardLayout title="Mark Attendance">
         <button className="mka-back" onClick={() => leaveSafely(() => navigate("/dashboard/attendance"))}>← All Projects</button>
-        <div className="mka-error">Project not found.</div>
+        <div className="mka-error">
+          {loadError === "denied" ? `${NO_ACCESS_TITLE}. ${NO_ACCESS_TEXT}`
+            : loadError === "failed" ? "Could not load attendance. Check your connection and refresh the page."
+            : "Project not found."}
+        </div>
       </DashboardLayout>
     );
   }

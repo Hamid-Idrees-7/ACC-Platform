@@ -17,6 +17,7 @@
     text-align: left;
 }
 .dp-input:hover { border-color: var(--color-text-muted); }
+.dp-input:has(+ .dp-clear) { padding-right: 36px; }
 .dp-input.open { border-color: var(--color-primary); }
 .dp-input.invalid { border-color: var(--color-error); }
 .dp-input.invalid:focus-visible { box-shadow: 0 0 0 3px var(--color-error-soft); }
@@ -24,14 +25,21 @@
 .dp-value { flex: 1; color: var(--color-text); white-space: nowrap; }
 .dp-placeholder { flex: 1; color: var(--color-text-subtle); white-space: nowrap; }
 .dp-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-text-muted);
+    background: none;
+    border: 0;
     padding: 2px;
     border-radius: 4px;
     transition: all 0.15s ease;
 }
+.dp-clear:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 .dp-clear:hover { background: var(--color-hover); color: var(--color-error); }
 
 .dp-popup {
@@ -44,7 +52,8 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     padding: 16px;
-    width: 300px;
+    /* Never wider than a small phone screen */
+    width: min(300px, calc(100vw - 32px));
     animation: dpIn 0.16s ease;
 }
 @keyframes dpIn {

@@ -307,6 +307,46 @@ namespace Backend.Services
             return null;
         }
 
+        // Monthly pay comes from all of a person's monthly assignments together (the latest one
+        // sets each day's wage), so adding, changing or moving one can lower a month already paid.
+        // before is the assignment as saved (null for a new one), after as it would be (null when
+        // it moves to another person).
+        public async Task<string?> MonthlyChangeErrorAsync(int employeeId, Assignment? before, Assignment? after)
+        {
+            var paidMonths = (await _salaryRepository.GetForEmployeeAsync(employeeId))
+                .Where(p => p.SourceType == "Monthly")
+                .GroupBy(p => new DateTime(p.Year, p.Month, 1))
+                .OrderBy(g => g.Key)
+                .ToList();
+            if (paidMonths.Count == 0) return null;
+
+            var current = (await _assignmentRepository.GetAllAsync())
+                .Where(a => a.EmployeeID == employeeId && a.WageType == "Monthly")
+                .ToList();
+            var changed = current.Where(a => before == null || a.AssignmentID != before.AssignmentID).ToList();
+            if (after != null && after.EmployeeID == employeeId && after.WageType == "Monthly")
+                changed.Add(after);
+
+            static decimal Earned(List<Assignment> set, DateTime monthStart)
+            {
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                var list = set.Where(a => Overlaps(a, monthStart, monthEnd)).ToList();
+                return list.Count == 0 ? 0m : MonthlyPay(list, monthStart, EarnedTo(monthEnd)).Amount;
+            }
+
+            foreach (var month in paidMonths)
+            {
+                decimal paid = month.Sum(p => p.PaidAmount);
+                decimal was = Earned(current, month.Key);
+                decimal will = Earned(changed, month.Key);
+                if (will < was && will < paid)
+                    return $"{await EmployeeNameAsync(employeeId)}'s monthly salary for {MonthNames[month.Key.Month]} {month.Key.Year} is already paid " +
+                           $"({await _companyService.FormatMoneyAsync(paid)}), and with this change it would earn only {await _companyService.FormatMoneyAsync(will)}. " +
+                           "Change the dates, or undo that payment in Salaries first.";
+            }
+            return null;
+        }
+
         public async Task<string> EmployeeNameAsync(int employeeId)
         {
             var employee = await _employeeRepository.GetByIdAsync(employeeId);

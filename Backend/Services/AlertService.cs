@@ -204,6 +204,8 @@ namespace Backend.Services
                 var info = AlertCatalog.Get(alert.Type);
                 if (info == null) return false;
                 if (info.Personal) return alert.UserID == UserId;
+                // Budget alerts show cost against budget, so they also need project money access
+                if (info.ProjectMoney && !IsAdmin && !MoneyAccess.ProjectMoney.Any(m => Allowed.Contains((m, "View")))) return false;
                 if (info.Module != null && Can(info.Module, info.Action)) return true;
                 return info.FieldSites && alert.ProjectID.HasValue && Sites.Contains(alert.ProjectID.Value);
             }

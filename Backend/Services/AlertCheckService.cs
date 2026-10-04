@@ -32,8 +32,9 @@ namespace Backend.Services
                 // still open, so that alert only closes once the month is really paid.
                 var month = new DateTime(now.Year, now.Month, 1);
                 var months = Enumerable.Range(1, 3).Select(back => month.AddMonths(-back)).ToHashSet();
+                // The key is "salary-pending:yyyy-MM", so only the part after the last ':' is the month
                 foreach (var alert in open.Where(a => a.Type == AlertTypes.SalaryPending))
-                    if (DateTime.TryParseExact(alert.Key, "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture,
+                    if (DateTime.TryParseExact(alert.Key[(alert.Key.LastIndexOf(':') + 1)..], "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture,
                             System.Globalization.DateTimeStyles.None, out var older) && older < month)
                         months.Add(older);
 

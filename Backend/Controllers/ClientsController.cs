@@ -75,6 +75,11 @@ namespace Backend.Controllers
         [RequirePermission("Clients", "Add")]
         public async Task<IActionResult> Create([FromBody] ClientDto dto)
         {
+            using var gate = await _service.LockAsync();
+            var error = await _service.CheckAsync(dto, null);
+            if (error != null)
+                return BadRequest(new { message = error });
+
             var client = await _service.CreateClientAsync(dto);
 
             // Tell the user who added it, and post it to the admins' activity feed.
@@ -93,6 +98,11 @@ namespace Backend.Controllers
         [RequirePermission("Clients", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] ClientDto dto)
         {
+            using var gate = await _service.LockAsync();
+            var error = await _service.CheckAsync(dto, id);
+            if (error != null)
+                return BadRequest(new { message = error });
+
             var client = await _service.UpdateClientAsync(id, dto);
             if (client == null)
                 return NotFound(new { message = "Client not found" });

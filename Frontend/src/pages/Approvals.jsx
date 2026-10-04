@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { clickable } from "../utils/a11y";
 
 // Full date with time, eg "23 September 2026, 2:20 PM" (follows Settings > Appearance).
 const formatDateTime = (value) => (value ? `${formatDate(value)}, ${formatTime(value)}` : "");
@@ -169,7 +170,7 @@ function Approvals() {
         <>
           <div className="ap-list">
             {paging.pageItems.map((r) => (
-              <div key={r.pendingActionID} data-highlight={r.pendingActionID} className="ap-card" onClick={() => openDetail(r)}>
+              <div key={r.pendingActionID} data-highlight={r.pendingActionID} className="ap-card" {...clickable(() => openDetail(r))}>
                 <div className="ap-card-icon">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </div>

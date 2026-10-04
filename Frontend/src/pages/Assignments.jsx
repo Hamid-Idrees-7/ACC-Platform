@@ -40,6 +40,8 @@ function Assignments() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadAssignments = async ({ quiet = false } = {}) => {
@@ -105,17 +107,23 @@ function Assignments() {
   };
 
   const handleEnd = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       await assignmentService.end(id);
       setConfirmEnd(null);
       showToast("Assignment ended (marked Completed).", "warn");
       loadAssignments({ quiet: true });
-    } catch {
-      showToast("Could not end assignment.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not end assignment.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const res = await assignmentService.delete(id);
       setConfirmDelete(null);
@@ -128,6 +136,8 @@ function Assignments() {
     } catch (err) {
       setConfirmDelete(null);
       showToast(err.response?.data?.message || "Could not delete assignment.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -280,7 +290,7 @@ function Assignments() {
             <p>Mark <strong>{confirmEnd.employeeName}</strong>'s assignment as Completed with today's date. Attendance up to today stays counted for salary. You can reopen it anytime from Edit.</p>
             <div className="asn-confirm-actions">
               <button className="asn-confirm-cancel" data-close onClick={() => setConfirmEnd(null)}>Cancel</button>
-              <button className="asn-confirm-end" onClick={() => handleEnd(confirmEnd.assignmentID)}>End Assignment</button>
+              <button className="asn-confirm-end" onClick={() => handleEnd(confirmEnd.assignmentID)} disabled={busy}>End Assignment</button>
             </div>
           </div>
         </ModalOverlay>
@@ -297,7 +307,7 @@ function Assignments() {
             <p><strong>{confirmDelete.employeeName} → {confirmDelete.projectTitle}</strong> will be permanently removed.</p>
             <div className="asn-confirm-actions">
               <button className="asn-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="asn-confirm-delete" onClick={() => handleDelete(confirmDelete.assignmentID)}>Delete</button>
+              <button className="asn-confirm-delete" onClick={() => handleDelete(confirmDelete.assignmentID)} disabled={busy}>Delete</button>
             </div>
           </div>
         </ModalOverlay>

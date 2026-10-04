@@ -5,6 +5,7 @@ import "./Home.css";
 import "./About.css";
 import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
 import LazyBackground from "../components/LazyBackground";
+import { clickable } from "../utils/a11y";
 
 function About() {
   usePageTitle("About us", SITE_NAME);
@@ -367,7 +368,7 @@ function About() {
               <span className="logo-text">ACC</span>
               <div className="footer-company">Anonymous Construction Co.</div>
               <p>Pakistan's trusted construction partner since 2010. We build homes, commercial spaces, and infrastructure that stand the test of time — with honesty, quality, and craftsmanship in every project.</p>
-              <span className="footer-privacy-link" onClick={() => navigate("/privacy")} style={{ cursor: "pointer" }}>Privacy Policy</span>
+              <span className="footer-privacy-link" {...clickable(() => navigate("/privacy"))} style={{ cursor: "pointer" }}>Privacy Policy</span>
             </div>
             <ul className="footer-contact">
               <li className="footer-contact-item">

@@ -56,3 +56,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
     font-size: 16px !important;
   }
 }
+
+/* Cards that open something can be reached with Tab; show where the focus is */
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

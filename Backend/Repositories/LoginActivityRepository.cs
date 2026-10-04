@@ -1,3 +1,4 @@
+using Backend.Auth;
 using Backend.Data;
 using Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,26 +25,40 @@ namespace Backend.Repositories
             return await _context.LoginActivities.FindAsync(id);
         }
 
+        // Failures and successes are matched by network (the IPv4 address, or the /64 of an IPv6
+        // address), the same key the sign-in rate limit uses, so new IPv6 addresses don't reset it.
         public async Task<List<DateTime>> GetFailureTimesAsync(string username, string? ipAddress, DateTime sinceUtc)
         {
-            return await _context.LoginActivities
+            var network = ClientPartition.For(ipAddress);
+            var ipv6 = IsIpv6(network);
+            var rows = await _context.LoginActivities
                 .AsNoTracking()
-                .Where(a => a.Username == username && a.IpAddress == ipAddress &&
-                            a.Result == LoginResults.WrongPassword && a.CreatedAt > sinceUtc)
+                .Where(a => a.Username == username && a.Result == LoginResults.WrongPassword && a.CreatedAt > sinceUtc)
+                .Where(a => ipv6 || a.IpAddress == ipAddress)
                 .OrderByDescending(a => a.CreatedAt)
-                .Select(a => a.CreatedAt)
+                .Select(a => new { a.CreatedAt, a.IpAddress })
+                .Take(500)
                 .ToListAsync();
+            return rows.Where(r => ClientPartition.For(r.IpAddress) == network).Select(r => r.CreatedAt).ToList();
         }
+
+        // An IPv6 /64 is matched in memory below; anything else is matched exactly in SQL
+        private static bool IsIpv6(string network) => network.EndsWith("::/64", StringComparison.Ordinal);
 
         public async Task<DateTime?> GetLastSuccessAsync(string username, string? ipAddress)
         {
-            return await _context.LoginActivities
+            var network = ClientPartition.For(ipAddress);
+            var ipv6 = IsIpv6(network);
+            var rows = await _context.LoginActivities
                 .AsNoTracking()
-                .Where(a => a.Username == username && a.IpAddress == ipAddress &&
+                .Where(a => a.Username == username &&
                             (a.Result == LoginResults.SignedIn || a.Result == LoginResults.PasswordReset))
+                .Where(a => ipv6 || a.IpAddress == ipAddress)
                 .OrderByDescending(a => a.CreatedAt)
-                .Select(a => (DateTime?)a.CreatedAt)
-                .FirstOrDefaultAsync();
+                .Select(a => new { a.CreatedAt, a.IpAddress })
+                .Take(200)
+                .ToListAsync();
+            return rows.Where(r => ClientPartition.For(r.IpAddress) == network).Select(r => (DateTime?)r.CreatedAt).FirstOrDefault();
         }
 
         public async Task<List<LoginActivity>> GetRecentAsync(int userId, DateTime sinceUtc, int take)

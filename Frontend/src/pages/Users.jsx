@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, startTransition } from "react";
+import { clickable } from "../utils/a11y";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
@@ -39,6 +40,7 @@ function Users() {
   const [detailUser, setDetailUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [securityUser, setSecurityUser] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const [toast, showToast] = useToast(3000);
 
@@ -120,18 +122,24 @@ function Users() {
   };
 
   const handleToggleStatus = async (u) => {
+    if (busy) return;
+    setBusy(true);
+    const nowActive = !u.isActive;
     try {
-      await userService.toggleStatus(u.userID);
-      const nowActive = !u.isActive;
+      await userService.toggleStatus(u.userID, nowActive);
       showToast(`User "${u.fullName}" ${nowActive ? "enabled" : "disabled"}.`, nowActive ? "success" : "warn");
       setDetailUser(null);
       loadUsers({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not update status.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       await userService.delete(id);
       showToast("User deleted.", "error");
@@ -140,6 +148,8 @@ function Users() {
       loadUsers({ quiet: true });
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete user.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -241,7 +251,7 @@ function Users() {
               <div
                 key={u.userID}
                 className={`us-card ${!u.isActive ? "inactive" : ""}`}
-                onClick={() => setDetailUser(u)}
+                {...clickable(() => setDetailUser(u))}
               >
                 {!isSelf(u) && !isLockedDemoLogin(u) && (
                   <button
@@ -356,8 +366,8 @@ function Users() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                   Edit
                 </button>
-                <button className={detailUser.isActive ? "us-detail-disable" : "us-detail-enable"} onClick={() => handleToggleStatus(detailUser)}>
-                  {detailUser.isActive ? "Disable" : "Enable"}
+                <button className={detailUser.isActive ? "us-detail-disable" : "us-detail-enable"} onClick={() => handleToggleStatus(detailUser)} disabled={busy}>
+                  {busy ? "Saving..." : detailUser.isActive ? "Disable" : "Enable"}
                 </button>
                 <button className="us-detail-delete" onClick={() => setConfirmDelete(detailUser)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -383,7 +393,7 @@ function Users() {
             <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
             <div className="us-confirm-actions">
               <button className="us-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="us-confirm-delete" onClick={() => handleDelete(confirmDelete.userID)}>Delete</button>
+              <button className="us-confirm-delete" onClick={() => handleDelete(confirmDelete.userID)} disabled={busy}>{busy ? "Deleting..." : "Delete"}</button>
             </div>
           </div>
         </ModalOverlay>

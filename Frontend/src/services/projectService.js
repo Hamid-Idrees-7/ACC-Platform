@@ -1,6 +1,12 @@
 import api from "./api";
 
 export const projectService = {
+  // Client names for the project form and filter (needs Projects access only)
+  getClients: async () => {
+    const response = await api.get("/projects/clients");
+    return response.data;
+  },
+
   getAll: async () => {
     const response = await api.get("/projects");
     return response.data;

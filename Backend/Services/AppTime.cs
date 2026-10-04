@@ -15,5 +15,11 @@ namespace Backend
 
         public static DateTime Now => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _zone);
         public static DateTime Today => Now.Date;
+
+        // The zone as an IANA name (eg "Asia/Karachi"), so the browser can use the same "today"
+        public static string ZoneId =>
+            _zone.HasIanaId ? _zone.Id
+            : TimeZoneInfo.TryConvertWindowsIdToIanaId(_zone.Id, out var iana) ? iana
+            : _zone.Id;
     }
 }

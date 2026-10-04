@@ -218,9 +218,10 @@ namespace Backend.Controllers
             if (material == null)
                 return NotFound(new { message = "Material not found" });
 
-            // A material already issued to projects can't be deleted (it is part of their history).
-            if (await _service.HasIssuesAsync(id))
-                return BadRequest(new { message = "This material has been issued to projects, so it can't be deleted. Keep it and set it to Inactive instead, or cancel its issues from the History page first." });
+            // A material with issues or purchases is part of the history and can't be deleted.
+            var blocker = await _service.GetDeleteBlockerAsync(id);
+            if (blocker != null)
+                return BadRequest(new { message = blocker });
 
             // Non-admins may need approval before the delete runs.
             if (!IsAdmin() && await _permissionService.RequiresApprovalAsync(GetUserId(), "Materials", "Delete"))

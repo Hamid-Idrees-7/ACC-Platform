@@ -16,9 +16,10 @@ import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
 import { passwordError } from "../utils/password";
 import "./Settings.css";
 import ModalOverlay from "../components/ModalOverlay";
-import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { useUnsavedChanges, leaveWithoutAsking } from "../hooks/useUnsavedChanges";
 import { SkeletonPage } from "../components/Skeleton";
 import { typePhone, typed } from "../utils/format";
+import { clickable } from "../utils/a11y";
 
 const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "company", "calendar"];
 const ADMIN_TABS = ["alerts", "company", "calendar"];
@@ -418,7 +419,7 @@ function Settings() {
               {/* Username: the gold locked card */}
               <div
                 className={`st-gold-card ${isDemoAccount ? "st-gold-card-disabled" : ""}`}
-                onClick={() => !isDemoAccount && setUnlockOpen(true)}
+                {...(isDemoAccount ? {} : clickable(() => setUnlockOpen(true)))}
                 aria-disabled={isDemoAccount}
               >
                 <div className="st-gold-glow" />
@@ -578,7 +579,7 @@ function Settings() {
         <UsernameChangeModal
           currentUsername={profile?.username}
           onClose={() => setUnlockOpen(false)}
-          onChanged={() => { logout(); navigate("/login"); }}
+          onChanged={() => { logout(); leaveWithoutAsking(() => navigate("/login")); }}
         />
       )}
     </DashboardLayout>

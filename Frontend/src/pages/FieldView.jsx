@@ -5,7 +5,7 @@ import { useCompany } from "../context/CompanyContext";
 import { offDayOf } from "../config/companyConfig";
 import { fieldService } from "../services/fieldService";
 import { formatQty, numberInWords } from "../utils/format";
-import { formatDateShort, toISODate } from "../utils/dates";
+import { formatDateShort, toISODate, todayISO } from "../utils/dates";
 import "./FieldView.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import ModalOverlay from "../components/ModalOverlay";
@@ -14,13 +14,9 @@ import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
 
-const prettyToday = () => formatDateShort(new Date());
+const prettyToday = () => formatDateShort(todayISO());
 const fmtDate = (d) => formatDateShort(d);
 
-const todayISO = () => {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
-};
 
 const marksFromSheet = (sheet) => {
   const saved = {};
@@ -28,6 +24,15 @@ const marksFromSheet = (sheet) => {
     if (w.status) saved[w.assignmentID] = w.status;
   });
   return saved;
+};
+
+// The fresh sheet's marks, with the marks the engineer changed here (and hasn't saved) on top
+const mergeMarks = (oldSaved, mine, freshSaved) => {
+  const merged = { ...freshSaved };
+  Object.keys({ ...oldSaved, ...mine }).forEach((k) => {
+    if ((mine[k] || null) !== (oldSaved[k] || null)) merged[k] = mine[k];
+  });
+  return merged;
 };
 
 const sameMarks = (a, b) => {
@@ -82,19 +87,31 @@ function FieldView() {
   // The site the engineer opened last; answers for any other site are ignored.
   const openSite = useRef(null);
 
+  // Also reloads the sheet when the office changes attendance, unless the engineer has
+  // unsaved marks (those are kept; only changed marks are sent on save).
   const refreshOpenSite = async () => {
     if (!active) return;
     const projectID = active.projectID;
+    const shown = sheet;
+    const day = shown?.date ? toISODate(shown.date) : todayISO();
     try {
-      const [ph, reqs] = await Promise.all([fieldService.getPhases(projectID), fieldService.getMyRequests()]);
+      const [ph, reqs, s] = await Promise.all([
+        fieldService.getPhases(projectID),
+        fieldService.getMyRequests(),
+        shown ? fieldService.getSheet(projectID, day) : null,
+      ]);
       if (openSite.current !== projectID) return;
       setPhases(ph || []);
       setMyRequests(reqs || []);
+      if (s) {
+        setSheet(s);
+        setMarks((m) => mergeMarks(marksFromSheet(shown), m, marksFromSheet(s)));
+      }
     } catch {
       return;
     }
   };
-  useLiveRefresh(["projects", "material-requests"], refreshOpenSite);
+  useLiveRefresh(["projects", "material-requests", "attendance"], refreshOpenSite);
 
   const openSheet = async (project) => {
     openSite.current = project.projectID;
@@ -144,11 +161,19 @@ function FieldView() {
   };
 
   const saveMarks = async () => {
+    // Only marks changed here are sent, so a change the office made meanwhile is never overwritten
+    const saved = marksFromSheet(sheet);
     const entries = Object.entries(marks)
-      .filter(([, status]) => status === "Present" || status === "Absent")
+      .filter(([id, status]) => (status === "Present" || status === "Absent") && saved[id] !== status)
       .map(([assignmentID, status]) => ({ assignmentID: Number(assignmentID), status }));
 
-    if (entries.length === 0) { showToast("Mark at least one worker first.", "error"); return; }
+    if (entries.length === 0) {
+      // Nothing that can be saved (eg a saved mark was only cleared): back to the saved marks
+      const anySaved = Object.keys(saved).length > 0;
+      setMarks(saved);
+      showToast(anySaved ? "Nothing new to save." : "Mark at least one worker first.", "error");
+      return;
+    }
 
     setBusy(true);
     try {
@@ -156,6 +181,7 @@ function FieldView() {
       const day = sheet?.date ? toISODate(sheet.date) : todayISO();
       const updated = await fieldService.markAttendance(active.projectID, { date: day, entries });
       setSheet(updated);
+      setMarks(marksFromSheet(updated));
       showToast("Attendance saved.");
       loadSite({ quiet: true });   // refresh the card counts
     } catch (err) {

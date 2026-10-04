@@ -13,6 +13,7 @@ import { usePagination } from "../hooks/usePagination";
 import { formatCnic, formatPhone, digitsMatch } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { clickable } from "../utils/a11y";
 
 function Clients() {
   const { can } = usePermissions();
@@ -33,6 +34,8 @@ function Clients() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadClients = async ({ quiet = false } = {}) => {
@@ -97,18 +100,24 @@ function Clients() {
   };
 
   const handleToggleStatus = async (client) => {
+    if (busy) return;
+    setBusy(true);
     const newStatus = client.status === "Active" ? "Inactive" : "Active";
     try {
       await clientService.update(client.clientID, { ...client, status: newStatus });
       showToast(`Client "${client.fullName}" ${newStatus === "Active" ? "enabled" : "disabled"}.`, newStatus === "Active" ? "success" : "warn");
       setDetailClient(null);
       loadClients({ quiet: true });
-    } catch {
-      showToast("Could not update status.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not update status.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const res = await clientService.delete(id);
       setConfirmDelete(null);
@@ -124,6 +133,8 @@ function Clients() {
     } catch (err) {
       setConfirmDelete(null);
       showToast(err.response?.data?.message || "Could not delete client.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -206,7 +217,7 @@ function Clients() {
                 key={c.clientID}
                 data-highlight={c.clientID}
                 className={`cl-card ${c.status === "Inactive" ? "inactive" : ""}`}
-                onClick={() => setDetailClient(c)}
+                {...clickable(() => setDetailClient(c))}
               >
                 {canEdit && (
                   <button
@@ -287,7 +298,7 @@ function Clients() {
                   </button>
                 )}
                 {canEdit && (
-                  <button className={detailClient.status === "Active" ? "cl-detail-disable" : "cl-detail-enable"} onClick={() => handleToggleStatus(detailClient)}>
+                  <button className={detailClient.status === "Active" ? "cl-detail-disable" : "cl-detail-enable"} onClick={() => handleToggleStatus(detailClient)} disabled={busy}>
                     {detailClient.status === "Active" ? "Disable" : "Enable"}
                   </button>
                 )}
@@ -314,7 +325,7 @@ function Clients() {
             <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
             <div className="cl-confirm-actions">
               <button className="cl-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="cl-confirm-delete" onClick={() => handleDelete(confirmDelete.clientID)}>Delete</button>
+              <button className="cl-confirm-delete" onClick={() => handleDelete(confirmDelete.clientID)} disabled={busy}>Delete</button>
             </div>
           </div>
         </ModalOverlay>

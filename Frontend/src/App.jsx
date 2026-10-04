@@ -1,5 +1,5 @@
 import { Fragment, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import { PermissionProvider } from "./context/PermissionContext";
@@ -62,6 +62,68 @@ function RouteErrorBoundary({ children }) {
   return <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>;
 }
 
+// A data router, so pages can ask before leaving with unsaved changes even on the browser's
+// Back button (see DashboardLayout).
+function RootLayout() {
+  return (
+    <RouteErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </RouteErrorBoundary>
+  );
+}
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      {/* Public website */}
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      <Route element={<SignedInBoundary />}>
+        {/* Dashboard */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/queries" element={<Queries />} />
+        <Route path="/dashboard/profile" element={<Profile />} />
+        <Route path="/dashboard/settings" element={<Settings />} />
+        <Route path="/dashboard/control-unit" element={<ControlUnit />} />
+        <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
+        <Route path="/dashboard/approvals" element={<Approvals />} />
+        <Route path="/dashboard/notifications" element={<Notifications />} />
+        <Route path="/dashboard/alerts" element={<Alerts />} />
+
+        {/* Modules */}
+        <Route path="/dashboard/clients" element={<Clients />} />
+        <Route path="/dashboard/employees" element={<Employees />} />
+        <Route path="/dashboard/users" element={<Users />} />
+        <Route path="/dashboard/materials" element={<Materials />} />
+        <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
+        <Route path="/dashboard/projects" element={<ProjectManagement />} />
+        <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
+        <Route path="/dashboard/assignments" element={<Assignments />} />
+        <Route path="/dashboard/attendance" element={<Attendance />} />
+        <Route path="/dashboard/attendance/:id" element={<MarkAttendance />} />
+        <Route path="/dashboard/salaries" element={<Salaries />} />
+        <Route path="/dashboard/salaries/payslip/:employeeId" element={<Payslip />} />
+        <Route path="/dashboard/billing" element={<Billing />} />
+        <Route path="/dashboard/billing/project/:projectId" element={<ProjectBilling />} />
+        <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
+        <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
+        <Route path="/dashboard/reports" element={<Reports />} />
+        <Route path="/dashboard/field" element={<FieldView />} />
+        <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
+    </Route>
+  )
+);
+
 function App() {
   return (
     <AuthProvider>
@@ -72,57 +134,7 @@ function App() {
       <DemoTransition />
       <LiveConnection />
       <ConnectionBanner />
-      <BrowserRouter>
-        <RouteErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* Public website */}
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-
-          <Route element={<SignedInBoundary />}>
-            {/* Dashboard */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/queries" element={<Queries />} />
-            <Route path="/dashboard/profile" element={<Profile />} />
-            <Route path="/dashboard/settings" element={<Settings />} />
-            <Route path="/dashboard/control-unit" element={<ControlUnit />} />
-            <Route path="/dashboard/control-unit/:userId" element={<ManageAccess />} />
-            <Route path="/dashboard/approvals" element={<Approvals />} />
-            <Route path="/dashboard/notifications" element={<Notifications />} />
-            <Route path="/dashboard/alerts" element={<Alerts />} />
-
-            {/* Modules */}
-            <Route path="/dashboard/clients" element={<Clients />} />
-            <Route path="/dashboard/employees" element={<Employees />} />
-            <Route path="/dashboard/users" element={<Users />} />
-            <Route path="/dashboard/materials" element={<Materials />} />
-            <Route path="/dashboard/materials/:id/history" element={<MaterialHistory />} />
-            <Route path="/dashboard/projects" element={<ProjectManagement />} />
-            <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
-            <Route path="/dashboard/assignments" element={<Assignments />} />
-            <Route path="/dashboard/attendance" element={<Attendance />} />
-            <Route path="/dashboard/attendance/:id" element={<MarkAttendance />} />
-            <Route path="/dashboard/salaries" element={<Salaries />} />
-            <Route path="/dashboard/salaries/payslip/:employeeId" element={<Payslip />} />
-            <Route path="/dashboard/billing" element={<Billing />} />
-            <Route path="/dashboard/billing/project/:projectId" element={<ProjectBilling />} />
-            <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
-            <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
-            <Route path="/dashboard/reports" element={<Reports />} />
-            <Route path="/dashboard/field" element={<FieldView />} />
-            <Route path="/dashboard/material-requests" element={<MaterialRequests />} />
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </Suspense>
-        </RouteErrorBoundary>
-      </BrowserRouter>
+      <RouterProvider router={router} />
       </PermissionProvider>
       </CompanyProvider>
       </PreferencesProvider>

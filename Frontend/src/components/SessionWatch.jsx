@@ -9,6 +9,7 @@ import {
   SESSION_ENDED_EVENT, ACTIVITY_KEY, IDLE_WARNING_SECONDS, DEFAULT_IDLE_MINUTES, idleLabel,
 } from "../config/sessionConfig";
 import "./SessionWatch.css";
+import { leaveWithoutAsking } from "../hooks/useUnsavedChanges";
 
 // Wraps every dashboard page while someone is signed in.
 // Signs out after the inactivity time chosen in Settings > Security, with a one-minute
@@ -90,7 +91,7 @@ function SessionWatch() {
     } else {
       await signOut({ note: text, idle: true });
     }
-    navigate("/login", { replace: true });
+    leaveWithoutAsking(() => navigate("/login", { replace: true }));
   }, [minutes, user, signOut, logout, navigate]);
 
   // Check once a second while automatic sign-out is on. Uses clock times, so a sleeping
@@ -124,7 +125,7 @@ function SessionWatch() {
       if (ending.current) return;
       ending.current = true;
       await signOut({ note: e.detail?.message || "Your session has ended. Please sign in again.", ended: true });
-      navigate("/login", { replace: true });
+      leaveWithoutAsking(() => navigate("/login", { replace: true }));
     };
     window.addEventListener(SESSION_ENDED_EVENT, onEnded);
     return () => window.removeEventListener(SESSION_ENDED_EVENT, onEnded);
@@ -160,7 +161,7 @@ function SessionWatch() {
     } else {
       await signOut();
     }
-    navigate("/login", { replace: true });
+    leaveWithoutAsking(() => navigate("/login", { replace: true }));
   };
 
   if (!warningOpen) return null;

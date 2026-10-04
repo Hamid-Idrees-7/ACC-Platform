@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { companyToday } from "../utils/dates";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
@@ -34,7 +35,7 @@ function Salaries() {
   const canManage = can("Salaries", "Manage");
   const canPay = canManage;
 
-  const now = new Date();
+  const now = companyToday();
   const [params] = useSearchParams();
   const askedYear = Number(params.get("year"));
   const askedMonth = Number(params.get("month"));

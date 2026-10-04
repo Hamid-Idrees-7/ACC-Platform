@@ -53,6 +53,12 @@ namespace Backend.Services
 
         public async Task<(AssignmentDto?, string?)> CreateAsync(CreateAssignmentDto dto)
         {
+            // A lock is only made for a real employee
+            if (await _employeeRepository.GetByIdAsync(dto.EmployeeID) == null) return (null, "Choose an employee.");
+
+            // No salary payment for this person can run while a new monthly line is checked and saved.
+            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, dto.EmployeeID);
+
             var (clean, error) = await ValidateAsync(dto, null);
             if (error != null) return (null, error);
 
@@ -82,8 +88,14 @@ namespace Backend.Services
             var assignment = await _repository.GetByIdAsync(id);
             if (assignment == null) return (null, "Assignment not found.");
 
-            // No salary payment for this person can run while the dates are checked and saved.
-            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, assignment.EmployeeID);
+            if (await _employeeRepository.GetByIdAsync(dto.EmployeeID) == null) return (null, "Choose an employee.");
+
+            // No salary payment for this person (or the new person) can run while the change is
+            // checked and saved. Locks are taken in ID order so two edits can't wait on each other.
+            var firstId = Math.Min(assignment.EmployeeID, dto.EmployeeID);
+            var secondId = Math.Max(assignment.EmployeeID, dto.EmployeeID);
+            using var gate = await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, firstId);
+            using var gate2 = secondId != firstId ? await Locks.ForSalaryAsync(_salaryRepository.DatabaseName, secondId) : null;
 
             var (clean, error) = await ValidateAsync(dto, assignment);
             if (error != null) return (null, error);
@@ -188,9 +200,10 @@ namespace Backend.Services
             var status = Statuses.FirstOrDefault(s => s.Equals(dto.Status?.Trim(), StringComparison.OrdinalIgnoreCase));
             if (status == null) return (clean, "Choose a status: Active or Completed.");
 
-            if (dto.WageAmount <= 0) return (clean, "Enter a wage greater than zero.");
-            if (dto.WageAmount > MaxWage) return (clean, "The wage is too large.");
+            // Rounded first, so 0.004 can't pass the check and be saved as 0
             var wage = Math.Round(dto.WageAmount, 2);
+            if (wage <= 0) return (clean, "Enter a wage greater than zero.");
+            if (wage > MaxWage) return (clean, "The wage is too large.");
 
             var start = dto.StartDate.Date;
             if (start.Year < 2000 || start > today.AddYears(5)) return (clean, "Enter a valid start date.");
@@ -208,12 +221,17 @@ namespace Backend.Services
             var project = await _projectRepository.GetByIdAsync(dto.ProjectID);
             if (project == null) return (clean, "Choose a project.");
 
+            // Reopening an ended assignment (back to Active, or a later end date) counts as a new
+            // placement too, so a closed project or an inactive employee can't come back through Edit.
+            var reopening = existing != null &&
+                ((existing.Status != "Active" && status == "Active") ||
+                 (existing.EndDate != null && (end == null || end > existing.EndDate.Value.Date)));
             var employeeChanged = existing == null || existing.EmployeeID != dto.EmployeeID;
             var projectChanged = existing == null || existing.ProjectID != dto.ProjectID;
-            if (employeeChanged && employee.Status != "Active")
+            if ((employeeChanged || reopening) && employee.Status != "Active")
                 return (clean, $"{employee.FullName} is inactive. Set the employee Active first.");
-            if (projectChanged && (project.Status == "Completed" || project.Status == "Cancelled"))
-                return (clean, $"{project.Title} is {project.Status.ToLower()}, so it can't take new assignments.");
+            if ((projectChanged || reopening) && (project.Status == "Completed" || project.Status == "Cancelled"))
+                return (clean, $"{project.Title} is {project.Status.ToLower()}, so it can't take new or reopened assignments.");
 
             // The same person can't be placed twice on the same project for the same days.
             var others = (await _repository.GetByProjectAsync(dto.ProjectID))
@@ -248,6 +266,28 @@ namespace Backend.Services
                 };
                 var paidError = await _salaryService.PaidHistoryErrorAsync(existing, changed);
                 if (paidError != null) return (clean, paidError);
+            }
+
+            // A monthly line, new or changed, must not lower a month already paid to that person
+            // (or to the person it moves away from).
+            if (wageType == "Monthly" || existing?.WageType == "Monthly")
+            {
+                var candidate = new Assignment
+                {
+                    AssignmentID = existing?.AssignmentID ?? int.MaxValue,
+                    EmployeeID = dto.EmployeeID,
+                    ProjectID = dto.ProjectID,
+                    WageType = wageType,
+                    WageAmount = wage,
+                    StartDate = start,
+                    EndDate = end,
+                    Status = status
+                };
+                var sameEmployee = existing != null && existing.EmployeeID == dto.EmployeeID;
+                var monthlyError = await _salaryService.MonthlyChangeErrorAsync(dto.EmployeeID, sameEmployee ? existing : null, candidate);
+                if (monthlyError == null && existing != null && !sameEmployee)
+                    monthlyError = await _salaryService.MonthlyChangeErrorAsync(existing.EmployeeID, existing, null);
+                if (monthlyError != null) return (clean, monthlyError);
             }
 
             return (new CleanAssignment(wageType, wage, start, end, status), null);

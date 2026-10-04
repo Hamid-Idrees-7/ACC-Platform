@@ -14,6 +14,7 @@ import { usePagination } from "../hooks/usePagination";
 import { formatCnic, formatPhone, digitsMatch } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { clickable } from "../utils/a11y";
 
 function Employees() {
   const { can } = usePermissions();
@@ -35,6 +36,8 @@ function Employees() {
   const [confirmDisable, setConfirmDisable] = useState(null);
 
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadEmployees = async ({ quiet = false } = {}) => {
@@ -104,6 +107,8 @@ function Employees() {
   };
 
   const handleToggleStatus = async (emp) => {
+    if (busy) return;
+    setBusy(true);
     const newStatus = emp.status === "Active" ? "Inactive" : "Active";
     try {
       await employeeService.update(emp.employeeID, { ...emp, status: newStatus, joiningDate: emp.joiningDate ? emp.joiningDate.split("T")[0] : null });
@@ -111,12 +116,16 @@ function Employees() {
       setConfirmDisable(null);
       setDetailEmp(null);
       loadEmployees({ quiet: true });
-    } catch {
-      showToast("Could not update status.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not update status.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const res = await employeeService.delete(id);
       setConfirmDelete(null);
@@ -129,8 +138,10 @@ function Employees() {
         showToast("Employee deleted.", "error");
         loadEmployees({ quiet: true });
       }
-    } catch {
-      showToast("Could not delete employee.", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not delete employee.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -211,7 +222,7 @@ function Employees() {
                 key={emp.employeeID}
                 data-highlight={emp.employeeID}
                 className={`emp-card ${emp.status === "Inactive" ? "inactive" : ""}`}
-                onClick={() => setDetailEmp(emp)}
+                {...clickable(() => setDetailEmp(emp))}
               >
                 {canEdit && (
                   <button
@@ -294,7 +305,7 @@ function Employees() {
                   </button>
                 )}
                 {canEdit && (
-                  <button className={detailEmp.status === "Active" ? "emp-detail-disable" : "emp-detail-enable"} onClick={() => (detailEmp.status === "Active" ? setConfirmDisable(detailEmp) : handleToggleStatus(detailEmp))}>
+                  <button className={detailEmp.status === "Active" ? "emp-detail-disable" : "emp-detail-enable"} onClick={() => (detailEmp.status === "Active" ? setConfirmDisable(detailEmp) : handleToggleStatus(detailEmp))} disabled={busy}>
                     {detailEmp.status === "Active" ? "Disable" : "Enable"}
                   </button>
                 )}
@@ -321,7 +332,7 @@ function Employees() {
             <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
             <div className="emp-confirm-actions">
               <button className="emp-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="emp-confirm-delete" onClick={() => handleDelete(confirmDelete.employeeID)}>Delete</button>
+              <button className="emp-confirm-delete" onClick={() => handleDelete(confirmDelete.employeeID)} disabled={busy}>Delete</button>
             </div>
           </div>
         </ModalOverlay>
@@ -337,7 +348,7 @@ function Employees() {
             </p>
             <div className="emp-confirm-actions">
               <button className="emp-confirm-cancel" data-close onClick={() => setConfirmDisable(null)}>Cancel</button>
-              <button className="emp-confirm-delete" onClick={() => handleToggleStatus(confirmDisable)}>Disable</button>
+              <button className="emp-confirm-delete" onClick={() => handleToggleStatus(confirmDisable)} disabled={busy}>Disable</button>
             </div>
           </div>
         </ModalOverlay>

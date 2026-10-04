@@ -51,6 +51,8 @@ function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [],
     if (!form.areaSize.trim()) e.areaSize = "Area / size is required.";
     if (form.budget === "" || Number(form.budget) < 0) e.budget = "Enter a valid budget.";
     if (!form.location.trim()) e.location = "Location is required.";
+    if (form.startDate && form.expectedEndDate && form.expectedEndDate < form.startDate)
+      e.expectedEndDate = "The expected end date can't be before the start date.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -135,12 +137,13 @@ function ProjectFormModal({ mode, initialData, clients = [], existingTypes = [],
             <div className="pfm-field">
               <label>Expected End Date</label>
               <DatePicker value={form.expectedEndDate} onChange={(v) => setField("expectedEndDate", v)} placeholder="Optional" />
+              {errors.expectedEndDate && <span className="pfm-err">{errors.expectedEndDate}</span>}
             </div>
 
             <div className="pfm-field">
               <label>Total Budget ({currencySymbol()}) <span className="req">*</span></label>
               <input type="number" min="0" step="any" value={form.budget} onChange={(e) => setField("budget", e.target.value)} className={errors.budget ? "err" : ""} placeholder="Enter amount" />
-              {errors.budget ? <span className="pfm-err">{errors.budget}</span> : form.budget !== "" ? <span className="pfm-num">= {amountInWords(form.budget)}</span> : <span className="pfm-hint">From the client</span>}
+              {errors.budget ? <span className="pfm-err">{errors.budget}</span> : form.budget !== "" ? <span className="pfm-num">= {amountInWords(form.budget)}</span> : <span className="pfm-hint">The contract value, tax included</span>}
             </div>
 
             <div className="pfm-field pfm-field-full">

@@ -424,7 +424,7 @@ function ProjectDetail() {
                   </div>
                 )}
               </div>
-              {canManage && !cancelled && (
+              {canManage && !cancelled && can("Assignments", "View") && (
                 <button className="pd-manage-team" onClick={() => navigate("/dashboard/assignments")}>Manage Team →</button>
               )}
             </div>

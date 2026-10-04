@@ -15,6 +15,19 @@ export const leaveSafely = (action) => {
   window.dispatchEvent(new CustomEvent(LEAVE_REQUEST_EVENT, { detail: action }));
 };
 
+// Exits that must not be stopped (sign-out, an ended demo, a demo role switch, or a "Leave"
+// the user already confirmed): the unsaved-changes check lets this navigation through.
+let forced = false;
+export const isLeaveForced = () => forced;
+export const leaveWithoutAsking = (action) => {
+  forced = true;
+  try {
+    action();
+  } finally {
+    setTimeout(() => { forced = false; }, 0);
+  }
+};
+
 export function useUnsavedChanges(dirty) {
   useEffect(() => {
     if (!dirty) return;

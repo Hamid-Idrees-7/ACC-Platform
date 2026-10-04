@@ -24,6 +24,6 @@ namespace Backend.Services
 
         // Short label used in notifications and approval requests,
         // eg Transfer fee (Rs 25,000) on Model Town House
-        Task<string> DescribeAsync(ProjectExpenseDto expense);
+        Task<string> DescribeAsync(ProjectExpenseDto expense, bool withAmount = true);
     }
 }

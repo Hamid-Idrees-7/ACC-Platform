@@ -98,7 +98,8 @@ namespace Backend.Services
                 return (false, "This request has already been resolved.");
 
             // Issue the stock with the material module's own logic, which blocks negative
-            // stock, closed projects and a phase from another project.
+            // stock, closed projects and a phase from another project. The request is marked
+            // Approved in the same transaction, so stock never goes out with the request left open.
             StockResult result;
             try
             {
@@ -109,11 +110,17 @@ namespace Backend.Services
                     PhaseID = request.PhaseID,
                     Quantity = request.Quantity,
                     Note = "Issued from an approved field request."
+                }, async () =>
+                {
+                    request.Status = "Approved";
+                    request.ResolvedByUserID = adminUserId;
+                    request.ResolvedAt = AppTime.Now;
+                    await _repository.UpdateAsync(request);
                 });
             }
             catch
             {
-                // Nothing was issued: the request goes back to Pending instead of staying stuck.
+                // Nothing was saved: the request goes back to Pending instead of staying stuck.
                 await _repository.ReleaseClaimAsync(requestId);
                 throw;
             }
@@ -123,11 +130,6 @@ namespace Backend.Services
                 await _repository.ReleaseClaimAsync(requestId);
                 return (false, result.Error);   // eg "Only 40 Bags available"
             }
-
-            request.Status = "Approved";
-            request.ResolvedByUserID = adminUserId;
-            request.ResolvedAt = AppTime.Now;
-            await _repository.UpdateAsync(request);
 
             // Let the engineer know their request went through and the stock was issued.
             var m = (await MapManyAsync(new List<MaterialRequest> { request }))[0];

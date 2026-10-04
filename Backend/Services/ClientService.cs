@@ -36,7 +36,7 @@ namespace Backend.Services
                 Address = dto.Address,
                 City = dto.City,
                 ClientType = dto.ClientType,
-                Status = dto.Status,
+                Status = CleanStatus(dto.Status),
                 CreatedAt = AppTime.Now,
                 UpdatedAt = AppTime.Now
             };
@@ -57,7 +57,7 @@ namespace Backend.Services
                 Address = dto.Address,
                 City = dto.City,
                 ClientType = dto.ClientType,
-                Status = dto.Status
+                Status = CleanStatus(dto.Status)
             };
 
             return await _repository.UpdateAsync(client);
@@ -67,5 +67,23 @@ namespace Backend.Services
         {
             return await _repository.DeleteAsync(id);
         }
+
+        // Held around the duplicate check and the save
+        public Task<IDisposable> LockAsync() => Locks.ForRecordsAsync(_repository.DatabaseName, "clients");
+
+        // The same CNIC can't belong to two clients (dashes and spaces are ignored)
+        public async Task<string?> CheckAsync(ClientDto dto, int? id)
+        {
+            var cnic = Digits(dto.CNIC);
+            if (cnic.Length == 0) return null;
+            var same = (await _repository.GetAllAsync()).FirstOrDefault(c => c.ClientID != id && Digits(c.CNIC) == cnic);
+            return same == null ? null : $"{same.FullName} already has this CNIC.";
+        }
+
+        private static string Digits(string? value) => new((value ?? "").Where(char.IsDigit).ToArray());
+
+        // Active or Inactive only
+        private static string CleanStatus(string? status) =>
+            string.Equals(status?.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
     }
 }

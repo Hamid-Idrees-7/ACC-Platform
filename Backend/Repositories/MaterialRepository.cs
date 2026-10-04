@@ -6,6 +6,9 @@ namespace Backend.Repositories
 {
     public class MaterialRepository : IMaterialRepository
     {
+        public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?> BeginTransactionAsync() =>
+            _context.BeginOwnTransactionAsync();
+
         private readonly AppDbContext _context;
 
         public MaterialRepository(AppDbContext context)

@@ -4,6 +4,7 @@ namespace Backend.Repositories
 {
     public interface IEmployeeRepository
     {
+        string DatabaseName { get; }
         Task<List<Employee>> GetAllAsync();
         Task<Employee?> GetByIdAsync(int id);
         Task<Employee> AddAsync(Employee employee);

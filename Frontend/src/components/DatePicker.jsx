@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { formatDate } from "../utils/dates";
+import { formatDate, companyToday } from "../utils/dates";
 import "./DatePicker.css";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -36,8 +36,8 @@ const visibleBox = (el) => {
 function DatePicker({ value, onChange, placeholder = "Select a date", allowClear = true, id, invalid = false }) {
   const [open, setOpen] = useState(false);
   const selected = parseValue(value);
-  const [viewMonth, setViewMonth] = useState((selected || new Date()).getMonth());
-  const [viewYear, setViewYear] = useState((selected || new Date()).getFullYear());
+  const [viewMonth, setViewMonth] = useState((selected || companyToday()).getMonth());
+  const [viewYear, setViewYear] = useState((selected || companyToday()).getFullYear());
   const ref = useRef(null);
   const popupRef = useRef(null);
 
@@ -55,6 +55,10 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
     const popup = popupRef.current;
     if (!open || !popup || !ref.current) return;
     const field = ref.current.getBoundingClientRect();
+    // On a narrow screen a field near the right edge moves the calendar left to stay visible
+    popup.style.left = "";
+    const room = window.innerWidth - 8 - field.left;
+    if (popup.offsetWidth > room) popup.style.left = `${room - popup.offsetWidth}px`;
     const box = visibleBox(ref.current);
     const need = popup.offsetHeight + 8;
     const up = box.bottom - field.bottom < need && field.top - box.top >= need;
@@ -68,8 +72,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = companyToday();
 
   const isSameDay = (d, day) =>
     d && d.getDate() === day && d.getMonth() === viewMonth && d.getFullYear() === viewYear;
@@ -110,15 +113,13 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
         <span className={selected ? "dp-value" : "dp-placeholder"}>
           {selected ? formatDate(selected) : placeholder}
         </span>
-        {value && allowClear && (
-          <span
-            className="dp-clear"
-            onClick={(e) => { e.stopPropagation(); onChange(""); }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </span>
-        )}
       </button>
+      {/* Its own button next to the field, so it can be reached with Tab too */}
+      {value && allowClear && (
+        <button type="button" className="dp-clear" aria-label="Clear date" onClick={() => onChange("")}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      )}
 
       {open && (
         <div className="dp-popup" ref={popupRef}>
@@ -161,7 +162,7 @@ function DatePicker({ value, onChange, placeholder = "Select a date", allowClear
 
           <div className="dp-footer">
             <button type="button" className="dp-today-btn" onClick={() => {
-              const t = new Date();
+              const t = companyToday();
               setViewMonth(t.getMonth());
               setViewYear(t.getFullYear());
               onChange(toIso(t.getFullYear(), t.getMonth(), t.getDate()));

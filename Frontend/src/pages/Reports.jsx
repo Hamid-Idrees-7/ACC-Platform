@@ -14,6 +14,7 @@ import Toast, { useToast } from "../components/Toast";
 import "./Reports.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { SkeletonPage } from "../components/Skeleton";
+import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 
 const TABS = [
   { key: "financial", label: "Financial" },
@@ -167,8 +168,8 @@ function Reports() {
       try {
         setData(await reportsService.getReports());
         setError(false);
-      } catch {
-        setError(true);
+      } catch (err) {
+        setError(loadFailure(err));
       } finally {
         setLoading(false);
       }
@@ -177,6 +178,9 @@ function Reports() {
 
   if (loading) {
     return <DashboardLayout title="Reports"><SkeletonPage stats={4} rows={6} /></DashboardLayout>;
+  }
+  if (error === "denied") {
+    return <DashboardLayout title="Reports"><div className="rep-empty"><h3>{NO_ACCESS_TITLE}</h3><p>{NO_ACCESS_TEXT}</p></div></DashboardLayout>;
   }
   if (error || !data) {
     return <DashboardLayout title="Reports"><div className="rep-empty"><h3>Could not load reports</h3><p>Check your connection and refresh the page to try again.</p></div></DashboardLayout>;

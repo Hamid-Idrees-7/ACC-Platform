@@ -51,13 +51,15 @@ namespace Backend.Alerts
         string? ThresholdLabel = null,
         string? Unit = null,
         int? Min = null,
-        int? Max = null)
+        int? Max = null,
+        bool ProjectMoney = false)
     {
         public bool HasThreshold => DefaultThreshold.HasValue;
 
         public string Audience =>
             Personal ? "Only the account owner"
             : FieldSites ? $"Admins, users with {Module} access, and the site engineers of that project"
+            : ProjectMoney ? $"Admins and users with {Module} access who can also see project money"
             : Action == "View" ? $"Admins and users with {Module} access"
             : $"Admins and users who can manage {Module}";
     }
@@ -68,10 +70,10 @@ namespace Backend.Alerts
         {
             new(AlertTypes.BudgetWarning, AlertGroups.Money, "Budget almost used",
                 "A running project's costs (materials, labour and company expenses) reach this share of its budget.",
-                AlertSeverities.Warning, "Projects", DefaultThreshold: 80, ThresholdLabel: "Warn at", Unit: "% of budget", Min: 50, Max: 99),
+                AlertSeverities.Warning, "Projects", DefaultThreshold: 80, ThresholdLabel: "Warn at", Unit: "% of budget", Min: 50, Max: 99, ProjectMoney: true),
             new(AlertTypes.BudgetOver, AlertGroups.Money, "Over budget",
                 "A running project's costs are more than its budget.",
-                AlertSeverities.Critical, "Projects"),
+                AlertSeverities.Critical, "Projects", ProjectMoney: true),
             new(AlertTypes.InvoiceDueSoon, AlertGroups.Money, "Invoice due soon",
                 "An invoice is close to its due date and is not fully paid.",
                 AlertSeverities.Info, "Billing", DefaultThreshold: 3, ThresholdLabel: "Days before the due date", Unit: "days", Min: 1, Max: 30),

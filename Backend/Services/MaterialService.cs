@@ -50,7 +50,8 @@ namespace Backend.Services
 
             // An opening balance is recorded as the first restock so stock always
             // traces back to the ledger.
-            if (dto.InitialStock.HasValue && dto.InitialStock.Value > 0)
+            // Rounded first, so 0.004 doesn't save a restock of 0
+            if (dto.InitialStock.HasValue && Math.Round(dto.InitialStock.Value, 2) > 0)
             {
                 await _repository.AddTransactionAsync(new MaterialTransaction
                 {
@@ -134,6 +135,18 @@ namespace Backend.Services
             return transactions.Any(t => t.Type == "Issue" && !t.IsCancelled);
         }
 
+        // Why a material can't be deleted, or null if it can. Issues and purchases are project
+        // cost and company spend, so a material with either is kept (set Inactive instead).
+        public async Task<string?> GetDeleteBlockerAsync(int id)
+        {
+            var transactions = (await _repository.GetTransactionsAsync(id)).Where(t => !t.IsCancelled).ToList();
+            if (transactions.Any(t => t.Type == "Issue"))
+                return "This material has been issued to projects, so it can't be deleted. Keep it and set it to Inactive instead, or cancel its issues from the History page first.";
+            if (transactions.Any(t => t.Type == "Restock"))
+                return "This material has purchases on record, so it can't be deleted. Keep it and set it to Inactive instead, or cancel its purchases from the History page first.";
+            return null;
+        }
+
         public async Task<StockResult> RestockAsync(int id, RestockDto dto)
         {
             var material = await _repository.GetByIdAsync(id);
@@ -171,7 +184,9 @@ namespace Backend.Services
             return new StockResult { Success = true, Material = await ToDtoAsync(material) };
         }
 
-        public async Task<StockResult> IssueAsync(int id, IssueDto dto)
+        // alsoSave runs in the same transaction and under the same stock lock, for work that must
+        // be saved together with the issue (eg the request it fulfils), so neither happens alone.
+        public async Task<StockResult> IssueAsync(int id, IssueDto dto, Func<Task>? alsoSave = null)
         {
             var material = await _repository.GetByIdAsync(id);
             if (material == null)
@@ -225,10 +240,17 @@ namespace Backend.Services
                 Note = dto.Note?.Trim(),
                 CreatedAt = AppTime.Now
             };
+            await using var transaction = alsoSave == null ? null : await _repository.BeginTransactionAsync();
             await _repository.AddTransactionAsync(issue);
 
             material.UpdatedAt = AppTime.Now;
             await _repository.UpdateAsync(material);
+
+            if (alsoSave != null)
+            {
+                await alsoSave();
+                if (transaction != null) await transaction.CommitAsync();
+            }
 
             return new StockResult { Success = true, Material = await ToDtoAsync(material), Transaction = issue };
         }

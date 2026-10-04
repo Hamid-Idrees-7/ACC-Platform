@@ -5,8 +5,8 @@ import DatePicker from "../components/DatePicker";
 import { usePermissions } from "../context/PermissionContext";
 import { useCompany } from "../context/CompanyContext";
 import { billingService } from "../services/billingService";
-import { money, amountInWords, formatQty, currencySymbol, formatPhone } from "../utils/format";
-import { formatDateShort } from "../utils/dates";
+import { money, moneyExact, amountInWords, formatQty, currencySymbol, formatPhone } from "../utils/format";
+import { formatDateShort, todayISO } from "../utils/dates";
 import "./ProjectBilling.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useHighlight } from "../hooks/useHighlight";
@@ -16,13 +16,10 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
-const todayISO = () => {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
-};
 
 const METHODS = ["Cash", "Cheque", "Bank Transfer"];
 const emptyItem = () => ({ description: "", quantity: "1", rate: "", phaseID: null, expenseID: null });
@@ -67,7 +64,8 @@ function ProjectBilling() {
   const [formError, setFormError] = useState("");
 
   const [payModal, setPayModal] = useState(null);       
-  const [payForm, setPayForm] = useState(null);         
+  const [payForm, setPayForm] = useState(null);
+  const [payError, setPayError] = useState("");         
 
   const [delInvoice, setDelInvoice] = useState(null);   
   const [delPayment, setDelPayment] = useState(null);   
@@ -97,9 +95,9 @@ function ProjectBilling() {
     try {
       setData(await billingService.getProject(projectId));
       setError(false);
-    } catch {
+    } catch (err) {
       if (quiet) showToast("Could not refresh. Please reload the page.", "error");
-      else setError(true);
+      else setError(loadFailure(err));
     } finally {
       setLoading(false);
     }
@@ -258,9 +256,14 @@ function ProjectBilling() {
     setPayModal(inv);
     setPayForm({ amount: String(inv.due > 0 ? inv.due : ""), paymentDate: todayISO(), method: "Cash", reference: "" });
   };
-  const closePay = () => { setPayModal(null); setPayForm(null); };
+  const closePay = () => { setPayModal(null); setPayForm(null); setPayError(""); };
 
   const submitPayment = async () => {
+    if (busy) return;
+    if (Number(payForm.amount) > Math.round(payModal.due * 100) / 100) {
+      setPayError(`This is more than the remaining due of ${moneyExact(payModal.due)}.`);
+      return;
+    }
     setBusy(true);
     try {
       await billingService.recordPayment({
@@ -315,7 +318,11 @@ function ProjectBilling() {
     return (
       <DashboardLayout title="Project Billing">
         <button className="pbl-back" onClick={() => navigate("/dashboard/billing")}>← Back to Billing</button>
-        <div className="pbl-empty"><h3>Project not found</h3><p>This project may have been removed.</p></div>
+        {error === "denied"
+          ? <div className="pbl-empty"><h3>{NO_ACCESS_TITLE}</h3><p>{NO_ACCESS_TEXT}</p></div>
+          : error === "failed"
+            ? <div className="pbl-empty"><h3>Could not load this project's billing</h3><p>Check your connection and refresh the page to try again.</p></div>
+            : <div className="pbl-empty"><h3>Project not found</h3><p>This project may have been removed.</p></div>}
       </DashboardLayout>
     );
   }
@@ -428,7 +435,7 @@ function ProjectBilling() {
                       </div>
                       <div className="pbl-inv-amt">
                         <span className="pbl-inv-amt-lbl">Due</span>
-                        <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{money(inv.due)}</span>
+                        <span className={`pbl-inv-amt-val ${inv.due > 0 ? "amber" : "green"}`}>{moneyExact(inv.due)}</span>
                       </div>
                     </div>
                     <svg className={`pbl-chev ${open ? "up" : ""}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
@@ -459,7 +466,7 @@ function ProjectBilling() {
                         <div className="pbl-tot-row big"><span>Total</span><strong>{money(inv.total)}</strong></div>
                         <div className="pbl-tot-words">{amountInWords(inv.total)}</div>
                         <div className="pbl-tot-row"><span>Paid</span><strong className="green">{money(inv.paid)}</strong></div>
-                        <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{money(inv.due)}</strong></div>
+                        <div className="pbl-tot-row"><span>Remaining</span><strong className={inv.due > 0 ? "amber" : "green"}>{moneyExact(inv.due)}</strong></div>
                       </div>
 
                       {inv.notes && <div className="pbl-inv-notes"><strong>Notes:</strong> {inv.notes}</div>}
@@ -658,12 +665,14 @@ function ProjectBilling() {
             <div className="pbl-modal-body">
               <div className="pbl-pay-summary">
                 <span>{payModal.invoiceNumber}</span>
-                <div><span className="pbl-pay-due-lbl">Remaining due</span><strong>{money(payModal.due)}</strong></div>
+                <div><span className="pbl-pay-due-lbl">Remaining due</span><strong>{moneyExact(payModal.due)}</strong></div>
               </div>
 
               <label className="pbl-modal-label">Amount ({currencySymbol()}) <span>*</span></label>
-              <input type="number" min="0" step="any" value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} autoFocus />
-              {payForm.amount !== "" && Number(payForm.amount) > 0 && <div className="pbl-words">= {amountInWords(payForm.amount)}</div>}
+              <input type="number" min="0" step="any" value={payForm.amount} onChange={(e) => { setPayForm((f) => ({ ...f, amount: e.target.value })); setPayError(""); }} className={payError ? "err" : ""} autoFocus />
+              {payError
+                ? <div className="pbl-pay-err">{payError}</div>
+                : payForm.amount !== "" && Number(payForm.amount) > 0 && <div className="pbl-words">= {amountInWords(payForm.amount)}</div>}
 
               <div className="pbl-form-row">
                 <div className="pbl-field">

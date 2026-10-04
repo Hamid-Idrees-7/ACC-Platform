@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { projectService } from "../services/projectService";
-import { clientService } from "../services/clientService";
 import ProjectFormModal from "../components/ProjectFormModal";
 import { formatDate } from "../utils/dates";
 import { moneyShort, moneyGrouped, amountInWords } from "../utils/format";
@@ -39,6 +38,8 @@ function ProjectManagement() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadProjects = async ({ quiet = false } = {}) => {
@@ -58,7 +59,7 @@ function ProjectManagement() {
 
   const loadClients = async () => {
     try {
-      const data = await clientService.getAll();
+      const data = await projectService.getClients();
       setClients(Array.isArray(data) ? data : []);
     } catch {
       setClients([]);
@@ -104,6 +105,8 @@ function ProjectManagement() {
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       const res = await projectService.delete(id);
       setConfirmDelete(null);
@@ -115,6 +118,8 @@ function ProjectManagement() {
       }
     } catch (err) {
       showToast(err.response?.data?.message || "Could not delete project.", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -250,7 +255,8 @@ function ProjectManagement() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                     View
                   </button>
-                  {canEdit && (
+                  {/* A cancelled project is read-only until it is reopened from its page */}
+                  {canEdit && p.status !== "Cancelled" && (
                     <button className="proj-btn-edit" onClick={() => setFormModal({ mode: "edit", data: p })}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       Edit
@@ -292,7 +298,7 @@ function ProjectManagement() {
             <p><strong>{confirmDelete.title}</strong> and all its phases will be permanently deleted. This cannot be undone.</p>
             <div className="proj-confirm-actions">
               <button className="proj-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="proj-confirm-delete" onClick={() => handleDelete(confirmDelete.projectID)}>Delete</button>
+              <button className="proj-confirm-delete" onClick={() => handleDelete(confirmDelete.projectID)} disabled={busy}>Delete</button>
             </div>
           </div>
         </ModalOverlay>

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useCompany } from "../context/CompanyContext";
 import { calendarService } from "../services/calendarService";
 import DatePicker from "./DatePicker";
-import { formatDateShort, formatMonthYear, todayISO } from "../utils/dates";
+import { formatDateShort, formatMonthYear, todayISO, companyToday } from "../utils/dates";
 import { hasLetter, focusField } from "../utils/validation";
 import Toast, { useToast } from "./Toast";
 import "./CompanySettings.css";
@@ -87,7 +87,7 @@ function CalendarSettings() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const now = new Date();
+  const now = companyToday();
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const today = todayISO();
 

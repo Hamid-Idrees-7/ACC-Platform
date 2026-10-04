@@ -12,6 +12,7 @@ import { usePagination } from "../hooks/usePagination";
 import { formatPhone } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { clickable } from "../utils/a11y";
 
 function Queries() {
   const { can } = usePermissions();
@@ -23,6 +24,8 @@ function Queries() {
   const [selected, setSelected] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // id to delete, or "all"
   const [toast, showToast] = useToast(3000);
+  // One delete, end or status change at a time, so a double click sends one request
+  const [busy, setBusy] = useState(false);
 
   const loadInquiries = async () => {
     setLoading(true);
@@ -62,6 +65,8 @@ function Queries() {
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
+    setBusy(true);
     try {
       await inquiryService.delete(id);
       setInquiries((prev) => prev.filter((i) => i.inquiryID !== id));
@@ -69,11 +74,15 @@ function Queries() {
       showToast("Message deleted.");
     } catch {
       setError("Could not delete the message.");
+    } finally {
+      setBusy(false);
     }
     setConfirmDelete(null);
   };
 
   const handleDeleteAll = async () => {
+    if (busy) return;
+    setBusy(true);
     try {
       await inquiryService.deleteAll();
       setInquiries([]);
@@ -81,6 +90,8 @@ function Queries() {
       showToast("All messages deleted.");
     } catch {
       setError("Could not clear messages.");
+    } finally {
+      setBusy(false);
     }
     setConfirmDelete(null);
   };
@@ -123,7 +134,7 @@ function Queries() {
               <div
                 key={inq.inquiryID}
                 className={`q-card ${!inq.isRead ? "unread" : ""}`}
-                onClick={() => openMessage(inq)}
+                {...clickable(() => openMessage(inq))}
               >
                 <div className="q-card-avatar">{inq.name.charAt(0).toUpperCase()}</div>
                 <div className="q-card-body">
@@ -224,7 +235,7 @@ function Queries() {
               <button className="q-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button
                 className="q-confirm-delete"
-                onClick={() => confirmDelete === "all" ? handleDeleteAll() : handleDelete(confirmDelete)}
+                onClick={() => confirmDelete === "all" ? handleDeleteAll() : handleDelete(confirmDelete)} disabled={busy}
               >
                 {confirmDelete === "all" ? "Clear All" : "Delete"}
               </button>

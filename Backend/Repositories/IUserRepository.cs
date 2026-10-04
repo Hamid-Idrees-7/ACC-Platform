@@ -4,6 +4,7 @@ namespace Backend.Repositories
 {
     public interface IUserRepository
     {
+        string DatabaseName { get; }
         Task<List<User>> GetAllAsync();
         Task<User?> GetByIdAsync(int id);
         Task<List<User>> GetAllLightAsync();

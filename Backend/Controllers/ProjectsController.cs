@@ -16,13 +16,16 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
         private readonly INotificationService _notificationService;
+        private readonly IClientService _clientService;
 
         public ProjectsController(
             IProjectService service,
             IPermissionService permissionService,
             IPendingActionService approvalService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IClientService clientService)
         {
+            _clientService = clientService;
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
@@ -57,6 +60,13 @@ namespace Backend.Controllers
             return project;
         }
 
+        // Phases of a cancelled project can't change until the project is reopened
+        private async Task<string?> PhaseLockedAsync(int phaseId)
+        {
+            var projectId = await _service.PhaseProjectIdAsync(phaseId);
+            return projectId == null ? null : await _service.CancelledErrorAsync(projectId.Value);
+        }
+
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
 
@@ -67,6 +77,18 @@ namespace Backend.Controllers
         {
             var projects = await _service.GetAllProjectsAsync();
             return Ok(projects);
+        }
+
+        // GET: /api/projects/clients  = client names for the project form and filter,
+        // so Projects users don't also need Clients access
+        [HttpGet("clients")]
+        [RequirePermission("Projects", "View")]
+        public async Task<IActionResult> GetClientOptions()
+        {
+            var clients = (await _clientService.GetAllClientsAsync())
+                .OrderBy(c => c.FullName)
+                .Select(c => new { c.ClientID, c.FullName, c.Status });
+            return Ok(clients);
         }
 
         // GET: /api/projects/5
@@ -107,6 +129,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Edit")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateProjectDto dto)
         {
+            var locked = await _service.CancelledErrorAsync(id);
+            if (locked != null)
+                return BadRequest(new { message = locked });
+
             var invalid = await _service.CheckAsync(dto, id);
             if (invalid != null)
                 return BadRequest(new { message = invalid });
@@ -145,6 +171,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> AddPhase(int id, [FromBody] CreatePhaseDto dto)
         {
+            var locked = await _service.CancelledErrorAsync(id);
+            if (locked != null)
+                return BadRequest(new { message = locked });
+
             var phase = await _service.AddPhaseAsync(id, dto);
             if (phase == null)
                 return NotFound(new { message = "Project not found" });
@@ -157,6 +187,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> UpdatePhase(int phaseId, [FromBody] UpdatePhaseDto dto)
         {
+            var locked = await PhaseLockedAsync(phaseId);
+            if (locked != null)
+                return BadRequest(new { message = locked });
+
             var before = await _service.DescribePhaseAsync(phaseId);
             var phase = await _service.UpdatePhaseAsync(phaseId, dto);
             if (phase == null)
@@ -176,6 +210,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> DeletePhase(int phaseId)
         {
+            var locked = await PhaseLockedAsync(phaseId);
+            if (locked != null)
+                return BadRequest(new { message = locked });
+
             var blocker = await _service.GetPhaseDeleteBlockerAsync(phaseId);
             if (blocker != null)
                 return BadRequest(new { message = blocker });
@@ -192,6 +230,10 @@ namespace Backend.Controllers
         [RequirePermission("Projects", "Manage")]
         public async Task<IActionResult> ReorderPhases(int id, [FromBody] ReorderPhasesDto dto)
         {
+            var locked = await _service.CancelledErrorAsync(id);
+            if (locked != null)
+                return BadRequest(new { message = locked });
+
             await _service.ReorderPhasesAsync(id, dto.PhaseIDs);
             return Ok(new { message = "Phases reordered" });
         }

@@ -12,9 +12,10 @@ namespace Backend.Services
         Task<string?> CheckUpdateAsync(int id, CreateMaterialDto dto);
         Task<bool> DeleteMaterialAsync(int id);
         Task<StockResult> RestockAsync(int id, RestockDto dto);
-        Task<StockResult> IssueAsync(int id, IssueDto dto);
+        Task<StockResult> IssueAsync(int id, IssueDto dto, Func<Task>? alsoSave = null);
         Task<MaterialHistoryDto?> GetHistoryAsync(int id);
         Task<bool> HasIssuesAsync(int id);
+        Task<string?> GetDeleteBlockerAsync(int id);
         Task<StockResult> CancelTransactionAsync(int transactionId);
     }
 

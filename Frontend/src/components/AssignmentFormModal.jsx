@@ -31,24 +31,33 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  const activeEmployees = useMemo(() => employees.filter((e) => e.status === "Active"), [employees]);
+  // An edited assignment always keeps its own person and project in the lists, even if the
+  // person is inactive now or the project closed, so the form never shows them blank.
+  const ownEmployee = isEdit ? start.employeeID : null;
+  const ownProject = isEdit ? start.projectID : null;
+
+  const activeEmployees = useMemo(
+    () => employees.filter((e) => e.status === "Active" || e.employeeID === ownEmployee),
+    [employees, ownEmployee]
+  );
 
   const roles = useMemo(() => {
     const map = {};
     activeEmployees.forEach((e) => {
       if (e.designation) map[e.designation] = (map[e.designation] || 0) + 1;
     });
+    if (isEdit && start.role && !map[start.role]) map[start.role] = 1;
     return Object.entries(map).map(([r, count]) => ({ role: r, count })).sort((a, b) => a.role.localeCompare(b.role));
-  }, [activeEmployees]);
+  }, [activeEmployees, isEdit, start.role]);
 
   const employeesForRole = useMemo(
-    () => activeEmployees.filter((e) => e.designation === role),
-    [activeEmployees, role]
+    () => activeEmployees.filter((e) => e.designation === role || (e.employeeID === ownEmployee && role === start.role)),
+    [activeEmployees, role, ownEmployee, start.role]
   );
 
   const activeProjects = useMemo(
-    () => projects.filter((p) => p.status !== "Completed" && p.status !== "Cancelled"),
-    [projects]
+    () => projects.filter((p) => (p.status !== "Completed" && p.status !== "Cancelled") || p.projectID === ownProject),
+    [projects, ownProject]
   );
 
   const overlaps = useMemo(() => {
@@ -71,6 +80,7 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
     if (!projectID) e.projectID = "Select a project.";
     if (wageAmount === "" || Number(wageAmount) <= 0) e.wageAmount = "Enter a valid wage.";
     if (!startDate) e.startDate = "Start date is required.";
+    if (startDate && endDate && endDate < startDate) e.endDate = "The end date can't be before the start date.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -178,7 +188,8 @@ function AssignmentFormModal({ mode, initialData, employees = [], projects = [],
 
             <div className="afm-field">
               <label>End Date</label>
-              <DatePicker value={endDate} onChange={(v) => setEndDate(v)} placeholder="Leave blank if ongoing" />
+              <DatePicker value={endDate} onChange={(v) => { setEndDate(v); setErrors((x) => ({ ...x, endDate: "" })); }} placeholder="Leave blank if ongoing" />
+              {errors.endDate && <span className="afm-err">{errors.endDate}</span>}
             </div>
 
             <div className="afm-field">

@@ -22,6 +22,11 @@ namespace Backend.Services
         public static Task<IDisposable> ForSalaryAsync(string database, int employeeId) =>
             AcquireAsync($"{database}:salary:{employeeId}");
 
+        // Saves that check a list for duplicates first (eg the same CNIC, an employee linked to two
+        // logins), so two saves at the same moment can't both pass the check.
+        public static Task<IDisposable> ForRecordsAsync(string database, string kind) =>
+            AcquireAsync($"{database}:records:{kind}");
+
         // A demo database was dropped: its locks are no longer needed.
         public static void Forget(string database)
         {

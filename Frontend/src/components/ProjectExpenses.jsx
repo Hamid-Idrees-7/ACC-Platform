@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import DatePicker from "./DatePicker";
-import { formatDate } from "../utils/dates";
+import { formatDate, todayISO } from "../utils/dates";
 import { usePermissions } from "../context/PermissionContext";
 import { projectExpenseService } from "../services/projectExpenseService";
 import { money, amountInWords, currencySymbol } from "../utils/format";
@@ -30,10 +30,6 @@ const HINTS = {
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const todayISO = () => {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
-};
 
 const errorText = (err, fallback) => {
   if (err?.response?.status === 403) return "You don't have permission for this action.";

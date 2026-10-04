@@ -131,8 +131,23 @@ namespace Backend.Services
             return new ExpenseSaveResult(await GetByIdAsync(id));
         }
 
+        // A cancelled project's costs are read-only until it is reopened
+        private async Task<string?> CancelledErrorAsync(int projectId)
+        {
+            var project = await _projectRepository.GetByIdAsync(projectId);
+            return project?.Status == "Cancelled"
+                ? $"{project.Title} is cancelled, so its expenses can't be changed. Reopen the project first."
+                : null;
+        }
+
         public async Task<string?> GetDeleteBlockerAsync(int id)
         {
+            var expense = await _repository.GetByIdAsync(id);
+            if (expense != null)
+            {
+                var cancelled = await CancelledErrorAsync(expense.ProjectID);
+                if (cancelled != null) return cancelled;
+            }
             var links = await _repository.GetInvoiceLinksAsync(new List<int> { id });
             if (links.TryGetValue(id, out var link))
                 return $"This expense is billed on invoice {link.InvoiceNumber}. Remove it from that invoice before deleting it.";
@@ -146,11 +161,12 @@ namespace Backend.Services
             return await _repository.DeleteAsync(id);
         }
 
-        public async Task<string> DescribeAsync(ProjectExpenseDto expense)
+        // withAmount is false for labels that people without money access may see (eg approvals)
+        public async Task<string> DescribeAsync(ProjectExpenseDto expense, bool withAmount = true)
         {
             var project = await _projectRepository.GetByIdAsync(expense.ProjectID);
-            var amount = await _companyService.FormatMoneyAsync(expense.Amount);
-            var label = $"{expense.Description} ({amount}) on {project?.Title ?? "a project"}";
+            var amount = withAmount ? $" ({await _companyService.FormatMoneyAsync(expense.Amount)})" : "";
+            var label = $"{expense.Description}{amount} on {project?.Title ?? "a project"}";
             // PendingAction.TargetName holds up to 150 characters.
             return label.Length <= 150 ? label : label[..147] + "...";
         }
@@ -158,6 +174,9 @@ namespace Backend.Services
         // Validates and cleans the incoming values. Returns the cleaned copy or an error message.
         private async Task<(SaveProjectExpenseDto? Clean, string? Error)> ValidateAsync(int projectId, SaveProjectExpenseDto dto)
         {
+            var cancelled = await CancelledErrorAsync(projectId);
+            if (cancelled != null) return (null, cancelled);
+
             var category = ExpenseCategories.Normalize(dto.Category);
             if (category == null)
                 return (null, "Choose a category from the list.");

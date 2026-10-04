@@ -93,9 +93,12 @@ namespace Backend.Live
         private static bool OnlySignInTime(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry) =>
             entry.Properties.Where(p => p.IsModified).All(p => p.Metadata.Name == nameof(User.LastLogin));
 
-        private void Publish(DbContext? context)
+        // Inside a transaction the update waits for the commit (see LiveTransactionInterceptor),
+        // so clients never reload data that is not saved yet or is rolled back.
+        private void Publish(DbContext? context, bool committed = false)
         {
             if (context == null || !_pending.TryGetValue(context, out var pending)) return;
+            if (!committed && context.Database.CurrentTransaction != null) return;
             _pending.Remove(context);
             if (pending.Modules.Count == 0 && pending.Notified.Count == 0) return;
 
@@ -107,6 +110,13 @@ namespace Backend.Live
                 _alerts.Request(DemoDbFactory.IsValidName(databaseName) ? databaseName : null);
 
             _ = SendAsync(LiveGroups.ForDatabase(databaseName), modules, notified);
+        }
+
+        public void TransactionEnded(DbContext? context, bool committed)
+        {
+            if (context == null) return;
+            if (committed) Publish(context, committed: true);
+            else _pending.Remove(context);
         }
 
         private async Task SendAsync(string database, string[] modules, Dictionary<int, string[]> notified)

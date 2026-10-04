@@ -3,6 +3,8 @@ import { useAuth } from "./AuthContext";
 import { companyService } from "../services/companyService";
 import { calendarService } from "../services/calendarService";
 import { setCurrency } from "../utils/format";
+import { setCompanyTimeZone } from "../utils/dates";
+import { hasUnsavedChanges } from "../hooks/useUnsavedChanges";
 import { useLiveRefresh } from "../hooks/useLive";
 import { useLoader } from "../hooks/useLoader";
 import { DEFAULT_COMPANY, DEFAULT_CALENDAR } from "../config/companyConfig";
@@ -60,6 +62,7 @@ export function CompanyProvider({ children }) {
 
   // Money helpers read the currency from a module setting; keep it in step.
   setCurrency({ symbol: company.currencySymbol, word: company.currencyWord });
+  setCompanyTimeZone(company.timeZone);
 
   // The latest data, for the loader below (it runs after an await).
   const stateRef = useRef(current);
@@ -88,7 +91,8 @@ export function CompanyProvider({ children }) {
     if (!change.company && !change.calendar) return;
     const before = stateRef.current.company;
     update(id, change);
-    if (change.company && before.currencyCode !== change.company.currencyCode) setCompanyVersion((v) => v + 1);
+    // The page redraws from scratch only when nothing unsaved would be lost
+    if (change.company && before.currencyCode !== change.company.currencyCode && !hasUnsavedChanges()) setCompanyVersion((v) => v + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity]);
 

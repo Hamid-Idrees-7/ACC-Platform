@@ -26,6 +26,9 @@ namespace Backend.Alerts
             return new Release(gate);
         }
 
+        // A dropped demo database no longer needs its lock
+        public void Forget(string databaseName) => _locks.TryRemove(databaseName, out _);
+
         private sealed class Release : IDisposable
         {
             private SemaphoreSlim? _gate;
