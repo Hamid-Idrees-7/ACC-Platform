@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { userService } from "../services/userService";
@@ -16,7 +16,11 @@ function ManageAccess() {
   const [perms, setPerms] = useState({}); // { "Clients:View": {allowed, approval}, ... }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // The toggles are shown only once the user's real access has loaded; an empty map after a
+  // failed load would look like "no access" and the next toggle would wipe their rights.
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const pendingSaves = useRef(0);
 
   const key = (module, action) => `${module}:${action}`;
 
@@ -34,6 +38,7 @@ function ManageAccess() {
         map[key(p.module, p.action)] = { allowed: p.isAllowed, approval: p.requiresApproval };
       });
       setPerms(map);
+      setLoaded(true);
     } catch {
       setError("Could not load this user's access.");
     } finally {
@@ -52,15 +57,18 @@ function ManageAccess() {
         map[key(p.module, p.action)] = { allowed: p.isAllowed, approval: p.requiresApproval };
       });
       setPerms(map);
+      setLoaded(true);
     } catch {
       return;
     }
-  });
+  }, { paused: saving });
 
   const getPerm = (module, action) => perms[key(module, action)] || { allowed: false, approval: false };
 
-  // Saves one permission to the backend straight away.
-  const savePerm = async (module, action, allowed, approval) => {
+  // Saves one permission to the backend straight away. If the save fails, the toggle goes
+  // back to what it was, so the screen never shows access the user doesn't have.
+  const savePerm = async (module, action, allowed, approval, previous) => {
+    pendingSaves.current += 1;
     setSaving(true);
     try {
       await permissionService.set({
@@ -71,9 +79,11 @@ function ManageAccess() {
         requiresApproval: approval,
       });
     } catch {
-      setError("Could not save. Please try again.");
+      setPerms((prev) => ({ ...prev, [key(module, action)]: previous }));
+      setError(`Could not save ${module} ${action}. It was put back; please try again.`);
     } finally {
-      setSaving(false);
+      pendingSaves.current -= 1;
+      if (pendingSaves.current === 0) setSaving(false);
     }
   };
 
@@ -81,16 +91,18 @@ function ManageAccess() {
     const current = getPerm(module, action);
     const newAllowed = !current.allowed;
     const newApproval = newAllowed ? current.approval : false; // reset approval when turning off
+    setError("");
     setPerms((prev) => ({ ...prev, [key(module, action)]: { allowed: newAllowed, approval: newApproval } }));
-    savePerm(module, action, newAllowed, newApproval);
+    savePerm(module, action, newAllowed, newApproval, current);
   };
 
   const toggleApproval = (module, action) => {
     const current = getPerm(module, action);
     if (!current.allowed) return; // approval only matters when action is allowed
     const newApproval = !current.approval;
+    setError("");
     setPerms((prev) => ({ ...prev, [key(module, action)]: { allowed: current.allowed, approval: newApproval } }));
-    savePerm(module, action, current.allowed, newApproval);
+    savePerm(module, action, current.allowed, newApproval, current);
   };
 
   // The module master toggle is View (access to the module). Turning it on grants
@@ -99,10 +111,11 @@ function ManageAccess() {
   const toggleModule = (mod) => {
     const turnOn = !isModuleOn(mod);
     const updates = {};
+    setError("");
     mod.actions.forEach((a) => {
       const allowed = turnOn && a === "View";
       updates[key(mod.key, a)] = { allowed, approval: false };
-      savePerm(mod.key, a, allowed, false);
+      savePerm(mod.key, a, allowed, false, getPerm(mod.key, a));
     });
     setPerms((prev) => ({ ...prev, ...updates }));
   };
@@ -144,8 +157,15 @@ function ManageAccess() {
 
       {error && <div className="ma-error">{error}</div>}
 
+      {!loaded && (
+        <div className="ma-load-failed">
+          <p>This user's access couldn't be loaded, so it can't be changed right now.</p>
+          <button className="ma-retry" onClick={load}>Retry</button>
+        </div>
+      )}
+
       {/* Module groups */}
-      {MODULE_GROUPS.map((grp) => (
+      {loaded && MODULE_GROUPS.map((grp) => (
         <div key={grp.group} className="ma-group">
           <div className="ma-group-title">{grp.group}</div>
           <div className="ma-modules">

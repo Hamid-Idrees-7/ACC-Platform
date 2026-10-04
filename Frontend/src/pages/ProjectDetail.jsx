@@ -11,6 +11,7 @@ import { useLiveRefresh } from "../hooks/useLive";
 import ModalOverlay from "../components/ModalOverlay";
 import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const PHASE_STATUSES = ["Pending", "In Progress", "Completed"];
@@ -53,11 +54,7 @@ function ProjectDetail() {
   const [confirmPhase, setConfirmPhase] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   const load = async () => {
     setLoading(true);
@@ -131,6 +128,8 @@ function ProjectDetail() {
   };
 
   const saveEditPhase = async () => {
+    if (phaseBusy) return;
+    setPhaseBusy(true);
     try {
       await projectService.updatePhase(editPhase.phaseID, { status: editPhase.status, progress: Number(editPhase.progress) });
       setEditPhase(null);
@@ -138,10 +137,14 @@ function ProjectDetail() {
       refreshQuietly();
     } catch {
       showToast("Could not update phase.", "error");
+    } finally {
+      setPhaseBusy(false);
     }
   };
 
   const deletePhase = async (phaseId) => {
+    if (phaseBusy) return;
+    setPhaseBusy(true);
     try {
       await projectService.deletePhase(phaseId);
       setConfirmPhase(null);
@@ -150,6 +153,8 @@ function ProjectDetail() {
     } catch (err) {
       setConfirmPhase(null);
       showToast(err.response?.data?.message || "Could not delete phase.", "error");
+    } finally {
+      setPhaseBusy(false);
     }
   };
 
@@ -496,7 +501,7 @@ function ProjectDetail() {
             <div className="pd-range-val">{editPhase.progress}%</div>
             <div className="pd-modal-actions">
               <button className="pd-modal-cancel" data-close onClick={() => setEditPhase(null)}>Cancel</button>
-              <button className="pd-modal-save" onClick={saveEditPhase}>Save</button>
+              <button className="pd-modal-save" onClick={saveEditPhase} disabled={phaseBusy}>{phaseBusy ? "Saving..." : "Save"}</button>
             </div>
           </div>
         </ModalOverlay>
@@ -540,7 +545,7 @@ function ProjectDetail() {
             <p><strong>{confirmPhase.name}</strong> will be removed from this project.</p>
             <div className="pd-modal-actions">
               <button className="pd-modal-cancel" data-close onClick={() => setConfirmPhase(null)}>Cancel</button>
-              <button className="pd-confirm-del" onClick={() => deletePhase(confirmPhase.phaseID)}>Delete</button>
+              <button className="pd-confirm-del" onClick={() => deletePhase(confirmPhase.phaseID)} disabled={phaseBusy}>{phaseBusy ? "Deleting..." : "Delete"}</button>
             </div>
           </div>
         </ModalOverlay>

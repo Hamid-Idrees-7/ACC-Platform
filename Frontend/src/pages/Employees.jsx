@@ -13,6 +13,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { formatCnic, formatPhone, digitsMatch } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 function Employees() {
   const { can } = usePermissions();
@@ -33,11 +34,7 @@ function Employees() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDisable, setConfirmDisable] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadEmployees = async ({ quiet = false } = {}) => {

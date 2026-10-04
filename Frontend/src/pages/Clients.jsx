@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { formatCnic, formatPhone, digitsMatch } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 function Clients() {
   const { can } = usePermissions();
@@ -31,11 +32,7 @@ function Clients() {
   const [detailClient, setDetailClient] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadClients = async ({ quiet = false } = {}) => {

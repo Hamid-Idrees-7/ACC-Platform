@@ -32,11 +32,11 @@ function Privacy() {
           <AccLogo onClick={() => goToSection("home")} />
           <nav className={`navbar-menu ${menuOpen ? "active" : ""}`}>
             <ul className="navbar-links">
-              <li><span className="nav-link" onClick={() => goToSection("home")}>Home</span></li>
-              <li><span className="nav-link" onClick={() => goToSection("about")}>About</span></li>
-              <li><span className="nav-link" onClick={() => goToSection("services")}>Services</span></li>
-              <li><span className="nav-link" onClick={() => goToSection("projects")}>Projects</span></li>
-              <li><span className="nav-link" onClick={() => goToSection("contact")}>Contact Us</span></li>
+              <li><button type="button" className="nav-link" onClick={() => goToSection("home")}>Home</button></li>
+              <li><button type="button" className="nav-link" onClick={() => goToSection("about")}>About</button></li>
+              <li><button type="button" className="nav-link" onClick={() => goToSection("services")}>Services</button></li>
+              <li><button type="button" className="nav-link" onClick={() => goToSection("projects")}>Projects</button></li>
+              <li><button type="button" className="nav-link" onClick={() => goToSection("contact")}>Contact Us</button></li>
             </ul>
           </nav>
           <div className="navbar-right">

@@ -149,14 +149,16 @@ function Reports() {
   const shownAt = useRef(0);
   useEffect(() => { shownAt.current = Date.now(); }, [tab, loading]);
 
+  // While a PDF is being made the tab and its data stay as they are
+  const [making, setMaking] = useState(false);
   useLiveRefresh(["projects", "billing", "expenses", "materials", "salaries", "attendance", "employees", "assignments", "clients"], async () => {
     try {
       setData(await reportsService.getReports());
+      setError(false);
     } catch {
       return;
     }
-  }, { delay: 1500 });
-  const [making, setMaking] = useState(false);
+  }, { delay: 1500, paused: making });
   const [toast, showToast] = useToast(3500);
 
   useEffect(() => {
@@ -177,7 +179,7 @@ function Reports() {
     return <DashboardLayout title="Reports"><SkeletonPage stats={4} rows={6} /></DashboardLayout>;
   }
   if (error || !data) {
-    return <DashboardLayout title="Reports"><div className="rep-empty"><h3>Could not load reports</h3><p>Please make sure the backend is running and try again.</p></div></DashboardLayout>;
+    return <DashboardLayout title="Reports"><div className="rep-empty"><h3>Could not load reports</h3><p>Check your connection and refresh the page to try again.</p></div></DashboardLayout>;
   }
 
   const fin = data.financial;
@@ -220,7 +222,7 @@ function Reports() {
         <div className="rep-topbar">
           <div className="rep-tabs">
             {TABS.map((t) => (
-              <button key={t.key} className={`rep-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
+              <button key={t.key} className={`rep-tab ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)} disabled={making && tab !== t.key} title={making ? "Wait for the PDF to finish" : undefined}>
                 {t.label}
               </button>
             ))}

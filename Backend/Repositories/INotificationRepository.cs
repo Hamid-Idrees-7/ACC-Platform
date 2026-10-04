@@ -9,7 +9,7 @@ namespace Backend.Repositories
         Task<int> GetUnreadAlertCountAsync(int userId);
         Task AddAsync(Notification notification);
         Task<bool> MarkAsReadAsync(int id, int userId);
-        Task MarkAllReadAsync(int userId, string type);
+        Task MarkAllReadAsync(int userId, string type, int? upTo = null);
         Task<bool> DeleteAsync(int id, int userId);
         Task DeleteAllAsync(int userId, string type);
         Task DeleteAllForUserAsync(int userId);

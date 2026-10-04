@@ -11,6 +11,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { formatPhone } from "../utils/format";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 function Queries() {
   const { can } = usePermissions();
@@ -21,12 +22,7 @@ function Queries() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null); // id to delete, or "all"
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text) => {
-    setToast(text);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   const loadInquiries = async () => {
     setLoading(true);
@@ -213,7 +209,7 @@ function Queries() {
       )}
 
       {/* Delete toast (bottom-right, red) */}
-      {toast && <div className="q-toast">{toast}</div>}
+      {toast && <div className="q-toast">{toast.text}</div>}
 
       {/* Confirm delete modal */}
       {confirmDelete !== null && (

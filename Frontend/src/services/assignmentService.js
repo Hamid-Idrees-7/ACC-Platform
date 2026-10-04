@@ -6,6 +6,12 @@ export const assignmentService = {
     return response.data;
   },
 
+  // People and projects for the form and filters (Assignments access only)
+  getOptions: async () => {
+    const response = await api.get("/assignments/options");
+    return response.data;
+  },
+
   create: async (data) => {
     const response = await api.post("/assignments", data);
     return response.data;

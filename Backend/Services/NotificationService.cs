@@ -163,8 +163,8 @@ namespace Backend.Services
         public async Task<bool> MarkAsReadAsync(int id, int userId) =>
             await _repository.MarkAsReadAsync(id, userId);
 
-        public async Task MarkAllReadAsync(int userId, string type) =>
-            await _repository.MarkAllReadAsync(userId, type);
+        public async Task MarkAllReadAsync(int userId, string type, int? upTo = null) =>
+            await _repository.MarkAllReadAsync(userId, type, upTo);
 
         public async Task<bool> DeleteAsync(int id, int userId) =>
             await _repository.DeleteAsync(id, userId);

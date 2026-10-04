@@ -2,8 +2,6 @@ import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { assignmentService } from "../services/assignmentService";
-import { employeeService } from "../services/employeeService";
-import { projectService } from "../services/projectService";
 import AssignmentFormModal from "../components/AssignmentFormModal";
 import { formatDate } from "../utils/dates";
 import { money } from "../utils/format";
@@ -15,6 +13,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const initials = (name) => (name || "?").charAt(0).toUpperCase();
 const wageSuffix = (type) =>
@@ -40,11 +39,7 @@ function Assignments() {
   const [confirmEnd, setConfirmEnd] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadAssignments = async ({ quiet = false } = {}) => {
@@ -64,9 +59,9 @@ function Assignments() {
 
   const loadRefs = async () => {
     try {
-      const [emp, proj] = await Promise.all([employeeService.getAll(), projectService.getAll()]);
-      setEmployees(Array.isArray(emp) ? emp : []);
-      setProjects(Array.isArray(proj) ? proj : []);
+      const options = await assignmentService.getOptions();
+      setEmployees(Array.isArray(options?.employees) ? options.employees : []);
+      setProjects(Array.isArray(options?.projects) ? options.projects : []);
     } catch {
       setEmployees([]);
       setProjects([]);

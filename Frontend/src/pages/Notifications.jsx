@@ -11,6 +11,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 // Icon and colour for each category
 const categoryStyle = (cat) => {
@@ -59,12 +60,7 @@ function Notifications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   const shownTab = useRef(tab);
 
@@ -80,7 +76,8 @@ function Notifications() {
       // Opening the tab marks all as read (only personal ones count toward the bell).
       if (type === "Personal" && data.some((n) => !n.isRead)) {
         if (quiet) await new Promise((resolve) => setTimeout(resolve, 1500));
-        await notificationService.markAllRead("Personal");
+        // Only the ones on screen; one arriving meanwhile stays unread until it is shown
+        await notificationService.markAllRead("Personal", Math.max(...data.map((n) => n.notificationID)));
         // Tell the layout to refresh its unread badge immediately
         window.dispatchEvent(new Event("notifications-updated"));
       }
@@ -102,17 +99,25 @@ function Notifications() {
     if (n.link) navigate(n.link);
   };
 
+  const [deleting, setDeleting] = useState(null);   // id being deleted, or "all"
+
   const handleDelete = async (id) => {
+    if (deleting) return;
+    setDeleting(id);
     try {
       await notificationService.delete(id);
       setItems((prev) => prev.filter((n) => n.notificationID !== id));
       showToast("Notification deleted.", "error");
     } catch {
       showToast("Could not delete.", "error");
+    } finally {
+      setDeleting(null);
     }
   };
 
   const handleDeleteAll = async () => {
+    if (deleting) return;
+    setDeleting("all");
     try {
       await notificationService.deleteAll(tab);
       setItems([]);
@@ -120,6 +125,8 @@ function Notifications() {
       showToast("All notifications cleared.", "error");
     } catch {
       showToast("Could not clear notifications.", "error");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -217,7 +224,7 @@ function Notifications() {
             <p>All {tab === "Personal" ? "your" : "team activity"} notifications will be permanently removed.</p>
             <div className="nt-confirm-actions">
               <button className="nt-confirm-cancel" data-close onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
-              <button className="nt-confirm-delete" onClick={handleDeleteAll}>Clear All</button>
+              <button className="nt-confirm-delete" onClick={handleDeleteAll} disabled={!!deleting}>{deleting ? "Clearing..." : "Clear All"}</button>
             </div>
           </div>
         </ModalOverlay>

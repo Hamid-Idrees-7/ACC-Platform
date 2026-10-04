@@ -156,11 +156,11 @@ function Home() {
           <AccLogo onClick={() => scrollTo("home")} />
           <nav className={`navbar-menu ${menuOpen ? "active" : ""}`}>
             <ul className="navbar-links">
-              <li><span className={`nav-link ${activeSection === "home" ? "active" : ""}`} onClick={() => scrollTo("home")}>Home</span></li>
-              <li><span className={`nav-link ${activeSection === "about" ? "active" : ""}`} onClick={() => scrollTo("about")}>About</span></li>
-              <li><span className={`nav-link ${activeSection === "services" ? "active" : ""}`} onClick={() => scrollTo("services")}>Services</span></li>
-              <li><span className={`nav-link ${activeSection === "projects" ? "active" : ""}`} onClick={() => scrollTo("projects")}>Projects</span></li>
-              <li><span className={`nav-link ${activeSection === "contact" ? "active" : ""}`} onClick={() => scrollTo("contact")}>Contact Us</span></li>
+              <li><button type="button" className={`nav-link ${activeSection === "home" ? "active" : ""}`} onClick={() => scrollTo("home")}>Home</button></li>
+              <li><button type="button" className={`nav-link ${activeSection === "about" ? "active" : ""}`} onClick={() => scrollTo("about")}>About</button></li>
+              <li><button type="button" className={`nav-link ${activeSection === "services" ? "active" : ""}`} onClick={() => scrollTo("services")}>Services</button></li>
+              <li><button type="button" className={`nav-link ${activeSection === "projects" ? "active" : ""}`} onClick={() => scrollTo("projects")}>Projects</button></li>
+              <li><button type="button" className={`nav-link ${activeSection === "contact" ? "active" : ""}`} onClick={() => scrollTo("contact")}>Contact Us</button></li>
             </ul>
           </nav>
           <div className="navbar-right">

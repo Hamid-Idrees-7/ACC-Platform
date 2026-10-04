@@ -16,17 +16,20 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
         private readonly INotificationService _notificationService;
+        private readonly IProjectService _projectService;
 
         public MaterialsController(
             IMaterialService service,
             IPermissionService permissionService,
             IPendingActionService approvalService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IProjectService projectService)
         {
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
             _notificationService = notificationService;
+            _projectService = projectService;
         }
 
         private int GetUserId()
@@ -75,6 +78,27 @@ namespace Backend.Controllers
                 return NotFound(new { message = "Material not found" });
 
             return Ok(history);
+        }
+
+        // GET: /api/materials/projects  = the open projects stock can be issued to.
+        // Part of issuing stock, so it needs Materials access only (not the Projects module).
+        [HttpGet("projects")]
+        [RequirePermission("Materials", "Manage")]
+        public async Task<IActionResult> IssueProjects()
+        {
+            var projects = await _projectService.GetAllProjectsAsync();
+            return Ok(projects
+                .Where(p => p.Status != "Completed" && p.Status != "Cancelled")
+                .OrderBy(p => p.Title)
+                .Select(p => new { p.ProjectID, p.Title }));
+        }
+
+        // GET: /api/materials/projects/5/phases  = that project's phases, for issuing stock
+        [HttpGet("projects/{projectId}/phases")]
+        [RequirePermission("Materials", "Manage")]
+        public async Task<IActionResult> IssuePhases(int projectId)
+        {
+            return Ok(await _projectService.GetPhaseListAsync(projectId));
         }
 
         // POST: /api/materials

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { materialService } from "../services/materialService";
-import { projectService } from "../services/projectService";
 import MaterialFormModal from "../components/MaterialFormModal";
 import StockModal from "../components/StockModal";
 import { formatQty, money, moneyShort, moneyGrouped, amountInWords } from "../utils/format";
@@ -15,6 +14,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 function Materials() {
   const navigate = useNavigate();
@@ -37,11 +37,7 @@ function Materials() {
   const [stockModal, setStockModal] = useState(null); // { mode, material }
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadMaterials = async ({ quiet = false } = {}) => {
@@ -59,9 +55,11 @@ function Materials() {
     }
   };
 
+  // Only open projects, and without needing the Projects module (part of issuing stock)
   const loadProjects = async () => {
+    if (!canManage) return;
     try {
-      const data = await projectService.getAll();
+      const data = await materialService.getIssueProjects();
       setProjects(Array.isArray(data) ? data : []);
     } catch {
       setProjects([]);

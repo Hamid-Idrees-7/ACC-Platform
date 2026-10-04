@@ -12,6 +12,7 @@ import { SkeletonPage } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 function MaterialHistory() {
   const { id } = useParams();
@@ -24,12 +25,8 @@ function MaterialHistory() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("all"); // all | restock | issue
   const [confirmCancel, setConfirmCancel] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [cancelling, setCancelling] = useState(false);
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
@@ -51,6 +48,8 @@ function MaterialHistory() {
   useLiveRefresh(["materials", "material-requests"], () => load({ quiet: true }));
 
   const handleCancel = async (txId) => {
+    if (cancelling) return;
+    setCancelling(true);
     try {
       await materialService.cancelTransaction(txId);
       setConfirmCancel(null);
@@ -59,6 +58,8 @@ function MaterialHistory() {
     } catch (err) {
       setConfirmCancel(null);
       showToast(err.response?.data?.message || "Could not cancel this transaction.", "error");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -208,8 +209,10 @@ function MaterialHistory() {
             <p>{formatQty(confirmCancel.quantity)} {data.unit} of {data.name} will be {confirmCancel.type === "Issue" ? "returned to" : "removed from"} stock.</p>
             <div className="mhist-confirm-warn">Stock will be reversed. This cannot be undone.</div>
             <div className="mhist-confirm-actions">
-              <button className="mhist-confirm-keep" data-close onClick={() => setConfirmCancel(null)}>Keep it</button>
-              <button className="mhist-confirm-do" onClick={() => handleCancel(confirmCancel.transactionID)}>Yes, Cancel {confirmCancel.type}</button>
+              <button className="mhist-confirm-keep" data-close onClick={() => setConfirmCancel(null)} disabled={cancelling}>Keep it</button>
+              <button className="mhist-confirm-do" onClick={() => handleCancel(confirmCancel.transactionID)} disabled={cancelling}>
+                {cancelling ? "Cancelling..." : `Yes, Cancel ${confirmCancel.type}`}
+              </button>
             </div>
           </div>
         </ModalOverlay>

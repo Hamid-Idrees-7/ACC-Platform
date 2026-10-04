@@ -74,7 +74,8 @@ function InvoicePrint() {
   return (
     <DashboardLayout title="Invoice">
       <div className="ivp-bar">
-        <button className="ivp-back" onClick={() => navigate(-1)}>
+        {/* Opened from a link (no page before it in the app): back goes to Billing */}
+        <button className="ivp-back" onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/dashboard/billing"))}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           Back
         </button>

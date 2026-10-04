@@ -134,6 +134,10 @@ a {
     position: relative;
     padding: 6px 0;
     cursor: pointer;
+    /* a button, so the menu works with the keyboard too */
+    background: none;
+    border: 0;
+    font-family: inherit;
 }
 
     .nav-link::after {

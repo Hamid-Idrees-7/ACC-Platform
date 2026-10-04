@@ -11,6 +11,7 @@ import { SkeletonRows } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 // Full date with time, eg "23 September 2026, 2:20 PM" (follows Settings > Appearance).
 const formatDateTime = (value) => (value ? `${formatDate(value)}, ${formatTime(value)}` : "");
@@ -32,11 +33,7 @@ function Approvals() {
   const [confirmDelete, setConfirmDelete] = useState(null); // single delete
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast, showToast] = useToast(3000);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
@@ -90,7 +87,11 @@ function Approvals() {
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDelete = async (id) => {
+    if (deleting) return;
+    setDeleting(true);
     try {
       await approvalService.delete(id);
       showToast("Request deleted.", "error");
@@ -99,10 +100,14 @@ function Approvals() {
       load({ quiet: true });
     } catch {
       showToast("Could not delete request.", "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleDeleteAll = async () => {
+    if (deleting) return;
+    setDeleting(true);
     try {
       await approvalService.deleteAll();
       showToast("All requests deleted.", "error");
@@ -110,6 +115,8 @@ function Approvals() {
       load({ quiet: true });
     } catch {
       showToast("Could not delete requests.", "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -257,7 +264,7 @@ function Approvals() {
             <p>This request record will be permanently removed.</p>
             <div className="ap-confirm-actions">
               <button className="ap-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="ap-confirm-delete" onClick={() => handleDelete(confirmDelete.pendingActionID)}>Delete</button>
+              <button className="ap-confirm-delete" onClick={() => handleDelete(confirmDelete.pendingActionID)} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</button>
             </div>
           </div>
         </ModalOverlay>
@@ -274,7 +281,7 @@ function Approvals() {
             <p>All approval request records will be permanently removed. This cannot be undone.</p>
             <div className="ap-confirm-actions">
               <button className="ap-confirm-cancel" data-close onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
-              <button className="ap-confirm-delete" onClick={handleDeleteAll}>Delete All</button>
+              <button className="ap-confirm-delete" onClick={handleDeleteAll} disabled={deleting}>{deleting ? "Deleting..." : "Delete All"}</button>
             </div>
           </div>
         </ModalOverlay>

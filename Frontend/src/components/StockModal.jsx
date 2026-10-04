@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { formatQty, money, amountInWords, currencySymbol } from "../utils/format";
-import { projectService } from "../services/projectService";
+import { materialService } from "../services/materialService";
 import "./StockModal.css";
 import ModalOverlay from "./ModalOverlay";
 
@@ -35,8 +35,8 @@ function StockModal({ mode, material, projects = [], onClose, onSave }) {
     setErrors((e) => ({ ...e, project: "" }));
     if (pid) {
       try {
-        const p = await projectService.getById(pid);
-        if (pickedProject.current === pid) setPhases(p.phases || []);
+        const list = await materialService.getIssuePhases(pid);
+        if (pickedProject.current === pid) setPhases(list || []);
       } catch {
         if (pickedProject.current === pid) setPhases([]);
       }

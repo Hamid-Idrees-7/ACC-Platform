@@ -633,6 +633,7 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
 
   // Step 1: verify the current password before revealing the username field
   const handleUnlock = async () => {
+    if (busy) return;   // held Enter fires again; each try counts against the password limit
     setMsg({ type: "", text: "" });
     if (!password) return setMsg({ type: "error", text: "Enter your password to continue." });
 
@@ -650,6 +651,7 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
   };
 
   const handleSave = async () => {
+    if (busy) return;
     setMsg({ type: "", text: "" });
     if (!newUsername.trim()) return setMsg({ type: "error", text: "Enter a new username." });
     if (newUsername.trim().length < 3) return setMsg({ type: "error", text: "Username must be at least 3 characters." });
@@ -685,7 +687,7 @@ function UsernameChangeModal({ currentUsername, onClose, onChanged }) {
               <h3>Confirm it's you</h3>
               <p>Changing your username is a sensitive action. Enter your current password to continue.</p>
               <div className={`st-pw-wrap st-modal-input ${msg.type === "error" ? "has-err" : ""}`}>
-                <input type={showPw ? "text" : "password"} placeholder="Current password" value={password} onChange={(e) => { setPassword(e.target.value); if (msg.type === "error") setMsg({ type: "", text: "" }); }} autoComplete="current-password" onKeyDown={(e) => e.key === "Enter" && handleUnlock()} />
+                <input type={showPw ? "text" : "password"} placeholder="Current password" value={password} onChange={(e) => { setPassword(e.target.value); if (msg.type === "error") setMsg({ type: "", text: "" }); }} autoComplete="current-password" onKeyDown={(e) => e.key === "Enter" && !e.repeat && handleUnlock()} />
                 <button type="button" onClick={() => setShowPw(!showPw)}>
                   {showPw ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import DashboardLayout from "../components/DashboardLayout";
+import { usePermissions } from "../context/PermissionContext";
 import { materialRequestService } from "../services/materialRequestService";
 import { formatQty } from "../utils/format";
 import { formatDateShort } from "../utils/dates";
@@ -11,10 +12,14 @@ import { SkeletonRows } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const FILTERS = ["Pending", "Approved", "Rejected", "All"];
 
 function MaterialRequests() {
+  // Approving or rejecting needs Manage; View alone only shows the list
+  const { can } = usePermissions();
+  const canManage = can("MaterialRequests", "Manage");
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -22,9 +27,7 @@ function MaterialRequests() {
   const [busy, setBusy] = useState(null);        // requestID being resolved
   const [rejectModal, setRejectModal] = useState(null); // the request being rejected
   const [rejectNote, setRejectNote] = useState("");
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 3200); };
+  const [toast, showToast] = useToast(3200);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const load = async ({ quiet = false } = {}) => {
@@ -90,7 +93,7 @@ function MaterialRequests() {
       {loading ? (
         <SkeletonRows count={5} />
       ) : error ? (
-        <div className="mrq-empty"><h3>Could not load</h3><p>You may not have access, or the backend is down.</p></div>
+        <div className="mrq-empty"><h3>Could not load requests</h3><p>Check your connection and try again.</p><button className="mrq-approve" onClick={() => load()}>Retry</button></div>
       ) : (
         <>
           <div className="mrq-filters">
@@ -132,7 +135,7 @@ function MaterialRequests() {
                         {r.status === "Rejected" && r.resolveNote && <div className="mrq-reject">Reason: {r.resolveNote}</div>}
                       </div>
 
-                      {r.status === "Pending" && (
+                      {r.status === "Pending" && canManage && (
                         <div className="mrq-actions">
                           <button className="mrq-approve" onClick={() => approve(r)} disabled={busy === r.requestID}>
                             {busy === r.requestID ? "..." : "Approve & Issue"}

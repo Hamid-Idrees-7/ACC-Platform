@@ -33,6 +33,17 @@ export const materialService = {
     return response.data;
   },
 
+  // Open projects stock can be issued to, and a project's phases (Materials access only)
+  getIssueProjects: async () => {
+    const response = await api.get("/materials/projects");
+    return response.data;
+  },
+
+  getIssuePhases: async (projectId) => {
+    const response = await api.get(`/materials/projects/${projectId}/phases`);
+    return response.data;
+  },
+
   // Transaction ledger and summary for one material
   getHistory: async (id) => {
     const response = await api.get(`/materials/${id}/history`);

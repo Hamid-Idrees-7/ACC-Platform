@@ -43,6 +43,9 @@ export const formatQty = (n) => {
 // Full amount, eg "Rs. 255,000"
 export const money = (n) => withSymbol(formatNum(Math.round(Number(n) || 0)));
 
+// Amount with paisa when there are any, eg "Rs. 4,838.71" (where a rounded figure would mislead)
+export const moneyExact = (n) => withSymbol(formatQty(n));
+
 // Full amount with the digit grouping of the chosen system:
 // Pakistani "Rs. 20,42,093", International "Rs. 2,042,093".
 export const moneyGrouped = (n) =>

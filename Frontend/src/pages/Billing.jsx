@@ -34,6 +34,7 @@ function Billing() {
   useLiveRefresh(["billing", "projects", "expenses", "clients"], async () => {
     try {
       setData(await billingService.getOverview());
+      setError(false);
     } catch {
       return;
     }
@@ -76,7 +77,7 @@ function Billing() {
       {loading ? (
         <SkeletonPage stats={4} rows={6} />
       ) : error ? (
-        <div className="bil-empty"><h3>Could not load billing</h3><p>Please check the backend is running and try again.</p></div>
+        <div className="bil-empty"><h3>Could not load billing</h3><p>Check your connection and refresh the page to try again.</p></div>
       ) : (
         <>
           {/* Top stats */}

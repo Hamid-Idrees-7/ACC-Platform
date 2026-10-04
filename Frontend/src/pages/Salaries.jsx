@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { salaryService } from "../services/salaryService";
-import { money, moneyGrouped, amountInWords, currencySymbol } from "../utils/format";
+import { money, moneyExact, moneyGrouped, amountInWords, currencySymbol } from "../utils/format";
 import "./Salaries.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import ModalOverlay from "../components/ModalOverlay";
@@ -11,6 +11,7 @@ import { SkeletonPage } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
@@ -50,9 +51,7 @@ function Salaries() {
   const [note, setNote] = useState("");
   const [confirmUndo, setConfirmUndo] = useState(null); 
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
+  const [toast, showToast] = useToast(2600);
 
   const period = useRef("");
 
@@ -129,7 +128,7 @@ function Salaries() {
     if (!payModal || finalAmount === "") return "";
     const n = Number(finalAmount);
     if (!(n > 0)) return "Enter an amount greater than zero.";
-    if (n > Number(payModal.dueAmount)) return `Only ${money(payModal.dueAmount)} is due. Enter that or less.`;
+    if (n > Number(payModal.dueAmount)) return `Only ${moneyExact(payModal.dueAmount)} is due. Enter that or less.`;
     return "";
   })();
 
@@ -312,7 +311,7 @@ function Salaries() {
                   {payModal.paidAmount > 0 && ` = ${money(payModal.calculatedAmount)}, already paid ${money(payModal.paidAmount)}`}
                 </div>
               </div>
-              <div className="sal-calc-amt">{money(payModal.dueAmount)}</div>
+              <div className="sal-calc-amt">{moneyExact(payModal.dueAmount)}</div>
             </div>
             <label className="sal-modal-label">Amount to Pay ({currencySymbol()}) <span>*</span></label>
             <input
@@ -324,7 +323,7 @@ function Salaries() {
               ? <div className="sal-amount-err">{amountError}</div>
               : finalAmount !== "" && Number(finalAmount) > 0 && <div className="sal-words">= {amountInWords(finalAmount)}</div>}
             {!amountError && Number(finalAmount) > 0 && Number(finalAmount) < Number(payModal.dueAmount) && (
-              <div className="sal-amount-hint">The other {money(payModal.dueAmount - Number(finalAmount))} stays due.</div>
+              <div className="sal-amount-hint">The other {moneyExact(Math.round((payModal.dueAmount - Number(finalAmount)) * 100) / 100)} stays due.</div>
             )}
             <label className="sal-modal-label">Payment Note</label>
             <input type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note." />

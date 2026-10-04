@@ -11,6 +11,7 @@ import { SkeletonRows } from "./Skeleton";
 import { useLoader } from "../hooks/useLoader";
 import Pagination from "./Pagination";
 import { usePagination } from "../hooks/usePagination";
+import { useToast } from "./Toast";
 
 // Example text per category, so the description field shows what fits.
 const HINTS = {
@@ -71,11 +72,7 @@ function ProjectExpenses({ projectId, readOnly = false, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
 
-  const [toast, setToast] = useState(null);
-  const showToast = (text, type = "success") => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3200);
-  };
+  const [toast, showToast] = useToast(3200);
 
   const load = async () => {
     try {

@@ -16,17 +16,23 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IPendingActionService _approvalService;
         private readonly INotificationService _notificationService;
+        private readonly IEmployeeService _employeeService;
+        private readonly IProjectService _projectService;
 
         public AssignmentsController(
             IAssignmentService service,
             IPermissionService permissionService,
             IPendingActionService approvalService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IEmployeeService employeeService,
+            IProjectService projectService)
         {
             _service = service;
             _permissionService = permissionService;
             _approvalService = approvalService;
             _notificationService = notificationService;
+            _employeeService = employeeService;
+            _projectService = projectService;
         }
 
         private int GetUserId()
@@ -43,6 +49,21 @@ namespace Backend.Controllers
 
         private bool IsAdmin() =>
             string.Equals(GetUserRole(), "Admin", StringComparison.OrdinalIgnoreCase);
+
+        // GET: /api/assignments/options  = people and projects for the form and filters.
+        // Part of assigning, so it needs Assignments access only (not Employees or Projects).
+        [HttpGet("options")]
+        [RequirePermission("Assignments", "View")]
+        public async Task<IActionResult> Options()
+        {
+            var employees = await _employeeService.GetAllEmployeesAsync();
+            var projects = await _projectService.GetAllProjectsAsync();
+            return Ok(new
+            {
+                employees = employees.Select(e => new { e.EmployeeID, e.FullName, e.Designation, e.Status }),
+                projects = projects.Select(p => new { p.ProjectID, p.Title, p.Status })
+            });
+        }
 
         // GET: /api/assignments
         [HttpGet]

@@ -61,14 +61,15 @@ namespace Backend.Controllers
             return Ok(new { message = "Marked as read" });
         }
 
-        // PUT: /api/notifications/read-all?type=Personal  = mark all of a type as read
+        // PUT: /api/notifications/read-all?type=Personal&upTo=120  = mark all of a type as read
+        // (upTo: only the ones the page showed, so one that arrives meanwhile stays unread)
         [HttpPut("read-all")]
-        public async Task<IActionResult> MarkAllRead([FromQuery] string type = "Personal")
+        public async Task<IActionResult> MarkAllRead([FromQuery] string type = "Personal", [FromQuery] int? upTo = null)
         {
             if (type == "Activity" && !IsAdmin())
                 return StatusCode(403, new { message = "Not allowed." });
 
-            await _service.MarkAllReadAsync(GetUserId(), type);
+            await _service.MarkAllReadAsync(GetUserId(), type, upTo);
             return Ok(new { message = "All marked as read" });
         }
 

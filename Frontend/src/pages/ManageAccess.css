@@ -75,6 +75,24 @@
     font-size: 14px;
 }
 
+.ma-load-failed {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 18px 20px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+.ma-retry {
+    padding: 9px 18px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 /* Groups */
 .ma-group { margin-bottom: 28px; }
 .ma-group-title {

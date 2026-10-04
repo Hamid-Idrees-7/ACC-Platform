@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { usePermissions } from "../context/PermissionContext";
 import { useCompany } from "../context/CompanyContext";
@@ -9,9 +9,10 @@ import { formatDateShort, toISODate } from "../utils/dates";
 import "./FieldView.css";
 import { useLiveRefresh } from "../hooks/useLive";
 import ModalOverlay from "../components/ModalOverlay";
-import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { useUnsavedChanges, leaveSafely } from "../hooks/useUnsavedChanges";
 import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const prettyToday = () => formatDateShort(new Date());
 const fmtDate = (d) => formatDateShort(d);
@@ -59,9 +60,7 @@ function FieldView() {
   const [reqOptions, setReqOptions] = useState(null);
   const [reqForm, setReqForm] = useState({ materialID: "", quantity: "", phaseID: "", note: "" });
   const [reqBusy, setReqBusy] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
+  const [toast, showToast] = useToast(2600);
 
   // The first load shows the loading skeleton; quiet reloads after a change keep the page where it is.
   const loadSite = async ({ quiet = false, silent = false } = {}) => {
@@ -80,10 +79,15 @@ function FieldView() {
 
   useLiveRefresh(["assignments", "attendance", "projects", "material-requests", "calendar"], () => loadSite({ quiet: true, silent: true }));
 
+  // The site the engineer opened last; answers for any other site are ignored.
+  const openSite = useRef(null);
+
   const refreshOpenSite = async () => {
     if (!active) return;
+    const projectID = active.projectID;
     try {
-      const [ph, reqs] = await Promise.all([fieldService.getPhases(active.projectID), fieldService.getMyRequests()]);
+      const [ph, reqs] = await Promise.all([fieldService.getPhases(projectID), fieldService.getMyRequests()]);
+      if (openSite.current !== projectID) return;
       setPhases(ph || []);
       setMyRequests(reqs || []);
     } catch {
@@ -93,6 +97,7 @@ function FieldView() {
   useLiveRefresh(["projects", "material-requests"], refreshOpenSite);
 
   const openSheet = async (project) => {
+    openSite.current = project.projectID;
     setActive({ projectID: project.projectID, title: project.title });
     setSiteTab("overview");
     setSheetLoading(true);
@@ -106,6 +111,7 @@ function FieldView() {
         fieldService.getMyRequests().catch(() => []),
         fieldService.getSiteInfo(project.projectID).catch(() => null),
       ]);
+      if (openSite.current !== project.projectID) return;   // another site was opened meanwhile
       setSheet(s);
       setPhases(ph || []);
       setMyRequests(reqs || []);
@@ -116,14 +122,19 @@ function FieldView() {
       });
       setMarks(initial);
     } catch {
+      if (openSite.current !== project.projectID) return;
       showToast("Could not open this site.", "error");
+      openSite.current = null;
       setActive(null);
     } finally {
-      setSheetLoading(false);
+      if (openSite.current === project.projectID) setSheetLoading(false);
     }
   };
 
-  const backToList = () => { setActive(null); setSheet(null); setSiteInfo(null); setPhases([]); setMarks({}); setSiteTab("overview"); };
+  const backToList = () => {
+    openSite.current = null;
+    setActive(null); setSheet(null); setSiteInfo(null); setPhases([]); setMarks({}); setSiteTab("overview");
+  };
 
   const marksDirty = !!sheet && sameMarks(marks, marksFromSheet(sheet)) === false;
   useUnsavedChanges(marksDirty);
@@ -258,7 +269,7 @@ function FieldView() {
       {loading ? (
         <SkeletonPage stats={3} rows={4} />
       ) : error ? (
-        <div className="fv-empty"><h3>Could not load</h3><p>Please check the backend is running and try again.</p></div>
+        <div className="fv-empty"><h3>Could not load your sites</h3><p>Check your connection and refresh the page to try again.</p></div>
       ) : notFieldUser ? (
         <div className="fv-empty">
           <div className="fv-empty-ic">
@@ -271,7 +282,7 @@ function FieldView() {
 
         /* Attendance sheet for one site */
         <div className="fv-sheet-wrap">
-          <button className="fv-back" onClick={backToList}>
+          <button className="fv-back" onClick={() => leaveSafely(backToList)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             My Sites
           </button>

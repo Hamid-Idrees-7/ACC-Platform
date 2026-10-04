@@ -75,10 +75,10 @@ namespace Backend.Repositories
             return true;
         }
 
-        public async Task MarkAllReadAsync(int userId, string type)
+        public async Task MarkAllReadAsync(int userId, string type, int? upTo = null)
         {
             var items = await _context.Notifications
-                .Where(n => n.UserID == userId && n.Type == type && !n.IsRead)
+                .Where(n => n.UserID == userId && n.Type == type && !n.IsRead && (upTo == null || n.NotificationID <= upTo))
                 .ToListAsync();
 
             foreach (var n in items) n.IsRead = true;

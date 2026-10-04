@@ -13,7 +13,7 @@ import { playNotificationSound, unlockNotificationSound } from "../utils/notific
 import { onLive, isLiveConnected } from "../services/live";
 import { useLiveRefresh } from "../hooks/useLive";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { hasUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { hasUnsavedChanges, LEAVE_REQUEST_EVENT } from "../hooks/useUnsavedChanges";
 import ModalOverlay from "./ModalOverlay";
 import DemoBar from "./DemoBar";
 import "./DashboardLayout.css";
@@ -117,6 +117,13 @@ function DashboardLayout({ title, children }) {
   const soundOn = prefs.notificationSound !== false;
   const soundRef = useRef(soundOn);
   useEffect(() => { soundRef.current = soundOn; }, [soundOn]);
+
+  // A page's own Back button asking to leave while something is unsaved
+  useEffect(() => {
+    const ask = (e) => setLeaveTo(() => e.detail);
+    window.addEventListener(LEAVE_REQUEST_EVENT, ask);
+    return () => window.removeEventListener(LEAVE_REQUEST_EVENT, ask);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
 

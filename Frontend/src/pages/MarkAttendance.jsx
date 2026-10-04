@@ -10,9 +10,10 @@ import { formatDayMonth, formatDateShort, toISODate as toISO, todayISO, addDaysI
 import { moneyCompact } from "../utils/format";
 import "./MarkAttendance.css";
 import { useLiveRefresh } from "../hooks/useLive";
-import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { useUnsavedChanges, leaveSafely } from "../hooks/useUnsavedChanges";
 import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
@@ -41,9 +42,7 @@ function MarkAttendance() {
   const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2500); };
+  const [toast, showToast] = useToast(2500);
 
   const marksFromSheet = (data) => {
     const m = {};
@@ -96,7 +95,9 @@ function MarkAttendance() {
   const canEdit = !readOnly && !isFuture && !stale;
   const offDay = offDayOf(calendar, date);
 
-  const shiftDate = (days) => setDate(addDaysISO(date, days));
+  // Another day with unsaved marks asks first (the marks belong to this day)
+  const goToDate = (d) => { if (d !== date) leaveSafely(() => setDate(d)); };
+  const shiftDate = (days) => goToDate(addDaysISO(date, days));
 
   const allWorkers = useMemo(
     () => (sheet ? [...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])] : []),
@@ -197,7 +198,7 @@ function MarkAttendance() {
                     const off = !d.status && offDayOf(calendar, iso);
                     const cls = d.status === "Present" ? "present" : d.status === "Absent" ? "absent" : off ? "off" : "none";
                     return (
-                      <button key={iso} className={`mka-dot ${cls} ${iso === date ? "sel" : ""}`} onClick={() => setDate(iso)} title={off ? `${dmy(d.date)} · ${off.kind === "holiday" ? off.name : "weekly off"}` : dmy(d.date)}>
+                      <button key={iso} className={`mka-dot ${cls} ${iso === date ? "sel" : ""}`} onClick={() => goToDate(iso)} title={off ? `${dmy(d.date)} · ${off.kind === "holiday" ? off.name : "weekly off"}` : dmy(d.date)}>
                         <i />
                         <span>{dm(d.date)}</span>
                       </button>
@@ -229,7 +230,7 @@ function MarkAttendance() {
   if (!sheet) {
     return (
       <DashboardLayout title="Mark Attendance">
-        <button className="mka-back" onClick={() => navigate("/dashboard/attendance")}>← All Projects</button>
+        <button className="mka-back" onClick={() => leaveSafely(() => navigate("/dashboard/attendance"))}>← All Projects</button>
         <div className="mka-error">Project not found.</div>
       </DashboardLayout>
     );
@@ -237,7 +238,7 @@ function MarkAttendance() {
 
   return (
     <DashboardLayout title="Mark Attendance">
-      <button className="mka-back" onClick={() => navigate("/dashboard/attendance")}>← All Projects</button>
+      <button className="mka-back" onClick={() => leaveSafely(() => navigate("/dashboard/attendance"))}>← All Projects</button>
 
       <div className="mka-head">
         <div className="mka-head-left">
@@ -251,9 +252,9 @@ function MarkAttendance() {
           <span className="mka-date-label">DATE{offDay && <em className="mka-off-tag">{offDay.kind === "holiday" ? "HOLIDAY" : "WEEKLY OFF"}</em>}</span>
           <div className="mka-date">
             <button className="mka-date-nav" onClick={() => shiftDate(-1)} aria-label="Previous day">‹</button>
-            <div className="mka-date-box"><DatePicker value={date} onChange={(v) => setDate(v || todayISO())} allowClear={false} /></div>
+            <div className="mka-date-box"><DatePicker value={date} onChange={(v) => goToDate(v || todayISO())} allowClear={false} /></div>
             <button className="mka-date-nav" onClick={() => shiftDate(1)} aria-label="Next day">›</button>
-            <button className={`mka-today ${isToday ? "active" : ""}`} onClick={() => setDate(todayISO())}>Today</button>
+            <button className={`mka-today ${isToday ? "active" : ""}`} onClick={() => goToDate(todayISO())}>Today</button>
           </div>
         </div>
       </div>

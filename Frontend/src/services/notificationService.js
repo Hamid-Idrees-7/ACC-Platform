@@ -13,8 +13,8 @@ export const notificationService = {
   },
 
   // Mark all of a type as read
-  markAllRead: async (type = "Personal") => {
-    const response = await api.put(`/notifications/read-all?type=${type}`);
+  markAllRead: async (type = "Personal", upTo = null) => {
+    const response = await api.put(`/notifications/read-all?type=${type}${upTo ? `&upTo=${upTo}` : ""}`);
     return response.data;
   },
 

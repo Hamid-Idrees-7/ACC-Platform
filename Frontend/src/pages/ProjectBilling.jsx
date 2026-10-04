@@ -15,6 +15,7 @@ import { SkeletonPage } from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
+import { useToast } from "../components/Toast";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -56,7 +57,7 @@ function ProjectBilling() {
   const [params] = useSearchParams();
   const [expanded, setExpanded] = useState(() => Number(params.get("highlight")) || null);       
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, showToast] = useToast(2600);
 
   // Invoice form modal (create or edit)
   const [invModal, setInvModal] = useState(null);       
@@ -70,8 +71,6 @@ function ProjectBilling() {
 
   const [delInvoice, setDelInvoice] = useState(null);   
   const [delPayment, setDelPayment] = useState(null);   
-
-  const showToast = (text, type = "success") => { setToast({ text, type }); setTimeout(() => setToast(null), 2600); };
 
   // Download an invoice as pdf straight from the list
   const [pdfBusy, setPdfBusy] = useState(null);

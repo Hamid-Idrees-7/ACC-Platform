@@ -17,7 +17,7 @@ namespace Backend.Services
         Task NotifyPermissionHoldersAsync(string module, string action, string category, string title, string message, int? excludeUserId = null, string? link = null);
 
         Task<bool> MarkAsReadAsync(int id, int userId);
-        Task MarkAllReadAsync(int userId, string type);
+        Task MarkAllReadAsync(int userId, string type, int? upTo = null);
         Task<bool> DeleteAsync(int id, int userId);
         Task DeleteAllAsync(int userId, string type);
     }
