@@ -91,7 +91,7 @@
     font-weight: 500;
 }
 
-/* Action grid: two module columns and a tall AI card */
+/* Action grid: three cards per row */
 .dash-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -257,7 +257,7 @@
 @media (max-width: 1100px) {
     .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .dash-ai-card { grid-column: 1 / span 2; grid-row: auto; min-height: 172px; }
+    .dash-ai-card { min-height: 172px; }
 }
 @media (max-width: 600px) {
     .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
