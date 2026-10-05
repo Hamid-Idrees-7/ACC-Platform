@@ -58,6 +58,37 @@ export async function downloadPdf(docDefinition, fileName) {
   await pdfMake.createPdf(docDefinition).download(safeFileName(fileName));
 }
 
+// Builds the PDF and opens the print dialog for it, from a hidden frame on this page,
+// so the printout is exactly the downloaded file. Returns false if printing was blocked.
+export async function printPdf(docDefinition) {
+  const pdfMake = await loadEngine();
+  const blob = await pdfMake.createPdf(docDefinition).getBlob();
+  const url = URL.createObjectURL(blob);
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  const done = new Promise((resolve) => {
+    frame.onload = () => {
+      // A short wait lets the browser's PDF viewer finish drawing the page
+      setTimeout(() => {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          resolve(true);
+        } catch {
+          resolve(false);
+        }
+      }, 300);
+    };
+  });
+  frame.src = url;
+  document.body.appendChild(frame);
+  const ok = await done;
+  // The dialog keeps its own copy, so the frame can go once the user is done with it
+  setTimeout(() => { frame.remove(); URL.revokeObjectURL(url); }, 120000);
+  return ok;
+}
+
 // Base document: A4, margins, font sizes and named styles shared by all PDFs.
 export function baseDocument({ title, company, content, footerNote, pageOrientation = "portrait" }) {
   const name = (company?.companyName || "").replace(/\.$/, "");
@@ -117,7 +148,7 @@ const initialsOf = (name) =>
   (name || "").split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 3).map((w) => w[0]).join("").toUpperCase() || "CO";
 
 // Company logo, or an orange box with the initials.
-function logoBlock(company) {
+export function logoBlock(company) {
   if (company?.logo && /^data:image\/(png|jpeg);base64,/i.test(company.logo)) {
     return { image: company.logo, fit: [120, 52], width: 120 };
   }

@@ -1,0 +1,100 @@
+/* Settings > Letterhead. Prefix: lh-
+   The sheet is drawn in PDF points: --u is one point at the preview's width (A4 is 595.28 pt wide). */
+
+.lh-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.lh-mark-toggle { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--color-text); cursor: pointer; }
+.lh-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--color-track);
+    cursor: pointer;
+    transition: background 0.18s ease;
+}
+.lh-switch.on { background: var(--color-primary); }
+.lh-switch:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.lh-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.25);
+    transition: transform 0.18s ease;
+}
+.lh-switch.on .lh-knob { transform: translateX(18px); }
+
+.lh-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.lh-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--color-primary); border: 1px solid var(--color-primary); border-radius: var(--radius-md);
+    padding: 10px 20px; color: #fff; font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.lh-btn:hover { background: var(--color-primary-dark); }
+.lh-btn.ghost { background: var(--color-surface); border-color: var(--color-border); color: var(--color-text); }
+.lh-btn.ghost:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.lh-btn:disabled { opacity: 0.7; cursor: wait; }
+
+/* Grey desk behind the paper */
+.lh-stage { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; }
+.lh-sheet-box { container-type: inline-size; width: 100%; max-width: 620px; margin: 0 auto; }
+.lh-sheet {
+    --u: calc(100cqw / 595.28);
+    position: relative;
+    width: 100%;
+    aspect-ratio: 595.28 / 841.89;
+    overflow: hidden;
+    background: #FFFFFF;
+    color: var(--color-text);
+    box-shadow: 0 6px 24px rgba(16, 24, 40, 0.12);
+    font-family: "Roboto", var(--font-body);
+    line-height: 1.2;
+}
+
+.lh-top { position: absolute; top: calc(36 * var(--u)); left: calc(40 * var(--u)); right: calc(40 * var(--u)); }
+.lh-head { display: flex; align-items: flex-start; }
+.lh-logo { flex-shrink: 0; }
+.lh-logo span {
+    display: flex; align-items: center; justify-content: center;
+    width: calc(52 * var(--u)); height: calc(52 * var(--u));
+    border-radius: calc(6 * var(--u));
+    background: var(--color-primary);
+    color: #FFFFFF;
+    font-size: calc(15 * var(--u));
+    font-weight: 700;
+}
+.lh-logo.has-img img { display: block; max-width: calc(120 * var(--u)); max-height: calc(52 * var(--u)); object-fit: contain; }
+.lh-name { flex: 1; min-width: 0; margin: calc(4 * var(--u)) 0 0 calc(12 * var(--u)); }
+.lh-name strong { display: block; font-size: calc(18 * var(--u)); font-weight: 700; overflow-wrap: anywhere; }
+.lh-name span { display: block; margin-top: calc(2 * var(--u)); font-size: calc(9.5 * var(--u)); color: var(--color-text-muted); }
+.lh-tax { display: flex; flex-direction: column; align-items: flex-end; gap: calc(2 * var(--u)); margin-top: calc(6 * var(--u)); font-size: calc(8 * var(--u)); font-weight: 700; color: var(--color-text-muted); }
+.lh-rule { height: calc(2.5 * var(--u)); margin-top: calc(14 * var(--u)); background: var(--color-primary); }
+
+.lh-watermark {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+}
+.lh-watermark img { max-width: calc(280 * var(--u)); max-height: calc(280 * var(--u)); object-fit: contain; opacity: 0.07; }
+.lh-watermark span { font-size: calc(150 * var(--u)); font-weight: 700; color: var(--color-primary); opacity: 0.06; }
+
+.lh-foot {
+    position: absolute; top: calc(779.9 * var(--u)); left: calc(40 * var(--u)); right: calc(40 * var(--u));
+    display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--u));
+    font-size: calc(8 * var(--u)); color: var(--color-text-muted); text-align: center;
+}
+.lh-foot-rule { align-self: stretch; height: calc(1 * var(--u)); margin-bottom: calc(5 * var(--u)); background: var(--color-primary); }
+
+.lh-note { margin: 14px 0 0; font-size: 13px; color: var(--color-text-muted); line-height: 1.5; }
+
+@media (max-width: 600px) {
+    .lh-stage { padding: 12px; }
+    .lh-actions { width: 100%; }
+    .lh-btn { flex: 1; justify-content: center; }
+}

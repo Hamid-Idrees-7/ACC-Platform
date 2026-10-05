@@ -7,6 +7,7 @@ import ImageCropModal from "../components/ImageCropModal";
 import AppearanceSettings from "../components/AppearanceSettings";
 import CompanySettings from "../components/CompanySettings";
 import CalendarSettings from "../components/CalendarSettings";
+import LetterheadSettings from "../components/LetterheadSettings";
 import SecuritySettings from "../components/SecuritySettings";
 import NotificationSettings from "../components/NotificationSettings";
 import AlertRules from "../components/AlertRules";
@@ -21,8 +22,8 @@ import { SkeletonPage } from "../components/Skeleton";
 import { typePhone, typed } from "../utils/format";
 import { clickable } from "../utils/a11y";
 
-const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "company", "calendar"];
-const ADMIN_TABS = ["alerts", "company", "calendar"];
+const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "calendar", "company", "letterhead"];
+const ADMIN_TABS = ["alerts", "calendar", "company", "letterhead"];
 const BIO_MAX = 300;
 const PROFILE_FIELDS = ["fullName", "email", "phone", "secondaryPhone", "bio"];
 
@@ -311,8 +312,9 @@ function Settings() {
     { key: "notifications", label: "Notifications", icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></> },
     ...(isAdmin ? [{ key: "alerts", label: "Alert rules", icon: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></> }] : []),
     { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
-    ...(isAdmin ? [{ key: "company", label: "Company", icon: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><line x1="9" y1="9" x2="9" y2="9.01" /><line x1="9" y1="12" x2="9" y2="12.01" /><line x1="9" y1="15" x2="9" y2="15.01" /><line x1="9" y1="18" x2="9" y2="18.01" /></> }] : []),
     ...(isAdmin ? [{ key: "calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></> }] : []),
+    ...(isAdmin ? [{ key: "company", label: "Company", icon: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><line x1="9" y1="9" x2="9" y2="9.01" /><line x1="9" y1="12" x2="9" y2="12.01" /><line x1="9" y1="15" x2="9" y2="15.01" /><line x1="9" y1="18" x2="9" y2="18.01" /></> }] : []),
+    ...(isAdmin ? [{ key: "letterhead", label: "Letterhead", icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></> }] : []),
   ];
 
   return (
@@ -522,6 +524,17 @@ function Settings() {
             </div>
           )}
 
+          {/* Calendar (Admin) */}
+          {tab === "calendar" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>Calendar</h3>
+                <p>Weekly off days and company holidays. Attendance shows these days as off.</p>
+              </div>
+              <CalendarSettings />
+            </div>
+          )}
+
           {/* Company (Admin) */}
           {tab === "company" && (
             <div className="st-panel">
@@ -533,14 +546,14 @@ function Settings() {
             </div>
           )}
 
-          {/* Calendar (Admin) */}
-          {tab === "calendar" && (
+          {/* Letterhead (Admin) */}
+          {tab === "letterhead" && (
             <div className="st-panel">
               <div className="st-panel-head">
-                <h3>Calendar</h3>
-                <p>Weekly off days and company holidays. Attendance shows these days as off.</p>
+                <h3>Letterhead</h3>
+                <p>A blank company letterhead on A4, ready to print or download as a PDF.</p>
               </div>
-              <CalendarSettings />
+              <LetterheadSettings />
             </div>
           )}
         </div>
