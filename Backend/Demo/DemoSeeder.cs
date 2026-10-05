@@ -6,7 +6,7 @@ namespace Backend.Demo
     // Fills a brand-new visitor database with the demo company, Anonymous Construction Co.
     // Everything here is fictional sample data. Dates are always relative to today, so the
     // demo looks current no matter when it is opened.
-    // For now it adds only the three demo logins and their access.
+    // It adds the three demo logins and their access, then the sample company (DemoCompany).
     public static class DemoSeeder
     {
         public const string AdminUsername = "demo.admin";
@@ -35,6 +35,8 @@ namespace Backend.Demo
             db.UserPermissions.AddRange(ManagerPermissions(manager.UserID, now));
             db.UserPermissions.AddRange(EngineerPermissions(engineer.UserID, now));
             await db.SaveChangesAsync(ct);
+
+            await DemoCompanySeeder.SeedAsync(db, admin, manager, engineer, ct);
         }
 
         private static User NewUser(string username, string fullName, string email, string role, string bio, DateTime createdAt) => new()

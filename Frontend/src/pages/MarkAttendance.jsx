@@ -18,6 +18,7 @@ import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 
 const dm = (d) => formatDayMonth(d);
 const dmy = (d) => formatDateShort(d);
+const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" }).compare;
 
 // Compact money for wage tags: 75000 is 75.0K, 120000 is 1.20 Lac (or 120.0K)
 const money = (n) => moneyCompact(n);
@@ -41,6 +42,8 @@ function MarkAttendance() {
   const [sheetDate, setSheetDate] = useState(null);
   const [marks, setMarks] = useState({});
   const [expanded, setExpanded] = useState({});
+  // Workers not on site on the chosen date are folded away per section
+  const [showAway, setShowAway] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -236,6 +239,32 @@ function MarkAttendance() {
     );
   };
 
+  // On-site workers first, A to Z (Labourer 2 before Labourer 10). Those who ended
+  // or start later sit under a fold, since there is nothing to mark for them that day.
+  const renderSection = (title, list, key) => {
+    if (!list || list.length === 0) return null;
+    const sorted = [...list].sort((a, b) =>
+      byName(a.employeeName || "", b.employeeName || "") || String(a.startDate).localeCompare(String(b.startDate)));
+    const here = sorted.filter((w) => w.onSiteThisDate);
+    const away = sorted.filter((w) => !w.onSiteThisDate);
+    const open = !!showAway[key];
+    return (
+      <div className={`mka-section ${stale ? "stale" : ""}`}>
+        <div className="mka-section-title">{title}</div>
+        {here.map(renderWorker)}
+        {away.length > 0 && (
+          <>
+            <button className="mka-away-toggle" aria-expanded={open} onClick={() => setShowAway((prev) => ({ ...prev, [key]: !prev[key] }))}>
+              {open ? "Hide" : "Show"} {away.length} not on site on this date
+              <svg className={`mka-chev ${open ? "up" : ""}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {open && away.map(renderWorker)}
+          </>
+        )}
+      </div>
+    );
+  };
+
   if (loading && !sheet) {
     return (
       <DashboardLayout title="Mark Attendance">
@@ -326,18 +355,8 @@ function MarkAttendance() {
         <div className="mka-banner warn">No worker is on site on this date.</div>
       )}
 
-      {sheet.monthlyStaff.length > 0 && (
-        <div className={`mka-section ${stale ? "stale" : ""}`}>
-          <div className="mka-section-title">MONTHLY STAFF</div>
-          {sheet.monthlyStaff.map(renderWorker)}
-        </div>
-      )}
-      {sheet.dailyWorkers.length > 0 && (
-        <div className={`mka-section ${stale ? "stale" : ""}`}>
-          <div className="mka-section-title">DAILY WORKERS</div>
-          {sheet.dailyWorkers.map(renderWorker)}
-        </div>
-      )}
+      {renderSection("MONTHLY STAFF", sheet.monthlyStaff, "monthly")}
+      {renderSection("DAILY WORKERS", sheet.dailyWorkers, "daily")}
 
       {toast && <div className={`mka-toast mka-toast-${toast.type}`}>{toast.text}</div>}
     </DashboardLayout>

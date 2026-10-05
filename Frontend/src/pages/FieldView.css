@@ -170,6 +170,17 @@
     border-radius: var(--radius-lg); padding: 12px 16px;
 }
 .fv-worker.off { opacity: 0.6; }
+.fv-away-toggle {
+    padding: 10px 14px;
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px; font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    text-align: left;
+}
 .fv-worker-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .fv-worker-avatar {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Backend.Models.DTOs;
 using Backend.Models.Entities;
 using Backend.Repositories;
@@ -102,6 +103,8 @@ namespace Backend.Services
                 else daily.Add(worker);
             }
 
+            monthly = SortSheet(monthly);
+            daily = SortSheet(daily);
             var onSite = monthly.Concat(daily).Where(w => w.OnSiteThisDate).ToList();
 
             return new AttendanceSheetDto
@@ -266,6 +269,21 @@ namespace Backend.Services
             existing.Note = note;
             existing.UpdatedAt = AppTime.Now;
             await _attendanceRepository.UpdateAsync(existing);
+        }
+
+        // On-site workers first, then by name with the number read as a number
+        // (Labourer 2 before Labourer 10), then the earlier stint first.
+        private static List<AttendanceWorkerDto> SortSheet(List<AttendanceWorkerDto> list) =>
+            list.OrderByDescending(w => w.OnSiteThisDate)
+                .ThenBy(w => NameKey(w.EmployeeName).Text, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(w => NameKey(w.EmployeeName).Number)
+                .ThenBy(w => w.StartDate)
+                .ToList();
+
+        private static (string Text, long Number) NameKey(string? name)
+        {
+            var m = Regex.Match(name ?? "", @"^(.*?)\s*(\d{1,15})$");
+            return m.Success ? (m.Groups[1].Value, long.Parse(m.Groups[2].Value)) : (name ?? "", 0);
         }
 
         // The site incharge is the project's lead assignment (engineer, supervisor and so on),

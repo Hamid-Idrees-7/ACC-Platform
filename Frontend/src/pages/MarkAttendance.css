@@ -151,6 +151,19 @@
     cursor: pointer;
 }
 .mka-section-title { font-size: 12px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.6px; margin-bottom: 12px; }
+.mka-away-toggle {
+    display: flex; align-items: center; gap: 6px;
+    margin: 4px 0 12px;
+    padding: 8px 14px;
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px; font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.mka-away-toggle:hover { color: var(--color-text); border-color: var(--color-text-muted); }
 
 /* Worker row */
 .mka-worker {

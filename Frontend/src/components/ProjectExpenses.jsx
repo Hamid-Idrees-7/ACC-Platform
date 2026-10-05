@@ -25,6 +25,7 @@ const HINTS = {
   Transport: "e.g. Debris removal trips",
   Subcontractor: "e.g. Steel fixing subcontract",
   "Site Running": "e.g. Site water and security",
+  "Furniture & Furnishing": "e.g. Sofa set for the drawing room",
   Other: "Describe what this expense was for",
 };
 

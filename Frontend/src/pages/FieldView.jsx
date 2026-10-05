@@ -53,6 +53,7 @@ function FieldView() {
 
   const [active, setActive] = useState(null);     // { projectID, title }
   const [siteTab, setSiteTab] = useState("overview"); // overview | attendance | progress | requests
+  const [showAway, setShowAway] = useState(false);
   const [sheet, setSheet] = useState(null);
   const [siteInfo, setSiteInfo] = useState(null);
   const [phases, setPhases] = useState([]);
@@ -258,6 +259,8 @@ function FieldView() {
   // Not a field user (eg an admin with no linked employee)
   const notFieldUser = data && data.isFieldUser === false;
 
+  const awayWorkers = sheet ? [...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])].filter((w) => !w.onSiteThisDate) : [];
+
   const renderWorkerRow = (w) => {
     const disabled = !w.onSiteThisDate || !canManage || sheet.isReadOnly;
     const mark = marks[w.assignmentID];
@@ -384,8 +387,14 @@ function FieldView() {
                     <div className="fv-empty"><p>No workers assigned to this site.</p></div>
                   ) : (
                     <div className="fv-workers">
-                      {(sheet.monthlyStaff || []).map(renderWorkerRow)}
-                      {(sheet.dailyWorkers || []).map(renderWorkerRow)}
+                      {/* The server lists on-site people first; the rest fold away */}
+                      {[...(sheet.monthlyStaff || []), ...(sheet.dailyWorkers || [])].filter((w) => w.onSiteThisDate).map(renderWorkerRow)}
+                      {awayWorkers.length > 0 && (
+                        <button className="fv-away-toggle" aria-expanded={showAway} onClick={() => setShowAway((v) => !v)}>
+                          {showAway ? "Hide" : "Show"} {awayWorkers.length} not on site on this date
+                        </button>
+                      )}
+                      {showAway && awayWorkers.map(renderWorkerRow)}
                     </div>
                   )}
 

@@ -200,9 +200,24 @@ function ProjectDetail() {
   };
 
   // Site team = every assignment (active + completed), leads split from workers.
-  // Active are listed before completed so the current crew stays on top.
-  const byActiveFirst = (a, b) => (a.status === "Active" ? 0 : 1) - (b.status === "Active" ? 0 : 1);
-  const team = [...(project.team || [])].sort(byActiveFirst);
+  // A person hired again for a later stage is one row, with all their present days.
+  // Contract jobs stay separate because each one has its own fixed amount.
+  const people = new Map();
+  [...(project.team || [])]
+    .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
+    .forEach((m) => {
+      const key = m.wageType === "Contract" ? `c${m.assignmentID}` : `${m.employeeID}|${m.wageType}`;
+      const earned = m.wageType === "Daily" ? (m.presentDays || 0) * (m.wageAmount || 0) : 0;
+      const prev = people.get(key);
+      people.set(key, prev
+        ? { ...m, key, times: prev.times + 1, presentDays: prev.presentDays + (m.presentDays || 0), earned: prev.earned + earned,
+            status: prev.status === "Active" || m.status === "Active" ? "Active" : m.status }
+        : { ...m, key, times: 1, presentDays: m.presentDays || 0, earned });
+    });
+  // Current crew first, then by name (Labourer 2 before Labourer 10)
+  const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" }).compare;
+  const team = [...people.values()].sort((a, b) =>
+    (a.status === "Active" ? 0 : 1) - (b.status === "Active" ? 0 : 1) || byName(a.employeeName || "", b.employeeName || ""));
   const engineers = team.filter((m) => LEAD_ROLE.test(m.role || ""));
   const workers = team.filter((m) => !LEAD_ROLE.test(m.role || ""));
 
@@ -216,7 +231,25 @@ function ProjectDetail() {
   const accrualText = (m) => {
     if (m.wageType !== "Daily") return null;
     const days = m.presentDays || 0;
-    return `${days} present ${days === 1 ? "day" : "days"} = ${money(days * (m.wageAmount || 0))}`;
+    return <>{days} present {days === 1 ? "day" : "days"} = <span className="pd-team-amt">{money(m.earned)}</span></>;
+  };
+
+  // On a running project, people who already left are faded so the current crew stands out.
+  // On a finished project everyone has finished, so nobody is faded.
+  const fadeFinished = project.status !== "Completed";
+  const renderMember = (m, lead) => {
+    const done = m.status === "Completed";
+    return (
+      <div key={m.key} className={`pd-team-person ${done && fadeFinished ? "past" : ""}`}>
+        <div className={`pd-team-avatar ${lead ? "lead" : ""}`}>{(m.employeeName || "?").charAt(0).toUpperCase()}</div>
+        <div className="pd-team-info">
+          <div className="pd-team-name">{m.employeeName}</div>
+          <div className="pd-team-role">{m.role}{m.times > 1 && ` · hired ${m.times} times`}</div>
+          {done && <span className="pd-team-done-tag">Completed</span>}
+        </div>
+        {showMoney && <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>}
+      </div>
+    );
   };
 
   return (
@@ -392,16 +425,7 @@ function ProjectDetail() {
                   <div className="pd-team-empty">Not assigned</div>
                 ) : (
                   <div className="pd-team-people">
-                    {engineers.map((m) => (
-                      <div key={m.assignmentID} className={`pd-team-person ${m.status === "Completed" ? "past" : ""}`}>
-                        <div className="pd-team-avatar lead">{(m.employeeName || "?").charAt(0).toUpperCase()}</div>
-                        <div className="pd-team-info">
-                          <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
-                          <div className="pd-team-role">{m.role}</div>
-                        </div>
-                        {showMoney && <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>}
-                      </div>
-                    ))}
+                    {engineers.map((m) => renderMember(m, true))}
                   </div>
                 )}
               </div>
@@ -411,16 +435,7 @@ function ProjectDetail() {
                   <div className="pd-team-empty">No workers assigned yet</div>
                 ) : (
                   <div className="pd-team-people">
-                    {workers.map((m) => (
-                      <div key={m.assignmentID} className={`pd-team-person ${m.status === "Completed" ? "past" : ""}`}>
-                        <div className="pd-team-avatar">{(m.employeeName || "?").charAt(0).toUpperCase()}</div>
-                        <div className="pd-team-info">
-                          <div className="pd-team-name">{m.employeeName}{m.status === "Completed" && <span className="pd-team-done-tag">Completed</span>}</div>
-                          <div className="pd-team-role">{m.role}</div>
-                        </div>
-                        {showMoney && <div className="pd-team-wage"><strong>{money(m.wageAmount)}</strong><span>{wageSuffix(m.wageType)}</span>{accrualText(m) && <small>{accrualText(m)}</small>}{m.wageType === "Monthly" && <small className="payroll">company payroll</small>}</div>}
-                      </div>
-                    ))}
+                    {workers.map((m) => renderMember(m, false))}
                   </div>
                 )}
               </div>

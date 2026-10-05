@@ -302,13 +302,15 @@
 }
 .pd-team-avatar.lead { background: linear-gradient(135deg, var(--color-info), #1c6fd6); }   /* blue for a lead role, intentional */
 .pd-team-info { flex: 1; min-width: 0; }
-.pd-team-name { font-size: 14px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pd-team-role { font-size: 12px; color: var(--color-text-muted); }
+.pd-team-name { font-size: 14px; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; }
+/* The Completed tag always sits at the start of this line, under the name */
+.pd-team-role { margin-top: 1px; font-size: 12px; line-height: 1.45; color: var(--color-text-muted); }
 .pd-team-person.past { opacity: 0.6; }
 .pd-team-person.past .pd-team-avatar { filter: grayscale(0.7); }
+/* Always on its own line under the role, so every row looks the same */
 .pd-team-done-tag {
     display: inline-block;
-    margin-left: 8px;
+    margin-top: 4px;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -317,12 +319,12 @@
     background: var(--color-info-soft);   /* soft blue, matches completed status */
     padding: 1px 7px;
     border-radius: var(--radius-full);
-    vertical-align: middle;
 }
-.pd-team-wage { text-align: right; flex-shrink: 0; }
+.pd-team-wage { text-align: right; flex-shrink: 0; max-width: 48%; }
 .pd-team-wage strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--color-text); }
 .pd-team-wage span { font-size: 11px; color: var(--color-text-muted); }
 .pd-team-wage small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--color-warning-strong); }   /* amber, earned so far, intentional */
+.pd-team-amt { white-space: nowrap; }
 .pd-team-wage small.payroll { color: var(--color-text-muted); font-weight: 600; }
 .pd-manage-team { border: none; background: transparent; color: var(--color-primary); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; padding: 0; font-family: var(--font-body); }
 .pd-team-note { font-size: 12px; color: var(--color-text-muted); margin: 14px 0 0; }

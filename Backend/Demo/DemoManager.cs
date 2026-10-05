@@ -515,6 +515,20 @@ namespace Backend.Demo
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Could not build demo database {Database}.", databaseName);
+
+                // On a development machine the full error also goes to a file next to the app
+                // (bin folder, not in git), so it can be read without the console.
+                if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "demo-build-errors.log"),
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {databaseName}{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+                    }
+                    catch (IOException)
+                    {
+                    }
+                }
                 return false;
             }
         }

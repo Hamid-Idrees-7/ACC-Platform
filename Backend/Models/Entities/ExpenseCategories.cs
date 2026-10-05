@@ -18,6 +18,7 @@ namespace Backend.Models.Entities
             "Transport",
             "Subcontractor",
             "Site Running",
+            "Furniture & Furnishing",
             Other
         };
 
