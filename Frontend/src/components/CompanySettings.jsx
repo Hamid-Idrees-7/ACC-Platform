@@ -421,9 +421,9 @@ function CompanySettings({ onDirtyChange }) {
           {field("bankAccountNumber", "Account number", { maxLength: 40, inputMode: "numeric" })}
           {field("bankIBAN", "IBAN", {
             maxLength: 40,
-            placeholder: "eg PK36SCBL0000001123456702",
+            placeholder: "eg PK36ABCD0000000123456789",
             onChange: (e) => set("bankIBAN", e.target.value.toUpperCase()),
-          }, { hint: "Checked with the IBAN check digits. Pakistani IBANs have 24 characters." })}
+          }, { hint: "Pakistani IBANs: 24 characters." })}
         </div>
       </section>
 
