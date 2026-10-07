@@ -245,6 +245,16 @@ builder.Services.AddScoped<IAlertCheckService, AlertCheckService>();
 // Auth
 builder.Services.AddScoped<Backend.Auth.TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+// AI assistant (Settings "Ai"). Provider is chosen here, so the rest of the app depends only
+// on IAiClient and never on a specific provider. The key comes from User Secrets, never the repo.
+builder.Services.Configure<Backend.Ai.AiOptions>(builder.Configuration.GetSection("Ai"));
+builder.Services.AddHttpClient("ai", client => client.Timeout = TimeSpan.FromSeconds(30));
+var aiProvider = builder.Configuration["Ai:Provider"] ?? "gemini";
+if (string.Equals(aiProvider, "gemini", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<Backend.Ai.IAiClient, Backend.Ai.GeminiClient>();
+else
+    throw new InvalidOperationException($"Unknown Ai:Provider '{aiProvider}'. Supported: gemini.");
+
 // Forgot password (email link)
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
