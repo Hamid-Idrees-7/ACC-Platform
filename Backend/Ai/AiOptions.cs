@@ -11,7 +11,7 @@ namespace Backend.Ai
         public string Provider { get; set; } = "gemini";
 
         // A free-tier Gemini model that supports tool calling.
-        public string Model { get; set; } = "gemini-flash-latest";
+        public string Model { get; set; } = "gemini-3.5-flash-lite";
 
         public string ApiKey { get; set; } = "";
     }

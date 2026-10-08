@@ -9,6 +9,7 @@ namespace Backend.Ai
     public class GeminiClient : IAiClient
     {
         private const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+        private const int MaxAttempts = 3;   // one try, then two retries for "busy" replies
 
         private readonly IHttpClientFactory _httpFactory;
         private readonly AiOptions _options;
@@ -24,58 +25,78 @@ namespace Backend.Ai
         public string Provider => "gemini";
         public string Model => _options.Model;
 
-        public async Task<AiReply> SendAsync(string systemPrompt, string userMessage, CancellationToken ct = default)
+        public async Task<AiReply> ChatAsync(string systemPrompt, IReadOnlyList<AiMessage> history, string userMessage, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(_options.ApiKey))
                 return new AiReply(false, "", "AI key is not set. Add Ai:ApiKey to User Secrets.");
 
-            // Gemini's request shape: a system instruction, then the conversation turns.
-            var body = new
+            // Gemini's request shape: a system instruction, then the conversation turns in order.
+            var contents = new List<object>();
+            foreach (var turn in history)
+                contents.Add(new { role = turn.Role == "model" ? "model" : "user", parts = new[] { new { text = turn.Text } } });
+            contents.Add(new { role = "user", parts = new[] { new { text = userMessage } } });
+
+            var body = JsonSerializer.Serialize(new
             {
                 systemInstruction = new { parts = new[] { new { text = systemPrompt } } },
-                contents = new[]
-                {
-                    new { role = "user", parts = new[] { new { text = userMessage } } }
-                }
-            };
+                contents
+            });
 
             var url = $"{BaseUrl}/{_options.Model}:generateContent";
+            var http = _httpFactory.CreateClient("ai");
+            string? lastReason = null;
 
-            try
+            for (var attempt = 1; attempt <= MaxAttempts; attempt++)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Add("x-goog-api-key", _options.ApiKey);
-                request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-
-                var http = _httpFactory.CreateClient("ai");
-                using var response = await http.SendAsync(request, ct);
-                var json = await response.Content.ReadAsStringAsync(ct);
-
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    _logger.LogWarning("Gemini call failed: {Status} {Body}", (int)response.StatusCode, json);
-                    var reason = ReadError(json);
-                    return new AiReply(false, "", $"AI service returned {(int)response.StatusCode}{(reason != null ? ": " + reason : ".")}");
-                }
+                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                    request.Headers.Add("x-goog-api-key", _options.ApiKey);
+                    request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
-                var text = ReadText(json);
-                if (text == null)
+                    using var response = await http.SendAsync(request, ct);
+                    var json = await response.Content.ReadAsStringAsync(ct);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var text = ReadText(json);
+                        if (text != null)
+                            return new AiReply(true, text);
+
+                        _logger.LogWarning("Gemini reply had no text: {Body}", json);
+                        return new AiReply(false, "", "AI service returned no text.");
+                    }
+
+                    var status = (int)response.StatusCode;
+                    lastReason = ReadError(json);
+                    _logger.LogWarning("Gemini call failed (attempt {Attempt}): {Status} {Body}", attempt, status, json);
+
+                    // 503 = model busy, 429 = rate limited. Both are temporary, so wait and retry.
+                    if ((status == 503 || status == 429) && attempt < MaxAttempts)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(600 * attempt), ct);
+                        continue;
+                    }
+
+                    return new AiReply(false, "", $"AI service returned {status}{(lastReason != null ? ": " + lastReason : ".")}");
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
-                    _logger.LogWarning("Gemini reply had no text: {Body}", json);
-                    return new AiReply(false, "", "AI service returned no text.");
+                    throw;
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Gemini call threw (attempt {Attempt})", attempt);
+                    if (attempt < MaxAttempts)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(600 * attempt), ct);
+                        continue;
+                    }
+                    return new AiReply(false, "", "Could not reach the AI service.");
+                }
+            }
 
-                return new AiReply(true, text);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Gemini call threw");
-                return new AiReply(false, "", "Could not reach the AI service.");
-            }
+            return new AiReply(false, "", $"AI service is busy{(lastReason != null ? ": " + lastReason : ".")}");
         }
 
         // Pulls candidates[0].content.parts[*].text out of the reply.

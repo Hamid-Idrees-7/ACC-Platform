@@ -49,6 +49,10 @@ namespace Backend.Auth
         // Rate limit on the public contact form, per IP address.
         public const string ContactFormRateLimitPolicy = "contact-form";
 
+        // Rate limit on the public AI chat, per IP address. AI calls use quota, so this is
+        // tighter than ordinary requests.
+        public const string AiPublicRateLimitPolicy = "ai-public";
+
         // Requests per minute for each signed-in user (all endpoints together)
         public const int RequestsPerMinute = 600;
         public const int DemoRequestsPerMinute = 240;

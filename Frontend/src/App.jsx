@@ -10,6 +10,7 @@ import SessionWatch from "./components/SessionWatch";
 import LiveConnection from "./components/LiveConnection";
 
 import Home from "./pages/Home";
+import PublicChat from "./components/PublicChat";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import PageLoader from "./components/PageLoader";
@@ -74,14 +75,27 @@ function RootLayout() {
   );
 }
 
+// Public website pages share the chat assistant. Keeping it here (not on each page) means it
+// stays mounted while the visitor moves between Home, About and Projects.
+function PublicLayout() {
+  return (
+    <>
+      <Outlet />
+      <PublicChat />
+    </>
+  );
+}
+
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />}>
       {/* Public website */}
-      <Route path="/" element={<Home />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/projects" element={<Projects />} />
-      <Route path="/privacy" element={<Privacy />} />
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/privacy" element={<Privacy />} />
+      </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
