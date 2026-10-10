@@ -42,6 +42,7 @@ namespace Backend.Data
 
         // Visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
+        public DbSet<AiConversation> AiConversations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -118,6 +119,7 @@ namespace Backend.Data
             // Lookups that run on every page or every message.
             modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserID, n.Type, n.IsRead });
             modelBuilder.Entity<Inquiry>().HasIndex(i => new { i.Phone, i.CreatedAt });
+            modelBuilder.Entity<AiConversation>().HasIndex(c => new { c.UserID, c.UpdatedAt });
 
             // Lookups by project, person, invoice, month and day, which grow with every year of data.
             modelBuilder.Entity<Assignment>().HasIndex(a => a.ProjectID);

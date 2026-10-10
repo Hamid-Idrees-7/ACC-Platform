@@ -32,6 +32,7 @@ const loaders = {
   Reports: () => import("../pages/Reports"),
   FieldView: () => import("../pages/FieldView"),
   MaterialRequests: () => import("../pages/MaterialRequests"),
+  AiAssistant: () => import("../pages/AiAssistant"),
   UnderConstruction: () => import("../pages/UnderConstruction"),
 };
 

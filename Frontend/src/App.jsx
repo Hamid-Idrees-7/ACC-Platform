@@ -22,7 +22,7 @@ const {
   About, Projects, Privacy, ResetPassword, Dashboard, Queries, Profile, Settings, ControlUnit, ManageAccess, Approvals,
   Notifications, Alerts, Clients, Employees, Users, Materials, MaterialHistory, ProjectManagement,
   ProjectDetail, Assignments, Attendance, MarkAttendance, Salaries, Payslip, Billing, ProjectBilling,
-  InvoicePrint, Reports, FieldView, MaterialRequests, UnderConstruction,
+  InvoicePrint, Reports, FieldView, MaterialRequests, AiAssistant,
 } = pages;
 
 // Dashboard pages need a signed-in user. Anyone else goes to the sign-in page, which sends
@@ -127,7 +127,7 @@ const router = createBrowserRouter(
         <Route path="/dashboard/billing" element={<Billing />} />
         <Route path="/dashboard/billing/project/:projectId" element={<ProjectBilling />} />
         <Route path="/dashboard/billing/invoice/:invoiceId/print" element={<InvoicePrint />} />
-        <Route path="/dashboard/ai" element={<UnderConstruction title="AI Assistant" />} />
+        <Route path="/dashboard/ai" element={<AiAssistant />} />
         <Route path="/dashboard/reports" element={<Reports />} />
         <Route path="/dashboard/field" element={<FieldView />} />
         <Route path="/dashboard/material-requests" element={<MaterialRequests />} />

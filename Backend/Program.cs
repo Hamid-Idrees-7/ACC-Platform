@@ -243,6 +243,7 @@ builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IClientService, ClientService>();
 // Inquiry
 builder.Services.AddScoped<IInquiryRepository, InquiryRepository>();
+builder.Services.AddScoped<IAiConversationRepository, AiConversationRepository>();
 builder.Services.AddScoped<IInquiryService, InquiryService>();
 // My Profile
 builder.Services.AddScoped<IProfileService, ProfileService>();
