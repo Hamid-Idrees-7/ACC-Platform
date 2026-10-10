@@ -84,6 +84,9 @@ namespace Backend.Demo
             list.AddRange(Allow(userId, now, "Billing", "View"));
             list.AddRange(Allow(userId, now, "Reports", "View"));
 
+            // The AI assistant on the dashboard
+            list.AddRange(Allow(userId, now, "AI", "View"));
+
             // No access: Salaries (payroll stays private), Messages, Users, Control Unit, Approvals
             return list;
         }

@@ -17,6 +17,9 @@ export const MODULE_GROUPS = [
       { key: "Salaries", label: "Salaries", actions: ["View", "Manage"], approvalActions: [] },
       { key: "Billing", label: "Billing & Invoices", actions: ["View", "Manage"], approvalActions: [] },
       { key: "Reports", label: "Reports", actions: ["View"], approvalActions: [] },
+      // The AI Assistant on the dashboard. One toggle: when on, the user sees the card and can
+      // use it. It still only answers from the data their other permissions allow.
+      { key: "AI", label: "AI Assistant", actions: ["View"], approvalActions: [] },
     ],
   },
   {
