@@ -222,7 +222,12 @@
     .aia-cards { grid-template-columns: 1fr; }
     .aia-thread { padding: 18px 14px 6px; gap: 16px; }
     .aia-msg { max-width: 86%; font-size: 14px; }
+    .aia-hero { min-height: auto; justify-content: flex-start; padding: 26px 16px 18px; }
+    .aia-hero-badge { width: 52px; height: 52px; margin-bottom: 16px; }
+    .aia-hero-badge svg { width: 26px; height: 26px; }
     .aia-hero-title { font-size: 21px; }
+    .aia-hero-sub { margin-bottom: 20px; }
+    .aia-card { padding: 12px 13px; }
     .aia-composer { padding: 12px 14px 14px; }
     .aia-bar { padding: 11px 14px; }
 }

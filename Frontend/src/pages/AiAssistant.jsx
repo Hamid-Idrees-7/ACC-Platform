@@ -18,13 +18,22 @@ const SUGGESTIONS = [
 
 const freshChat = () => [{ role: "assistant", text: GREETING }];
 
+// Tower crane mark, shared with the public assistant so both AIs carry one identity.
+const Crane = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="8" y1="29" x2="16" y2="29" />
+    <line x1="12" y1="29" x2="12" y2="8" />
+    <line x1="12" y1="4" x2="12" y2="9" />
+    <line x1="5" y1="9" x2="29" y2="9" />
+    <line x1="12" y1="4" x2="27" y2="9" />
+    <line x1="12" y1="4" x2="6" y2="9" />
+    <line x1="24" y1="9" x2="24" y2="15" />
+    <path d="M22.5 15 q0 2.2 1.5 2.2 q1.5 0 1.5 -1.1" />
+  </svg>
+);
+
 const AVATAR = (
-  <div className="aia-avatar" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" />
-      <path d="M19 15l.7 1.8L21.5 17.5 19.7 18.2 19 20l-.7-1.8L16.5 17.5 18.3 16.8 19 15z" />
-    </svg>
-  </div>
+  <div className="aia-avatar" aria-hidden="true"><Crane size={20} /></div>
 );
 
 const escapeHtml = (s) =>
@@ -269,9 +278,7 @@ function AiAssistant() {
         <aside className={`aia-side ${sidebarOpen ? "open" : ""}`}>
           <div className="aia-side-head">
             <div className="aia-brand">
-              <span className="aia-brand-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" /></svg>
-              </span>
+              <span className="aia-brand-badge" aria-hidden="true"><Crane size={18} /></span>
               <span className="aia-brand-text">ACC Assistant</span>
             </div>
             <button className="aia-side-close" onClick={() => setSidebarOpen(false)} aria-label="Close history">
@@ -326,11 +333,9 @@ function AiAssistant() {
           <div className="aia-messages" ref={listRef}>
             {isEmpty ? (
               <div className="aia-hero">
-                <div className="aia-hero-badge" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" /><path d="M19 15l.7 1.8L21.5 17.5 19.7 18.2 19 20l-.7-1.8L16.5 17.5 18.3 16.8 19 15z" /></svg>
-                </div>
+                <div className="aia-hero-badge" aria-hidden="true"><Crane size={32} /></div>
                 <h2 className="aia-hero-title">{firstName ? `How can I help, ${firstName}?` : "How can I help?"}</h2>
-                <p className="aia-hero-sub">Ask about projects, stock, attendance, billing, payroll and your team. I only show what your access allows.</p>
+                <p className="aia-hero-sub">Ask about projects, stock, attendance, billing, payroll and your team.</p>
                 <div className="aia-cards">
                   {SUGGESTIONS.map((s) => (
                     <button key={s.q} className="aia-card" onClick={() => send(s.q)}>
@@ -374,7 +379,7 @@ function AiAssistant() {
               <textarea
                 ref={inputRef}
                 rows={1}
-                placeholder="Ask about your projects, stock, attendance, billing..."
+                placeholder="Ask your assistant..."
                 value={input}
                 maxLength={1000}
                 onChange={(e) => { setInput(e.target.value); grow(e.target); }}
