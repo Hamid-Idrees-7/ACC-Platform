@@ -5,7 +5,7 @@ import "./PublicChat.css";
 
 // Website assistant for visitors. Talk only: it answers about the company and services
 // from the backend, which holds the company information. No sign-in, no private data.
-const GREETING = "Hi! I'm the ACC assistant.";
+const GREETING = "Hi! I'm the ACC assistant. Ask me about our services, projects, or how we build.";
 const SUGGESTIONS = [
   { q: "What services do you offer?", label: "Our services", hint: "What we build", icon: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1M9 13h1m4 0h1M9 17h1m4 0h1" },
   { q: "How much does it cost to build a 5 marla house?", label: "Get a cost estimate", hint: "Rough build cost", icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
@@ -231,7 +231,6 @@ function PublicChat() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
           <strong>Let's construct together</strong>
-          <span>Ask me anything about building with ACC.</span>
         </div>
       )}
 
