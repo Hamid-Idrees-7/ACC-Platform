@@ -6,7 +6,7 @@ import "./PublicChat.css";
 
 // Website assistant for visitors. Talk only: it answers about the company and services
 // from the backend, which holds the company information. No sign-in, no private data.
-const GREETING = "Hi! I'm the ACC assistant. Ask me about our services, projects, or how we build.";
+const GREETING = "Welcome to ACC! How can i help.";
 const SUGGESTIONS = [
   { q: "What services do you offer?", label: "Our services", hint: "What we build", icon: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1M9 13h1m4 0h1M9 17h1m4 0h1" },
   { q: "How much does it cost to build a 5 marla house?", label: "Get a cost estimate", hint: "Rough build cost", icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },

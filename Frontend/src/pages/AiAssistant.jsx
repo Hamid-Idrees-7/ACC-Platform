@@ -385,7 +385,7 @@ function AiAssistant() {
               <div className="aia-hero">
                 <div className="aia-hero-badge" aria-hidden="true"><Crane size={32} /></div>
                 <h2 className="aia-hero-title">{firstName ? `How can I help, ${firstName}?` : "How can I help?"}</h2>
-                <p className="aia-hero-sub">Ask about projects, stock, attendance, billing, payroll and your team. I only show what your access allows.</p>
+                <p className="aia-hero-sub">I only show what your access allows.</p>
                 <div className="aia-cards">
                   {SUGGESTIONS.map((s) => (
                     <button key={s.q} className="aia-card" onClick={() => send(s.q)}>
