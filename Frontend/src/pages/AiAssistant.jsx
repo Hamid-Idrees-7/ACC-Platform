@@ -1,11 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import ModalOverlay from "../components/ModalOverlay";
+import AiActionCard from "../components/AiActionCard";
+import Toast, { useToast } from "../components/Toast";
 import { usePermissions } from "../context/PermissionContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 import "./AiAssistant.css";
+
+const DONE_MESSAGE = {
+  add_client: "Client added.",
+  edit_client: "Client updated.",
+  delete_client: "Client deleted.",
+  approve_request: "Request approved.",
+  reject_request: "Request rejected.",
+};
 
 const GREETING = "Hi! I'm your ACC assistant. Ask me about your projects, stock, attendance, billing, payroll, team and more. I only show what your access allows.";
 
@@ -114,6 +124,8 @@ function AiAssistant() {
   const [deleting, setDeleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentId, setCurrentId] = useState(null);
+  const [busyIndex, setBusyIndex] = useState(null);
+  const [toast, showToast] = useToast(3500);
 
   const currentIdRef = useRef(null);
   const listRef = useRef(null);
@@ -212,7 +224,7 @@ function AiAssistant() {
 
     try {
       const res = await ask();
-      const full = [...base, { role: "assistant", text: res.data.reply }];
+      const full = [...base, { role: "assistant", text: res.data.reply, action: res.data.action || null }];
       setMessages(full);
       persist(full);
     } catch (err) {
@@ -266,6 +278,35 @@ function AiAssistant() {
       setDeleting(false);
     }
   };
+
+  const updateMsg = (i, patch) =>
+    setMessages((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
+
+  // Run a prepared action: call the normal module endpoint (which checks permission itself).
+  const confirmAction = async (i) => {
+    const a = messages[i]?.action;
+    if (!a || busyIndex != null) return;
+    setBusyIndex(i);
+    try {
+      const method = (a.method || "POST").toLowerCase();
+      let res;
+      if (method === "delete") res = await api.delete(a.url);
+      else if (method === "put") res = await api.put(a.url, a.payload);
+      else res = await api.post(a.url, a.payload);
+      const serverMsg = res?.data?.message;
+      const msg = serverMsg || DONE_MESSAGE[a.kind] || "Done.";
+      updateMsg(i, { actionState: "done", actionResult: msg });
+      showToast(msg, "success");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Couldn't complete that. Please try it in the relevant section.";
+      updateMsg(i, { actionState: "failed", actionResult: msg });
+      showToast(msg, "error");
+    } finally {
+      setBusyIndex(null);
+    }
+  };
+
+  const cancelAction = (i) => updateMsg(i, { actionState: "cancelled" });
 
   const groups = groupConversations(conversations);
   const isEmpty = messages.length <= 1 && !sending;
@@ -335,7 +376,7 @@ function AiAssistant() {
               <div className="aia-hero">
                 <div className="aia-hero-badge" aria-hidden="true"><Crane size={32} /></div>
                 <h2 className="aia-hero-title">{firstName ? `How can I help, ${firstName}?` : "How can I help?"}</h2>
-                <p className="aia-hero-sub">Ask about projects, stock, attendance, billing, payroll and your team.</p>
+                <p className="aia-hero-sub">Ask about projects, stock, attendance, billing, payroll and your team. I only show what your access allows.</p>
                 <div className="aia-cards">
                   {SUGGESTIONS.map((s) => (
                     <button key={s.q} className="aia-card" onClick={() => send(s.q)}>
@@ -352,18 +393,34 @@ function AiAssistant() {
               </div>
             ) : (
               <div className="aia-thread">
-                {messages.map((m, i) => (
-                  <div key={i} className={`aia-row ${m.role === "user" ? "user" : "bot"}`}>
-                    {m.role !== "user" && AVATAR}
-                    {m.role === "user" ? (
+                {messages.map((m, i) =>
+                  m.role === "user" ? (
+                    <div key={i} className="aia-row user">
                       <div className="aia-msg user">{m.text}</div>
-                    ) : m.error ? (
-                      <div className="aia-msg bot error">{m.text}</div>
-                    ) : (
-                      <div className="aia-msg bot" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  ) : (
+                    <div key={i} className="aia-row bot">
+                      {AVATAR}
+                      <div className="aia-bot-col">
+                        {m.error ? (
+                          <div className="aia-msg bot error">{m.text}</div>
+                        ) : (
+                          <div className="aia-msg bot" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
+                        )}
+                        {m.action && m.actionState !== "cancelled" && (
+                          <AiActionCard
+                            action={m.action}
+                            state={m.actionState}
+                            result={m.actionResult}
+                            busy={busyIndex === i}
+                            onConfirm={() => confirmAction(i)}
+                            onCancel={() => cancelAction(i)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
                 {sending && (
                   <div className="aia-row bot">
                     {AVATAR}
@@ -379,7 +436,7 @@ function AiAssistant() {
               <textarea
                 ref={inputRef}
                 rows={1}
-                placeholder="Ask your assistant..."
+                placeholder="Ask the assistant anything..."
                 value={input}
                 maxLength={1000}
                 onChange={(e) => { setInput(e.target.value); grow(e.target); }}
@@ -409,6 +466,8 @@ function AiAssistant() {
           </div>
         </ModalOverlay>
       )}
+
+      <Toast toast={toast} />
     </DashboardLayout>
   );
 }

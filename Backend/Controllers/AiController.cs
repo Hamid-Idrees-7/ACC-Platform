@@ -36,6 +36,10 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissions;
         private readonly IAiConversationRepository _conversations;
 
+        // Set by a draft_ tool when the assistant prepares an action for the user to confirm.
+        // Lives for one request (the controller is scoped), and is returned with the reply.
+        private AiProposedAction? _proposed;
+
         public AiController(IAiClient ai, IOptions<AiOptions> options, IWebHostEnvironment env,
             IInquiryService inquiries, INotificationService notifications,
             IProjectService projects, IMaterialService materials, IAttendanceService attendance,
@@ -219,7 +223,7 @@ namespace Backend.Controllers
 
         private IActionResult ReplyOrBusy(AiReply reply)
         {
-            if (reply.Ok) return Ok(new { reply = reply.Text });
+            if (reply.Ok) return Ok(new { reply = reply.Text, action = _proposed });
             var detail = _env.IsDevelopment() && !string.IsNullOrEmpty(reply.Error) ? $" [{reply.Error}]" : "";
             return StatusCode(502, new { message = "The assistant is busy right now. Please try again in a moment." + detail });
         }
@@ -274,9 +278,15 @@ namespace Backend.Controllers
 
             async Task<bool> Can(string module) =>
                 isAdmin || await _permissions.HasPermissionAsync(userId, module, "View");
+            async Task<bool> CanDo(string module, string action) =>
+                isAdmin || await _permissions.HasPermissionAsync(userId, module, action);
 
             var canMoney = isAdmin || await MoneyAccess.CanSeeAsync(User, _permissions, MoneyAccess.ProjectMoney);
             var canWages = isAdmin || await MoneyAccess.CanSeeAsync(User, _permissions, MoneyAccess.Wages);
+            var canClientAdd = await CanDo("Clients", "Add");
+            var canClientEdit = await CanDo("Clients", "Edit");
+            var canClientDelete = await CanDo("Clients", "Delete");
+            var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
 
@@ -426,6 +436,176 @@ namespace Backend.Controllers
                         var list = clients.Take(100).Select(c => new { name = c.FullName, phone = c.Phone, city = c.City, type = c.ClientType, status = c.Status }).ToList();
                         return new { count = list.Count, clients = list };
                     }));
+
+                tools.Add(new AiTool("find_client",
+                    "Find clients by name, phone or CNIC. Use this to get a client's id and current details before editing or deleting one.",
+                    new { type = "object", properties = new { query = new { type = "string", description = "Name, phone or CNIC (or part of it)" } }, required = new[] { "query" } },
+                    async (args, __) =>
+                    {
+                        var q = Str(args, "query", "").Trim();
+                        var all = await _clients.GetAllClientsAsync();
+                        var matches = all.Where(c =>
+                                c.FullName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || (c.Phone ?? "").Contains(q)
+                                || (c.CNIC ?? "").Contains(q))
+                            .Take(8)
+                            .Select(c => new { id = c.ClientID, name = c.FullName, phone = c.Phone, cnic = c.CNIC, email = c.Email, city = c.City, type = c.ClientType, status = c.Status })
+                            .ToList();
+                        return new { count = matches.Count, clients = matches };
+                    }));
+            }
+
+            // Client actions (prepared for the user to confirm; the real endpoint still checks permission)
+            if (canClientAdd)
+            {
+                tools.Add(new AiTool("draft_add_client",
+                    "Prepare a NEW client for the user to confirm. Call this when the user wants to add a client. full_name, phone and cnic are required. Never say the client is added, the user must confirm the card first.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            full_name = new { type = "string", description = "Client's full name" },
+                            phone = new { type = "string", description = "Phone, Pakistani format eg 0300-1234567" },
+                            cnic = new { type = "string", description = "13-digit CNIC eg 35202-1234567-1" },
+                            email = new { type = "string" },
+                            secondary_phone = new { type = "string" },
+                            address = new { type = "string" },
+                            city = new { type = "string" },
+                            client_type = new { type = "string", @enum = new[] { "External", "Internal" }, description = "External (a paying customer) or Internal. Ask the user, usually External." }
+                        },
+                        required = new[] { "full_name", "phone", "cnic", "client_type" }
+                    },
+                    (args, __) =>
+                    {
+                        var dto = new ClientDto
+                        {
+                            FullName = Str(args, "full_name", "").Trim(),
+                            Phone = Str(args, "phone", "").Trim(),
+                            CNIC = Str(args, "cnic", "").Trim(),
+                            Email = StrOrNull(args, "email"),
+                            SecondaryPhone = StrOrNull(args, "secondary_phone"),
+                            Address = StrOrNull(args, "address"),
+                            City = StrOrNull(args, "city"),
+                            ClientType = Str(args, "client_type", "External"),
+                            Status = "Active"
+                        };
+                        if (dto.FullName.Length == 0 || dto.Phone.Length == 0 || dto.CNIC.Length == 0)
+                            return Task.FromResult<object>(new { prepared = false, message = "I still need the full name, phone and CNIC." });
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Name", Value = dto.FullName },
+                            new() { Label = "Phone", Value = dto.Phone },
+                            new() { Label = "CNIC", Value = dto.CNIC }
+                        };
+                        if (!string.IsNullOrWhiteSpace(dto.Email)) fields.Add(new() { Label = "Email", Value = dto.Email });
+                        if (!string.IsNullOrWhiteSpace(dto.SecondaryPhone)) fields.Add(new() { Label = "Secondary phone", Value = dto.SecondaryPhone });
+                        if (!string.IsNullOrWhiteSpace(dto.Address)) fields.Add(new() { Label = "Address", Value = dto.Address });
+                        if (!string.IsNullOrWhiteSpace(dto.City)) fields.Add(new() { Label = "City", Value = dto.City });
+                        fields.Add(new() { Label = "Type", Value = dto.ClientType });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_client", Title = "Add client", Summary = $"Create a new client: {dto.FullName}.",
+                            Method = "POST", Url = "/clients", Payload = dto, ConfirmLabel = "Add client", Fields = fields
+                        };
+                        return Task.FromResult<object>(new { prepared = true, summary = _proposed.Summary });
+                    }));
+            }
+
+            if (canClientEdit)
+            {
+                tools.Add(new AiTool("draft_edit_client",
+                    "Prepare an UPDATE to an existing client for the user to confirm. Pass client_id (use find_client first) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            client_id = new { type = "integer", description = "The client's id, from find_client" },
+                            full_name = new { type = "string" },
+                            phone = new { type = "string" },
+                            cnic = new { type = "string" },
+                            email = new { type = "string" },
+                            secondary_phone = new { type = "string" },
+                            address = new { type = "string" },
+                            city = new { type = "string" },
+                            client_type = new { type = "string", @enum = new[] { "External", "Internal" } },
+                            status = new { type = "string", @enum = new[] { "Active", "Inactive" } }
+                        },
+                        required = new[] { "client_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "client_id", 0);
+                        var all = await _clients.GetAllClientsAsync();
+                        var c = all.FirstOrDefault(x => x.ClientID == id);
+                        if (c == null)
+                            return new { prepared = false, message = "I couldn't find that client. Use find_client to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+                        static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+                        var dto = new ClientDto
+                        {
+                            FullName = Pick("full_name", c.FullName, "Name"),
+                            Phone = Pick("phone", c.Phone, "Phone"),
+                            CNIC = Pick("cnic", c.CNIC, "CNIC"),
+                            Email = NullIfEmpty(Pick("email", c.Email ?? "", "Email")),
+                            SecondaryPhone = NullIfEmpty(Pick("secondary_phone", c.SecondaryPhone ?? "", "Secondary phone")),
+                            Address = NullIfEmpty(Pick("address", c.Address ?? "", "Address")),
+                            City = NullIfEmpty(Pick("city", c.City ?? "", "City")),
+                            ClientType = Pick("client_type", c.ClientType, "Type"),
+                            Status = Pick("status", c.Status, "Status")
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that client." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_client", Title = "Update client", Summary = $"Update {c.FullName}.",
+                            Method = "PUT", Url = $"/clients/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canClientDelete)
+            {
+                tools.Add(new AiTool("draft_delete_client",
+                    "Prepare the DELETE of a client for the user to confirm. Pass client_id (use find_client first). Never say it is deleted, the user must confirm. A client with projects cannot be deleted, and non-admins' deletes go to approval.",
+                    new { type = "object", properties = new { client_id = new { type = "integer", description = "The client's id, from find_client" } }, required = new[] { "client_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "client_id", 0);
+                        var all = await _clients.GetAllClientsAsync();
+                        var c = all.FirstOrDefault(x => x.ClientID == id);
+                        if (c == null)
+                            return new { prepared = false, message = "I couldn't find that client. Use find_client to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_client", Title = "Delete client", Summary = $"Delete {c.FullName}.",
+                            Method = "DELETE", Url = $"/clients/{id}", Payload = null, ConfirmLabel = "Delete", Danger = true,
+                            Note = "This can't be undone. A client with projects can't be deleted, and if your role needs approval the delete is sent for review.",
+                            Fields = new()
+                            {
+                                new() { Label = "Name", Value = c.FullName },
+                                new() { Label = "Phone", Value = c.Phone },
+                                new() { Label = "City", Value = string.IsNullOrWhiteSpace(c.City) ? "-" : c.City }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
             }
 
             // Employees
@@ -470,8 +650,57 @@ namespace Backend.Controllers
                         return new
                         {
                             count = pending.Count,
-                            approvals = pending.Select(a => new { requested_by = a.RequestedByName, module = a.Module, action = a.Action, target = a.TargetName, reason = a.Reason, date = a.CreatedAt.ToString("yyyy-MM-dd") })
+                            approvals = pending.Select(a => new { id = a.PendingActionID, requested_by = a.RequestedByName, module = a.Module, action = a.Action, target = a.TargetName, reason = a.Reason, date = a.CreatedAt.ToString("yyyy-MM-dd") })
                         };
+                    }));
+            }
+
+            // Approve or reject a pending request (prepared for the user to confirm)
+            if (canApprovalsManage)
+            {
+                tools.Add(new AiTool("draft_resolve_approval",
+                    "Prepare the approval or rejection of a pending request for the user to confirm. Use pending_approvals first to get the id. Never say it is done, the user must confirm the card.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            approval_id = new { type = "integer", description = "The pending request id, from pending_approvals" },
+                            decision = new { type = "string", @enum = new[] { "approve", "reject" }, description = "Approve or reject" },
+                            reason = new { type = "string", description = "Optional note shown to the requester" }
+                        },
+                        required = new[] { "approval_id", "decision" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "approval_id", 0);
+                        var status = Str(args, "decision", "approve").Trim().ToLowerInvariant() == "reject" ? "Rejected" : "Approved";
+                        var pending = await _approvals.GetPendingAsync();
+                        var p = pending.FirstOrDefault(x => x.PendingActionID == id);
+                        if (p == null)
+                            return new { prepared = false, message = "I couldn't find a pending request with that id. Use pending_approvals to list them." };
+
+                        var reason = StrOrNull(args, "reason");
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Request", Value = $"{p.Action} {p.TargetName}" },
+                            new() { Label = "Module", Value = p.Module },
+                            new() { Label = "Requested by", Value = p.RequestedByName }
+                        };
+                        if (!string.IsNullOrWhiteSpace(reason)) fields.Add(new() { Label = "Reason", Value = reason });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = status == "Approved" ? "approve_request" : "reject_request",
+                            Title = status == "Approved" ? "Approve request" : "Reject request",
+                            Summary = $"{status}: {p.RequestedByName}'s request to {p.Action.ToLowerInvariant()} {p.TargetName}.",
+                            Method = "PUT", Url = $"/approvals/{id}/resolve",
+                            Payload = new ResolvePendingActionDto { Status = status, Reason = reason },
+                            ConfirmLabel = status == "Approved" ? "Approve" : "Reject",
+                            Danger = status == "Rejected",
+                            Fields = fields
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 

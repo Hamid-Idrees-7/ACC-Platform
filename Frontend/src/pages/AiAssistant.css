@@ -101,6 +101,8 @@
 .aia-thread { max-width: 820px; margin: 0 auto; padding: 24px 24px 10px; display: flex; flex-direction: column; gap: 20px; }
 .aia-row { display: flex; gap: 12px; align-items: flex-start; animation: aiaRise 0.28s ease; }
 .aia-row.user { justify-content: flex-end; }
+.aia-bot-col { display: flex; flex-direction: column; min-width: 0; max-width: 82%; }
+.aia-bot-col .aia-msg { max-width: 100%; }
 .aia-avatar {
     flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center; color: #fff;
