@@ -9,13 +9,21 @@ import api from "../services/api";
 import { NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 import "./AiAssistant.css";
 
+// Fallback confirmation text by action verb (used when the endpoint returns no message).
 const DONE_MESSAGE = {
-  add_client: "Client added.",
-  edit_client: "Client updated.",
-  delete_client: "Client deleted.",
-  approve_request: "Request approved.",
-  reject_request: "Request rejected.",
+  add: "Added.",
+  edit: "Updated.",
+  delete: "Deleted.",
+  approve: "Request approved.",
+  reject: "Request rejected.",
 };
+const verbOf = (k = "") =>
+  k.startsWith("add") ? "add"
+    : k.startsWith("edit") ? "edit"
+    : k.startsWith("delete") ? "delete"
+    : k.startsWith("approve") ? "approve"
+    : k.startsWith("reject") ? "reject"
+    : "edit";
 
 const GREETING = "Hi! I'm your ACC assistant. Ask me about your projects, stock, attendance, billing, payroll, team and more. I only show what your access allows.";
 
@@ -294,7 +302,7 @@ function AiAssistant() {
       else if (method === "put") res = await api.put(a.url, a.payload);
       else res = await api.post(a.url, a.payload);
       const serverMsg = res?.data?.message;
-      const msg = serverMsg || DONE_MESSAGE[a.kind] || "Done.";
+      const msg = serverMsg || DONE_MESSAGE[verbOf(a.kind)] || "Done.";
       updateMsg(i, { actionState: "done", actionResult: msg });
       showToast(msg, "success");
     } catch (err) {

@@ -286,6 +286,9 @@ namespace Backend.Controllers
             var canClientAdd = await CanDo("Clients", "Add");
             var canClientEdit = await CanDo("Clients", "Edit");
             var canClientDelete = await CanDo("Clients", "Delete");
+            var canEmpAdd = await CanDo("Employees", "Add");
+            var canEmpEdit = await CanDo("Employees", "Edit");
+            var canEmpDelete = await CanDo("Employees", "Delete");
             var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
@@ -620,6 +623,185 @@ namespace Backend.Controllers
                         var list = employees.Take(200).Select(e => new { name = e.FullName, designation = e.Designation, status = e.Status, phone = e.Phone }).ToList();
                         return new { count = list.Count, employees = list };
                     }));
+
+                tools.Add(new AiTool("find_employee",
+                    "Find employees by name, designation, phone or CNIC. Use this to get an employee's id and current details before editing or deleting one.",
+                    new { type = "object", properties = new { query = new { type = "string", description = "Name, designation, phone or CNIC (or part of it)" } }, required = new[] { "query" } },
+                    async (args, __) =>
+                    {
+                        var q = Str(args, "query", "").Trim();
+                        var all = await _employees.GetAllEmployeesAsync();
+                        var matches = all.Where(e =>
+                                e.FullName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || (e.Designation ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || (e.Phone ?? "").Contains(q)
+                                || (e.CNIC ?? "").Contains(q))
+                            .Take(8)
+                            .Select(e => new { id = e.EmployeeID, name = e.FullName, designation = e.Designation, phone = e.Phone, cnic = e.CNIC, email = e.Email, city = e.City, status = e.Status, joining_date = e.JoiningDate.HasValue ? e.JoiningDate.Value.ToString("yyyy-MM-dd") : null })
+                            .ToList();
+                        return new { count = matches.Count, employees = matches };
+                    }));
+            }
+
+            // Employee actions (prepared for the user to confirm; the real endpoint still checks permission)
+            if (canEmpAdd)
+            {
+                tools.Add(new AiTool("draft_add_employee",
+                    "Prepare a NEW employee for the user to confirm. full_name, phone and designation are required. Never say the employee is added, the user must confirm the card.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            full_name = new { type = "string", description = "Employee's full name" },
+                            phone = new { type = "string", description = "Phone, eg 0300-1234567" },
+                            designation = new { type = "string", description = "Role, eg Site Engineer, Mason" },
+                            cnic = new { type = "string", description = "13-digit CNIC eg 35202-1234567-1" },
+                            email = new { type = "string" },
+                            secondary_phone = new { type = "string" },
+                            address = new { type = "string" },
+                            city = new { type = "string" },
+                            joining_date = new { type = "string", description = "Joining date, YYYY-MM-DD" }
+                        },
+                        required = new[] { "full_name", "phone", "designation" }
+                    },
+                    (args, __) =>
+                    {
+                        var jd = ParseDate(StrOrNull(args, "joining_date"));
+                        var dto = new CreateEmployeeDto
+                        {
+                            FullName = Str(args, "full_name", "").Trim(),
+                            Phone = Str(args, "phone", "").Trim(),
+                            Designation = Str(args, "designation", "").Trim(),
+                            CNIC = StrOrNull(args, "cnic"),
+                            Email = StrOrNull(args, "email"),
+                            SecondaryPhone = StrOrNull(args, "secondary_phone"),
+                            Address = StrOrNull(args, "address"),
+                            City = StrOrNull(args, "city"),
+                            JoiningDate = jd,
+                            Status = "Active"
+                        };
+                        if (dto.FullName.Length == 0 || dto.Phone.Length == 0 || dto.Designation.Length == 0)
+                            return Task.FromResult<object>(new { prepared = false, message = "I still need the full name, phone and designation." });
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Name", Value = dto.FullName },
+                            new() { Label = "Phone", Value = dto.Phone },
+                            new() { Label = "Designation", Value = dto.Designation }
+                        };
+                        if (!string.IsNullOrWhiteSpace(dto.CNIC)) fields.Add(new() { Label = "CNIC", Value = dto.CNIC });
+                        if (!string.IsNullOrWhiteSpace(dto.Email)) fields.Add(new() { Label = "Email", Value = dto.Email });
+                        if (!string.IsNullOrWhiteSpace(dto.SecondaryPhone)) fields.Add(new() { Label = "Secondary phone", Value = dto.SecondaryPhone });
+                        if (!string.IsNullOrWhiteSpace(dto.Address)) fields.Add(new() { Label = "Address", Value = dto.Address });
+                        if (!string.IsNullOrWhiteSpace(dto.City)) fields.Add(new() { Label = "City", Value = dto.City });
+                        if (jd.HasValue) fields.Add(new() { Label = "Joining date", Value = jd.Value.ToString("yyyy-MM-dd") });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_employee", Title = "Add employee", Summary = $"Create a new employee: {dto.FullName}.",
+                            Method = "POST", Url = "/employees", Payload = dto, ConfirmLabel = "Add employee", Fields = fields
+                        };
+                        return Task.FromResult<object>(new { prepared = true, summary = _proposed.Summary });
+                    }));
+            }
+
+            if (canEmpEdit)
+            {
+                tools.Add(new AiTool("draft_edit_employee",
+                    "Prepare an UPDATE to an existing employee for the user to confirm. Pass employee_id (use find_employee first) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            employee_id = new { type = "integer", description = "The employee's id, from find_employee" },
+                            full_name = new { type = "string" },
+                            phone = new { type = "string" },
+                            designation = new { type = "string" },
+                            cnic = new { type = "string" },
+                            email = new { type = "string" },
+                            secondary_phone = new { type = "string" },
+                            address = new { type = "string" },
+                            city = new { type = "string" },
+                            joining_date = new { type = "string", description = "YYYY-MM-DD" },
+                            status = new { type = "string", @enum = new[] { "Active", "Inactive" } }
+                        },
+                        required = new[] { "employee_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "employee_id", 0);
+                        var all = await _employees.GetAllEmployeesAsync();
+                        var e = all.FirstOrDefault(x => x.EmployeeID == id);
+                        if (e == null)
+                            return new { prepared = false, message = "I couldn't find that employee. Use find_employee to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+                        static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+                        var currentJd = e.JoiningDate.HasValue ? e.JoiningDate.Value.ToString("yyyy-MM-dd") : "";
+                        var nextJd = Pick("joining_date", currentJd, "Joining date");
+                        var dto = new CreateEmployeeDto
+                        {
+                            FullName = Pick("full_name", e.FullName, "Name"),
+                            Phone = Pick("phone", e.Phone, "Phone"),
+                            Designation = Pick("designation", e.Designation, "Designation"),
+                            CNIC = NullIfEmpty(Pick("cnic", e.CNIC ?? "", "CNIC")),
+                            Email = NullIfEmpty(Pick("email", e.Email ?? "", "Email")),
+                            SecondaryPhone = NullIfEmpty(Pick("secondary_phone", e.SecondaryPhone ?? "", "Secondary phone")),
+                            Address = NullIfEmpty(Pick("address", e.Address ?? "", "Address")),
+                            City = NullIfEmpty(Pick("city", e.City ?? "", "City")),
+                            JoiningDate = ParseDate(NullIfEmpty(nextJd)),
+                            Status = Pick("status", e.Status, "Status")
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that employee." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_employee", Title = "Update employee", Summary = $"Update {e.FullName}.",
+                            Method = "PUT", Url = $"/employees/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canEmpDelete)
+            {
+                tools.Add(new AiTool("draft_delete_employee",
+                    "Prepare the DELETE of an employee for the user to confirm. Pass employee_id (use find_employee first). Never say it is deleted, the user must confirm. Non-admins' deletes go to approval.",
+                    new { type = "object", properties = new { employee_id = new { type = "integer", description = "The employee's id, from find_employee" } }, required = new[] { "employee_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "employee_id", 0);
+                        var all = await _employees.GetAllEmployeesAsync();
+                        var e = all.FirstOrDefault(x => x.EmployeeID == id);
+                        if (e == null)
+                            return new { prepared = false, message = "I couldn't find that employee. Use find_employee to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_employee", Title = "Delete employee", Summary = $"Delete {e.FullName}.",
+                            Method = "DELETE", Url = $"/employees/{id}", Payload = null, ConfirmLabel = "Delete", Danger = true,
+                            Note = "This can't be undone, and if your role needs approval the delete is sent for review.",
+                            Fields = new()
+                            {
+                                new() { Label = "Name", Value = e.FullName },
+                                new() { Label = "Designation", Value = e.Designation },
+                                new() { Label = "Phone", Value = e.Phone }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
             }
 
             // Assignments (who works where)
@@ -791,5 +973,10 @@ namespace Backend.Controllers
             var s = Str(args, name, "");
             return string.IsNullOrWhiteSpace(s) ? null : s;
         }
+
+        private static DateTime? ParseDate(string? s) =>
+            !string.IsNullOrWhiteSpace(s)
+                && DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)
+                ? d : null;
     }
 }
