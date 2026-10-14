@@ -289,6 +289,15 @@ namespace Backend.Controllers
             var canEmpAdd = await CanDo("Employees", "Add");
             var canEmpEdit = await CanDo("Employees", "Edit");
             var canEmpDelete = await CanDo("Employees", "Delete");
+            var canMatAdd = await CanDo("Materials", "Add");
+            var canMatEdit = await CanDo("Materials", "Edit");
+            var canMatDelete = await CanDo("Materials", "Delete");
+            var canAssignAdd = await CanDo("Assignments", "Add");
+            var canAssignEdit = await CanDo("Assignments", "Edit");
+            var canAssignDelete = await CanDo("Assignments", "Delete");
+            var canProjAdd = await CanDo("Projects", "Add");
+            var canProjEdit = await CanDo("Projects", "Edit");
+            var canProjDelete = await CanDo("Projects", "Delete");
             var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
@@ -337,6 +346,121 @@ namespace Backend.Controllers
                             } : null
                         };
                     }));
+
+                tools.Add(new AiTool("find_project",
+                    "Find projects by title, client or location. Use this to get a project's id before editing or deleting it, or before assigning a worker or adding an expense to it.",
+                    new { type = "object", properties = new { query = new { type = "string", description = "Project title, client or location (or part of it)" } }, required = new[] { "query" } },
+                    async (args, __) =>
+                    {
+                        var q = Str(args, "query", "").Trim();
+                        var allp = await _projects.GetAllProjectsAsync();
+                        var matches = allp.Where(p =>
+                                p.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || (p.ClientName ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                                || (p.Location ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                            .Take(8)
+                            .Select(p => new { id = p.ProjectID, title = p.Title, client = p.ClientName, type = p.ProjectType, status = p.Status, location = p.Location })
+                            .ToList();
+                        return new { count = matches.Count, projects = matches };
+                    }));
+            }
+
+            // Project actions (prepared for the user to confirm; the real endpoint still checks permission)
+            if (canProjAdd)
+            {
+                tools.Add(new AiTool("draft_add_project",
+                    "Prepare a NEW project for the user to confirm. Needs a client (use find_client for client_id), title, project type, area size, location and budget. Never say it is created, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            title = new { type = "string" },
+                            client_id = new { type = "integer", description = "The client's id, from find_client" },
+                            project_type = new { type = "string", description = "eg Residential, Commercial, Renovation" },
+                            area_size = new { type = "string", description = "eg 5 Marla, 1 Kanal, 2400 sqft" },
+                            location = new { type = "string" },
+                            budget = new { type = "number", description = "Budget in Rupees" },
+                            description = new { type = "string" },
+                            start_date = new { type = "string", description = "YYYY-MM-DD" },
+                            expected_end_date = new { type = "string", description = "YYYY-MM-DD" },
+                            create_standard_phases = new { type = "boolean", description = "Create the standard construction phases, usually yes" }
+                        },
+                        required = new[] { "title", "client_id", "project_type", "area_size", "location", "budget" }
+                    },
+                    async (args, __) =>
+                    {
+                        var clientId = (int)Num(args, "client_id", 0);
+                        var clients = await _clients.GetAllClientsAsync();
+                        var cl = clients.FirstOrDefault(c => c.ClientID == clientId);
+                        if (cl == null)
+                            return new { prepared = false, message = "I need a valid client for the project. Use find_client to get the client id first." };
+
+                        var dto = new CreateProjectDto
+                        {
+                            Title = Str(args, "title", "").Trim(),
+                            ClientID = clientId,
+                            ProjectType = Str(args, "project_type", "").Trim(),
+                            AreaSize = Str(args, "area_size", "").Trim(),
+                            Location = Str(args, "location", "").Trim(),
+                            Description = StrOrNull(args, "description"),
+                            StartDate = ParseDate(StrOrNull(args, "start_date")),
+                            ExpectedEndDate = ParseDate(StrOrNull(args, "expected_end_date")),
+                            Budget = (decimal)Num(args, "budget", 0),
+                            CreateStandardPhases = GetBool(args, "create_standard_phases", true)
+                        };
+                        if (dto.Title.Length == 0 || dto.ProjectType.Length == 0 || dto.AreaSize.Length == 0 || dto.Location.Length == 0)
+                            return new { prepared = false, message = "I still need the title, project type, area size and location." };
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Title", Value = dto.Title },
+                            new() { Label = "Client", Value = cl.FullName },
+                            new() { Label = "Type", Value = dto.ProjectType },
+                            new() { Label = "Area", Value = dto.AreaSize },
+                            new() { Label = "Location", Value = dto.Location },
+                            new() { Label = "Budget", Value = $"Rs {dto.Budget:N0}" }
+                        };
+                        if (dto.StartDate.HasValue) fields.Add(new() { Label = "Start date", Value = dto.StartDate.Value.ToString("yyyy-MM-dd") });
+                        if (dto.ExpectedEndDate.HasValue) fields.Add(new() { Label = "Expected end", Value = dto.ExpectedEndDate.Value.ToString("yyyy-MM-dd") });
+                        fields.Add(new() { Label = "Standard phases", Value = dto.CreateStandardPhases ? "Yes" : "No" });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_project", Title = "Add project", Summary = $"Create project: {dto.Title} for {cl.FullName}.",
+                            Method = "POST", Url = "/projects", Payload = dto, ConfirmLabel = "Create project", Fields = fields
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canProjDelete)
+            {
+                tools.Add(new AiTool("draft_delete_project",
+                    "Prepare the DELETE of a project for the user to confirm. Pass project_id (use find_project first). Never say it is deleted, the user must confirm. A project with billing or other data may be blocked.",
+                    new { type = "object", properties = new { project_id = new { type = "integer", description = "The project's id, from find_project" } }, required = new[] { "project_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "project_id", 0);
+                        var allp = await _projects.GetAllProjectsAsync();
+                        var p = allp.FirstOrDefault(x => x.ProjectID == id);
+                        if (p == null)
+                            return new { prepared = false, message = "I couldn't find that project. Use find_project to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_project", Title = "Delete project", Summary = $"Delete {p.Title}.",
+                            Method = "DELETE", Url = $"/projects/{id}", Payload = null, ConfirmLabel = "Delete", Danger = true,
+                            Note = "This can't be undone. A project with invoices, assignments or other records may not be deletable.",
+                            Fields = new()
+                            {
+                                new() { Label = "Title", Value = p.Title },
+                                new() { Label = "Client", Value = p.ClientName },
+                                new() { Label = "Location", Value = string.IsNullOrWhiteSpace(p.Location) ? "-" : p.Location }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
             }
 
             // Materials
@@ -362,9 +486,153 @@ namespace Backend.Controllers
                         var name = Str(args, "material_name", "");
                         var materials = await _materials.GetAllMaterialsAsync();
                         var found = materials.Where(m => m.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
-                            .Select(m => new { name = m.Name, unit = m.Unit, current_stock = m.CurrentStock, low_stock_threshold = m.LowStockThreshold, status = m.Status, stock_value = canMoney ? (decimal?)m.StockValue : null })
+                            .Select(m => new { id = m.MaterialID, name = m.Name, category = m.Category, unit = m.Unit, current_stock = m.CurrentStock, low_stock_threshold = m.LowStockThreshold, status = m.Status, stock_value = canMoney ? (decimal?)m.StockValue : null })
                             .ToList();
                         return new { count = found.Count, materials = found };
+                    }));
+            }
+
+            // Material actions (prepared for the user to confirm; the real endpoint still checks permission)
+            if (canMatAdd)
+            {
+                tools.Add(new AiTool("draft_add_material",
+                    "Prepare a NEW material for the user to confirm. name, category and unit are required. Never say it is added, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            name = new { type = "string", description = "Material name, eg Cement (OPC)" },
+                            category = new { type = "string", description = "eg Cement, Steel, Bricks, Sand" },
+                            unit = new { type = "string", description = "Unit of measure, eg Bag, Kg, Ton, Cft" },
+                            low_stock_threshold = new { type = "integer", description = "Alert when stock falls to this, default 0" },
+                            initial_stock = new { type = "number", description = "Opening stock quantity, optional" },
+                            initial_rate = new { type = "number", description = "Rate per unit for the opening stock, optional" }
+                        },
+                        required = new[] { "name", "category", "unit" }
+                    },
+                    (args, __) =>
+                    {
+                        var dto = new CreateMaterialDto
+                        {
+                            Name = Str(args, "name", "").Trim(),
+                            Category = Str(args, "category", "").Trim(),
+                            Unit = Str(args, "unit", "").Trim(),
+                            LowStockThreshold = (int)Num(args, "low_stock_threshold", 0),
+                            Status = "Active",
+                            InitialStock = HasNum(args, "initial_stock") ? (decimal)Num(args, "initial_stock", 0) : null,
+                            InitialRate = HasNum(args, "initial_rate") ? (decimal)Num(args, "initial_rate", 0) : null
+                        };
+                        if (dto.Name.Length == 0 || dto.Category.Length == 0 || dto.Unit.Length == 0)
+                            return Task.FromResult<object>(new { prepared = false, message = "I still need the name, category and unit." });
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Name", Value = dto.Name },
+                            new() { Label = "Category", Value = dto.Category },
+                            new() { Label = "Unit", Value = dto.Unit },
+                            new() { Label = "Low-stock alert", Value = dto.LowStockThreshold.ToString() }
+                        };
+                        if (dto.InitialStock.HasValue) fields.Add(new() { Label = "Opening stock", Value = $"{dto.InitialStock} {dto.Unit}" });
+                        if (dto.InitialRate.HasValue) fields.Add(new() { Label = "Opening rate", Value = $"Rs {dto.InitialRate}/{dto.Unit}" });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_material", Title = "Add material", Summary = $"Add material: {dto.Name}.",
+                            Method = "POST", Url = "/materials", Payload = dto, ConfirmLabel = "Add material", Fields = fields
+                        };
+                        return Task.FromResult<object>(new { prepared = true, summary = _proposed.Summary });
+                    }));
+            }
+
+            if (canMatEdit)
+            {
+                tools.Add(new AiTool("draft_edit_material",
+                    "Prepare an UPDATE to a material for the user to confirm. Pass material_id (use find_material first) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            material_id = new { type = "integer", description = "The material's id, from find_material" },
+                            name = new { type = "string" },
+                            category = new { type = "string" },
+                            unit = new { type = "string" },
+                            low_stock_threshold = new { type = "integer" },
+                            status = new { type = "string", @enum = new[] { "Active", "Inactive" } }
+                        },
+                        required = new[] { "material_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "material_id", 0);
+                        var all = await _materials.GetAllMaterialsAsync();
+                        var m = all.FirstOrDefault(x => x.MaterialID == id);
+                        if (m == null)
+                            return new { prepared = false, message = "I couldn't find that material. Use find_material to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+                        var currentThreshold = m.LowStockThreshold;
+                        var nextThreshold = args.ValueKind == JsonValueKind.Object && args.TryGetProperty("low_stock_threshold", out var tv) && tv.ValueKind == JsonValueKind.Number ? tv.GetInt32() : currentThreshold;
+                        if (nextThreshold != currentThreshold)
+                            changes.Add(new AiActionField { Label = "Low-stock alert", From = currentThreshold.ToString(), To = nextThreshold.ToString(), Changed = true });
+
+                        var dto = new CreateMaterialDto
+                        {
+                            Name = Pick("name", m.Name, "Name"),
+                            Category = Pick("category", m.Category, "Category"),
+                            Unit = Pick("unit", m.Unit, "Unit"),
+                            LowStockThreshold = nextThreshold,
+                            Status = Pick("status", m.Status, "Status"),
+                            InitialStock = null,
+                            InitialRate = null
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that material." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_material", Title = "Update material", Summary = $"Update {m.Name}.",
+                            Method = "PUT", Url = $"/materials/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canMatDelete)
+            {
+                tools.Add(new AiTool("draft_delete_material",
+                    "Prepare the DELETE of a material for the user to confirm. Pass material_id (use find_material first). Never say it is deleted, the user must confirm. A material with stock history may be blocked.",
+                    new { type = "object", properties = new { material_id = new { type = "integer", description = "The material's id, from find_material" } }, required = new[] { "material_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "material_id", 0);
+                        var all = await _materials.GetAllMaterialsAsync();
+                        var m = all.FirstOrDefault(x => x.MaterialID == id);
+                        if (m == null)
+                            return new { prepared = false, message = "I couldn't find that material. Use find_material to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_material", Title = "Delete material", Summary = $"Delete {m.Name}.",
+                            Method = "DELETE", Url = $"/materials/{id}", Payload = null, ConfirmLabel = "Delete", Danger = true,
+                            Note = "This can't be undone. A material with stock or transaction history may not be deletable.",
+                            Fields = new()
+                            {
+                                new() { Label = "Name", Value = m.Name },
+                                new() { Label = "Category", Value = m.Category },
+                                new() { Label = "Current stock", Value = $"{m.CurrentStock} {m.Unit}" }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 
@@ -814,9 +1082,176 @@ namespace Backend.Controllers
                     {
                         var all = await _assignments.GetAllAsync();
                         var active = all.Where(a => a.Status == "Active")
-                            .Select(a => new { employee = a.EmployeeName, project = a.ProjectTitle, role = a.Role, wage_type = a.WageType, wage = canWages ? (decimal?)a.WageAmount : null })
+                            .Select(a => new { id = a.AssignmentID, employee = a.EmployeeName, project = a.ProjectTitle, role = a.Role, wage_type = a.WageType, wage = canWages ? (decimal?)a.WageAmount : null })
                             .ToList();
                         return new { count = active.Count, assignments = active };
+                    }));
+            }
+
+            // Assignment actions (prepared for the user to confirm; the real endpoint still checks permission)
+            if (canAssignAdd)
+            {
+                tools.Add(new AiTool("draft_add_assignment",
+                    "Prepare assigning a worker to a project for the user to confirm. Use find_employee for employee_id and find_project for project_id. Never say it is assigned, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            employee_id = new { type = "integer", description = "The employee's id, from find_employee" },
+                            project_id = new { type = "integer", description = "The project's id, from find_project" },
+                            role = new { type = "string", description = "Role on site, eg Mason, Labour, Site Engineer" },
+                            wage_type = new { type = "string", @enum = new[] { "Daily", "Monthly", "Contract" } },
+                            wage_amount = new { type = "number", description = "Wage in Rupees (per day for Daily, per month for Monthly, total for Contract)" },
+                            start_date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
+                            end_date = new { type = "string", description = "YYYY-MM-DD, optional" },
+                            notes = new { type = "string" }
+                        },
+                        required = new[] { "employee_id", "project_id", "role", "wage_type", "wage_amount" }
+                    },
+                    async (args, __) =>
+                    {
+                        var empId = (int)Num(args, "employee_id", 0);
+                        var projId = (int)Num(args, "project_id", 0);
+                        var emps = await _employees.GetAllEmployeesAsync();
+                        var e = emps.FirstOrDefault(x => x.EmployeeID == empId);
+                        var projs = await _projects.GetAllProjectsAsync();
+                        var p = projs.FirstOrDefault(x => x.ProjectID == projId);
+                        if (e == null) return new { prepared = false, message = "I need a valid employee. Use find_employee first." };
+                        if (p == null) return new { prepared = false, message = "I need a valid project. Use find_project first." };
+
+                        var wageType = Str(args, "wage_type", "Daily").Trim();
+                        var wage = (decimal)Num(args, "wage_amount", 0);
+                        var start = ParseDate(StrOrNull(args, "start_date")) ?? AppTime.Now.Date;
+                        var dto = new CreateAssignmentDto
+                        {
+                            EmployeeID = empId, ProjectID = projId,
+                            Role = Str(args, "role", "").Trim(),
+                            WageType = wageType.Length == 0 ? "Daily" : wageType,
+                            WageAmount = wage,
+                            StartDate = start,
+                            EndDate = ParseDate(StrOrNull(args, "end_date")),
+                            Status = "Active",
+                            Notes = StrOrNull(args, "notes")
+                        };
+                        if (dto.Role.Length == 0)
+                            return new { prepared = false, message = "I still need the worker's role." };
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Worker", Value = e.FullName },
+                            new() { Label = "Project", Value = p.Title },
+                            new() { Label = "Role", Value = dto.Role },
+                            new() { Label = "Wage", Value = $"{dto.WageType}: Rs {dto.WageAmount:N0}" },
+                            new() { Label = "Start date", Value = dto.StartDate.ToString("yyyy-MM-dd") }
+                        };
+                        if (dto.EndDate.HasValue) fields.Add(new() { Label = "End date", Value = dto.EndDate.Value.ToString("yyyy-MM-dd") });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_assignment", Title = "Assign worker", Summary = $"Assign {e.FullName} to {p.Title}.",
+                            Method = "POST", Url = "/assignments", Payload = dto, ConfirmLabel = "Assign", Fields = fields
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canAssignEdit)
+            {
+                tools.Add(new AiTool("draft_edit_assignment",
+                    "Prepare an UPDATE to an assignment for the user to confirm. Pass assignment_id (use assignments_overview for the id) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            assignment_id = new { type = "integer", description = "The assignment's id, from assignments_overview" },
+                            role = new { type = "string" },
+                            wage_type = new { type = "string", @enum = new[] { "Daily", "Monthly", "Contract" } },
+                            wage_amount = new { type = "number" },
+                            end_date = new { type = "string", description = "YYYY-MM-DD" },
+                            status = new { type = "string", @enum = new[] { "Active", "Ended" } },
+                            notes = new { type = "string" }
+                        },
+                        required = new[] { "assignment_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "assignment_id", 0);
+                        var all = await _assignments.GetAllAsync();
+                        var a = all.FirstOrDefault(x => x.AssignmentID == id);
+                        if (a == null)
+                            return new { prepared = false, message = "I couldn't find that assignment. Use assignments_overview to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+
+                        var wage = a.WageAmount;
+                        if (HasNum(args, "wage_amount"))
+                        {
+                            var nw = (decimal)Num(args, "wage_amount", (double)a.WageAmount);
+                            if (nw != a.WageAmount) changes.Add(new AiActionField { Label = "Wage amount", From = $"Rs {a.WageAmount:N0}", To = $"Rs {nw:N0}", Changed = true });
+                            wage = nw;
+                        }
+                        var curEnd = a.EndDate.HasValue ? a.EndDate.Value.ToString("yyyy-MM-dd") : "";
+                        var nextEnd = Pick("end_date", curEnd, "End date");
+
+                        var dto = new CreateAssignmentDto
+                        {
+                            EmployeeID = a.EmployeeID, ProjectID = a.ProjectID,
+                            Role = Pick("role", a.Role, "Role"),
+                            WageType = Pick("wage_type", a.WageType, "Wage type"),
+                            WageAmount = wage,
+                            StartDate = a.StartDate,
+                            EndDate = ParseDate(string.IsNullOrWhiteSpace(nextEnd) ? null : nextEnd),
+                            Status = Pick("status", a.Status, "Status"),
+                            Notes = string.IsNullOrWhiteSpace(Pick("notes", a.Notes ?? "", "Notes")) ? null : Str(args, "notes", a.Notes ?? "")
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that assignment." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_assignment", Title = "Update assignment", Summary = $"Update {a.EmployeeName} on {a.ProjectTitle}.",
+                            Method = "PUT", Url = $"/assignments/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canAssignDelete)
+            {
+                tools.Add(new AiTool("draft_delete_assignment",
+                    "Prepare the DELETE of an assignment for the user to confirm. Pass assignment_id (use assignments_overview). Never say it is deleted, the user must confirm.",
+                    new { type = "object", properties = new { assignment_id = new { type = "integer", description = "The assignment's id, from assignments_overview" } }, required = new[] { "assignment_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "assignment_id", 0);
+                        var all = await _assignments.GetAllAsync();
+                        var a = all.FirstOrDefault(x => x.AssignmentID == id);
+                        if (a == null)
+                            return new { prepared = false, message = "I couldn't find that assignment. Use assignments_overview to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_assignment", Title = "Remove assignment", Summary = $"Remove {a.EmployeeName} from {a.ProjectTitle}.",
+                            Method = "DELETE", Url = $"/assignments/{id}", Payload = null, ConfirmLabel = "Remove", Danger = true,
+                            Note = "This removes the assignment. To keep the record instead, you can end it rather than delete it.",
+                            Fields = new()
+                            {
+                                new() { Label = "Worker", Value = a.EmployeeName },
+                                new() { Label = "Project", Value = a.ProjectTitle },
+                                new() { Label = "Role", Value = a.Role }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 
@@ -978,5 +1413,13 @@ namespace Backend.Controllers
             !string.IsNullOrWhiteSpace(s)
                 && DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)
                 ? d : null;
+
+        private static bool HasNum(JsonElement args, string name) =>
+            args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number;
+
+        private static bool GetBool(JsonElement args, string name, bool fallback) =>
+            args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var v)
+                ? (v.ValueKind == JsonValueKind.True || (v.ValueKind == JsonValueKind.False ? false : fallback))
+                : fallback;
     }
 }
