@@ -120,7 +120,9 @@ namespace Backend.Controllers
 
             var tools = await BuildErpToolsAsync();
             var history = BuildHistory(dto);
-            var reply = await _ai.ChatAsync(ErpAssistant.SystemPrompt, history, message, tools, ct);
+            var systemPrompt = ErpAssistant.SystemPrompt
+                + $"\n\nToday's date is {AppTime.Now:yyyy-MM-dd} ({AppTime.Now:dddd}). Use this for any relative date the user gives, like today, tomorrow, or \"in 2 days\".";
+            var reply = await _ai.ChatAsync(systemPrompt, history, message, tools, ct);
             return ReplyOrBusy(reply);
         }
 
