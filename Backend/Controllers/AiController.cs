@@ -35,6 +35,7 @@ namespace Backend.Controllers
         private readonly IMaterialRequestService _matRequests;
         private readonly IPermissionService _permissions;
         private readonly IAiConversationRepository _conversations;
+        private readonly IProjectExpenseService _projectExpenses;
 
         // Set by a draft_ tool when the assistant prepares an action for the user to confirm.
         // Lives for one request (the controller is scoped), and is returned with the reply.
@@ -45,7 +46,7 @@ namespace Backend.Controllers
             IProjectService projects, IMaterialService materials, IAttendanceService attendance,
             IBillingService billing, ISalaryService salaries, IClientService clients, IEmployeeService employees,
             IAssignmentService assignments, IPendingActionService approvals, IMaterialRequestService matRequests,
-            IPermissionService permissions, IAiConversationRepository conversations)
+            IPermissionService permissions, IAiConversationRepository conversations, IProjectExpenseService projectExpenses)
         {
             _ai = ai;
             _options = options.Value;
@@ -64,6 +65,7 @@ namespace Backend.Controllers
             _matRequests = matRequests;
             _permissions = permissions;
             _conversations = conversations;
+            _projectExpenses = projectExpenses;
         }
 
         // GET: /api/ai/ping  = check the AI link works (Admin only).
@@ -300,6 +302,10 @@ namespace Backend.Controllers
             var canProjAdd = await CanDo("Projects", "Add");
             var canProjEdit = await CanDo("Projects", "Edit");
             var canProjDelete = await CanDo("Projects", "Delete");
+            var canExpView = await Can("Expenses");
+            var canExpAdd = await CanDo("Expenses", "Add");
+            var canExpEdit = await CanDo("Expenses", "Edit");
+            var canExpDelete = await CanDo("Expenses", "Delete");
             var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
@@ -436,6 +442,80 @@ namespace Backend.Controllers
                     }));
             }
 
+            if (canProjEdit)
+            {
+                tools.Add(new AiTool("draft_edit_project",
+                    "Prepare an UPDATE to a project for the user to confirm. Pass project_id (use find_project first) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            project_id = new { type = "integer", description = "The project's id, from find_project" },
+                            title = new { type = "string" },
+                            project_type = new { type = "string" },
+                            area_size = new { type = "string" },
+                            location = new { type = "string" },
+                            budget = new { type = "number" },
+                            description = new { type = "string" },
+                            start_date = new { type = "string", description = "YYYY-MM-DD" },
+                            expected_end_date = new { type = "string", description = "YYYY-MM-DD" }
+                        },
+                        required = new[] { "project_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "project_id", 0);
+                        var d = await _projects.GetProjectDetailAsync(id);
+                        if (d == null)
+                            return new { prepared = false, message = "I couldn't find that project. Use find_project to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+                        static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+                        var budget = d.Budget;
+                        if (HasNum(args, "budget"))
+                        {
+                            var nb = (decimal)Num(args, "budget", (double)d.Budget);
+                            if (nb != d.Budget) changes.Add(new AiActionField { Label = "Budget", From = $"Rs {d.Budget:N0}", To = $"Rs {nb:N0}", Changed = true });
+                            budget = nb;
+                        }
+                        var nextStart = Pick("start_date", d.StartDate.HasValue ? d.StartDate.Value.ToString("yyyy-MM-dd") : "", "Start date");
+                        var nextEnd = Pick("expected_end_date", d.ExpectedEndDate.HasValue ? d.ExpectedEndDate.Value.ToString("yyyy-MM-dd") : "", "Expected end");
+
+                        var dto = new CreateProjectDto
+                        {
+                            Title = Pick("title", d.Title, "Title"),
+                            ClientID = d.ClientID,
+                            ProjectType = Pick("project_type", d.ProjectType, "Type"),
+                            AreaSize = Pick("area_size", d.AreaSize, "Area"),
+                            Location = Pick("location", d.Location, "Location"),
+                            Description = NullIfEmpty(Pick("description", d.Description ?? "", "Description")),
+                            StartDate = ParseDate(NullIfEmpty(nextStart)),
+                            ExpectedEndDate = ParseDate(NullIfEmpty(nextEnd)),
+                            Budget = budget,
+                            CreateStandardPhases = false
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that project." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_project", Title = "Update project", Summary = $"Update {d.Title}.",
+                            Method = "PUT", Url = $"/projects/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
             if (canProjDelete)
             {
                 tools.Add(new AiTool("draft_delete_project",
@@ -459,6 +539,192 @@ namespace Backend.Controllers
                                 new() { Label = "Title", Value = p.Title },
                                 new() { Label = "Client", Value = p.ClientName },
                                 new() { Label = "Location", Value = string.IsNullOrWhiteSpace(p.Location) ? "-" : p.Location }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            // Expenses (per project)
+            if (canExpView)
+            {
+                tools.Add(new AiTool("list_project_expenses",
+                    "List a project's expenses with their ids and amounts. Use find_project first for the project_id, then this to get an expense id before editing or deleting one.",
+                    new { type = "object", properties = new { project_id = new { type = "integer", description = "The project's id, from find_project" } }, required = new[] { "project_id" } },
+                    async (args, __) =>
+                    {
+                        var projId = (int)Num(args, "project_id", 0);
+                        var data = await _projectExpenses.GetProjectExpensesAsync(projId);
+                        if (data == null) return new { found = false, message = "No project matches that id." };
+                        var items = data.Items.OrderByDescending(x => x.ExpenseDate).Take(25)
+                            .Select(x => new { id = x.ExpenseID, category = x.Category, description = x.Description, amount = canMoney ? (decimal?)x.Amount : null, date = x.ExpenseDate.ToString("yyyy-MM-dd"), recoverable = x.IsRecoverable, invoiced = x.IsInvoiced })
+                            .ToList();
+                        return new { project = data.ProjectTitle, count = items.Count, categories = data.Categories, expenses = items };
+                    }));
+            }
+
+            if (canExpAdd)
+            {
+                tools.Add(new AiTool("draft_add_expense",
+                    "Prepare a NEW expense on a project for the user to confirm. Needs the project (use find_project for project_id), a category, description and amount. Never say it is added, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            project_id = new { type = "integer", description = "The project's id, from find_project" },
+                            category = new { type = "string", description = "Expense category (list_project_expenses returns the valid ones)" },
+                            description = new { type = "string" },
+                            amount = new { type = "number", description = "Amount in Rupees" },
+                            expense_date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
+                            paid_to = new { type = "string" },
+                            reference = new { type = "string", description = "Bill or voucher number, optional" },
+                            is_recoverable = new { type = "boolean", description = "True if paid on the client's behalf and billable back to them" }
+                        },
+                        required = new[] { "project_id", "category", "description", "amount" }
+                    },
+                    async (args, __) =>
+                    {
+                        var projId = (int)Num(args, "project_id", 0);
+                        var projs = await _projects.GetAllProjectsAsync();
+                        var p = projs.FirstOrDefault(x => x.ProjectID == projId);
+                        if (p == null)
+                            return new { prepared = false, message = "I need a valid project. Use find_project first." };
+
+                        var dto = new SaveProjectExpenseDto
+                        {
+                            Category = Str(args, "category", "").Trim(),
+                            Description = Str(args, "description", "").Trim(),
+                            Amount = (decimal)Num(args, "amount", 0),
+                            ExpenseDate = ParseDate(StrOrNull(args, "expense_date")) ?? AppTime.Now.Date,
+                            PaidTo = StrOrNull(args, "paid_to"),
+                            Reference = StrOrNull(args, "reference"),
+                            IsRecoverable = GetBool(args, "is_recoverable", false),
+                            PhaseID = null
+                        };
+                        if (dto.Category.Length == 0 || dto.Description.Length == 0 || dto.Amount <= 0)
+                            return new { prepared = false, message = "I still need the category, description and a valid amount." };
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Project", Value = p.Title },
+                            new() { Label = "Category", Value = dto.Category },
+                            new() { Label = "Description", Value = dto.Description },
+                            new() { Label = "Amount", Value = $"Rs {dto.Amount:N0}" },
+                            new() { Label = "Date", Value = dto.ExpenseDate.ToString("yyyy-MM-dd") }
+                        };
+                        if (!string.IsNullOrWhiteSpace(dto.PaidTo)) fields.Add(new() { Label = "Paid to", Value = dto.PaidTo });
+                        if (!string.IsNullOrWhiteSpace(dto.Reference)) fields.Add(new() { Label = "Reference", Value = dto.Reference });
+                        fields.Add(new() { Label = "Recoverable", Value = dto.IsRecoverable ? "Yes (billable to client)" : "No" });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_expense", Title = "Add expense", Summary = $"Add Rs {dto.Amount:N0} expense to {p.Title}.",
+                            Method = "POST", Url = $"/expenses/project/{projId}", Payload = dto, ConfirmLabel = "Add expense", Fields = fields
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canExpEdit)
+            {
+                tools.Add(new AiTool("draft_edit_expense",
+                    "Prepare an UPDATE to an expense for the user to confirm. Pass expense_id (use list_project_expenses first) and only the fields that change. Never say it is saved, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            expense_id = new { type = "integer", description = "The expense's id, from list_project_expenses" },
+                            category = new { type = "string" },
+                            description = new { type = "string" },
+                            amount = new { type = "number" },
+                            expense_date = new { type = "string", description = "YYYY-MM-DD" },
+                            paid_to = new { type = "string" },
+                            reference = new { type = "string" },
+                            is_recoverable = new { type = "boolean" }
+                        },
+                        required = new[] { "expense_id" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "expense_id", 0);
+                        var ex = await _projectExpenses.GetByIdAsync(id);
+                        if (ex == null)
+                            return new { prepared = false, message = "I couldn't find that expense. Use list_project_expenses to get the right one." };
+
+                        var changes = new List<AiActionField>();
+                        string Pick(string arg, string current, string label)
+                        {
+                            var provided = args.ValueKind == JsonValueKind.Object && args.TryGetProperty(arg, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            var next = provided ?? current;
+                            if (!string.Equals(next ?? "", current ?? "", StringComparison.Ordinal))
+                                changes.Add(new AiActionField { Label = label, From = string.IsNullOrWhiteSpace(current) ? "-" : current, To = string.IsNullOrWhiteSpace(next) ? "-" : next, Changed = true });
+                            return next ?? "";
+                        }
+                        static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+                        var amount = ex.Amount;
+                        if (HasNum(args, "amount"))
+                        {
+                            var na = (decimal)Num(args, "amount", (double)ex.Amount);
+                            if (na != ex.Amount) changes.Add(new AiActionField { Label = "Amount", From = $"Rs {ex.Amount:N0}", To = $"Rs {na:N0}", Changed = true });
+                            amount = na;
+                        }
+                        var recoverable = ex.IsRecoverable;
+                        if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty("is_recoverable", out var rv) && (rv.ValueKind == JsonValueKind.True || rv.ValueKind == JsonValueKind.False))
+                        {
+                            var nr = rv.ValueKind == JsonValueKind.True;
+                            if (nr != ex.IsRecoverable) changes.Add(new AiActionField { Label = "Recoverable", From = ex.IsRecoverable ? "Yes" : "No", To = nr ? "Yes" : "No", Changed = true });
+                            recoverable = nr;
+                        }
+                        var nextDate = Pick("expense_date", ex.ExpenseDate.ToString("yyyy-MM-dd"), "Date");
+
+                        var dto = new SaveProjectExpenseDto
+                        {
+                            Category = Pick("category", ex.Category, "Category"),
+                            Description = Pick("description", ex.Description, "Description"),
+                            Amount = amount,
+                            ExpenseDate = ParseDate(NullIfEmpty(nextDate)) ?? ex.ExpenseDate,
+                            PaidTo = NullIfEmpty(Pick("paid_to", ex.PaidTo ?? "", "Paid to")),
+                            Reference = NullIfEmpty(Pick("reference", ex.Reference ?? "", "Reference")),
+                            IsRecoverable = recoverable,
+                            PhaseID = ex.PhaseID
+                        };
+                        if (changes.Count == 0)
+                            return new { prepared = false, message = "Nothing would change for that expense." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "edit_expense", Title = "Update expense", Summary = $"Update expense on {ex.Category}.",
+                            Method = "PUT", Url = $"/expenses/{id}", Payload = dto, ConfirmLabel = "Save changes", Fields = changes
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
+            if (canExpDelete)
+            {
+                tools.Add(new AiTool("draft_delete_expense",
+                    "Prepare the DELETE of an expense for the user to confirm. Pass expense_id (use list_project_expenses first). Never say it is deleted, the user must confirm. An invoiced expense may not be deletable.",
+                    new { type = "object", properties = new { expense_id = new { type = "integer", description = "The expense's id, from list_project_expenses" } }, required = new[] { "expense_id" } },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "expense_id", 0);
+                        var ex = await _projectExpenses.GetByIdAsync(id);
+                        if (ex == null)
+                            return new { prepared = false, message = "I couldn't find that expense. Use list_project_expenses to get the right one." };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "delete_expense", Title = "Delete expense", Summary = $"Delete the Rs {ex.Amount:N0} {ex.Category} expense.",
+                            Method = "DELETE", Url = $"/expenses/{id}", Payload = null, ConfirmLabel = "Delete", Danger = true,
+                            Note = "This can't be undone. An expense already billed on an invoice may not be deletable.",
+                            Fields = new()
+                            {
+                                new() { Label = "Category", Value = ex.Category },
+                                new() { Label = "Description", Value = ex.Description },
+                                new() { Label = "Amount", Value = $"Rs {ex.Amount:N0}" }
                             }
                         };
                         return new { prepared = true, summary = _proposed.Summary };
