@@ -306,6 +306,10 @@ namespace Backend.Controllers
             var canExpAdd = await CanDo("Expenses", "Add");
             var canExpEdit = await CanDo("Expenses", "Edit");
             var canExpDelete = await CanDo("Expenses", "Delete");
+            var canAttMark = await CanDo("Attendance", "Mark");
+            var canMatReqManage = await CanDo("MaterialRequests", "Manage");
+            var canBillView = await Can("Billing");
+            var canBillManage = await CanDo("Billing", "Manage");
             var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
@@ -925,6 +929,57 @@ namespace Backend.Controllers
                     }));
             }
 
+            // Attendance marking (prepared for the user to confirm; only the named worker's day is changed)
+            if (canAttMark)
+            {
+                tools.Add(new AiTool("draft_mark_attendance",
+                    "Prepare marking one worker present or absent for a day, for the user to confirm. Use assignments_overview for the assignment_id. Only that worker's day changes. Never say it is marked, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            assignment_id = new { type = "integer", description = "The assignment's id (worker on a project), from assignments_overview" },
+                            status = new { type = "string", @enum = new[] { "Present", "Absent" } },
+                            date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
+                            note = new { type = "string" }
+                        },
+                        required = new[] { "assignment_id", "status" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "assignment_id", 0);
+                        var all = await _assignments.GetAllAsync();
+                        var a = all.FirstOrDefault(x => x.AssignmentID == id);
+                        if (a == null)
+                            return new { prepared = false, message = "I couldn't find that assignment. Use assignments_overview to get the right worker." };
+
+                        var status = Str(args, "status", "").Trim();
+                        if (status != "Present" && status != "Absent")
+                            return new { prepared = false, message = "Please say whether the worker is Present or Absent." };
+                        var day = ParseDate(StrOrNull(args, "date")) ?? AppTime.Now.Date;
+                        var payload = new MarkAttendanceDto
+                        {
+                            Date = day,
+                            Entries = new List<AttendanceEntryDto> { new() { AssignmentID = id, Status = status, Note = StrOrNull(args, "note") } }
+                        };
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "mark_attendance", Title = "Mark attendance", Summary = $"Mark {a.EmployeeName} {status} on {a.ProjectTitle}.",
+                            Method = "POST", Url = $"/attendance/{a.ProjectID}", Payload = payload, ConfirmLabel = "Mark " + status,
+                            Fields = new()
+                            {
+                                new() { Label = "Worker", Value = a.EmployeeName },
+                                new() { Label = "Project", Value = a.ProjectTitle },
+                                new() { Label = "Date", Value = day.ToString("yyyy-MM-dd") },
+                                new() { Label = "Status", Value = status }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
+            }
+
             // Billing
             if (await Can("Billing"))
             {
@@ -940,6 +995,76 @@ namespace Backend.Controllers
                             received = o.PaidAmount, outstanding = o.UnpaidAmount, overdue_amount = o.OverdueAmount,
                             projects = o.Projects.Select(p => new { project = p.Title, client = p.ClientName, billed = p.Billed, received = p.Received, outstanding = p.Outstanding, overdue_count = p.OverdueCount })
                         };
+                    }));
+
+                tools.Add(new AiTool("list_project_invoices",
+                    "List a project's invoices with their ids, totals and what is still due. Use find_project first for the project_id, then this to get an invoice id before recording a payment.",
+                    new { type = "object", properties = new { project_id = new { type = "integer", description = "The project's id, from find_project" } }, required = new[] { "project_id" } },
+                    async (args, __) =>
+                    {
+                        var projId = (int)Num(args, "project_id", 0);
+                        var b = await _billing.GetProjectBillingAsync(projId);
+                        if (b == null) return new { found = false, message = "No project matches that id." };
+                        var invs = b.Invoices.Select(i => new { id = i.InvoiceID, number = i.InvoiceNumber, total = i.Total, paid = i.Paid, due = i.Due, status = i.Status }).ToList();
+                        return new { project = b.Title, outstanding = b.Outstanding, count = invs.Count, invoices = invs };
+                    }));
+            }
+
+            // Record an invoice payment (money received; prepared for the user to confirm)
+            if (canBillManage)
+            {
+                tools.Add(new AiTool("draft_record_payment",
+                    "Prepare recording a payment received against an invoice, for the user to confirm. Use list_project_invoices for the invoice_id. Never say it is recorded, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            invoice_id = new { type = "integer", description = "The invoice's id, from list_project_invoices" },
+                            amount = new { type = "number", description = "Amount received, in Rupees" },
+                            method = new { type = "string", @enum = new[] { "Cash", "Bank Transfer", "Cheque", "Online" }, description = "How it was paid, default Cash" },
+                            payment_date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
+                            reference = new { type = "string", description = "Cheque or transaction number, optional" }
+                        },
+                        required = new[] { "invoice_id", "amount" }
+                    },
+                    async (args, __) =>
+                    {
+                        var invId = (int)Num(args, "invoice_id", 0);
+                        var inv = await _billing.DescribeInvoiceAsync(invId);
+                        if (inv == null)
+                            return new { prepared = false, message = "I couldn't find that invoice. Use list_project_invoices to get the right one." };
+
+                        var amount = (decimal)Num(args, "amount", 0);
+                        if (amount <= 0)
+                            return new { prepared = false, message = "Please tell me the amount received." };
+                        var method = Str(args, "method", "Cash").Trim();
+                        var dto = new RecordPaymentDto
+                        {
+                            InvoiceID = invId,
+                            Amount = amount,
+                            PaymentDate = ParseDate(StrOrNull(args, "payment_date")) ?? AppTime.Now.Date,
+                            Method = method.Length == 0 ? "Cash" : method,
+                            Reference = StrOrNull(args, "reference")
+                        };
+
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Invoice", Value = $"{inv.InvoiceNumber} ({inv.ProjectTitle})" },
+                            new() { Label = "Invoice total", Value = $"Rs {inv.Total:N0}" },
+                            new() { Label = "Payment", Value = $"Rs {dto.Amount:N0}" },
+                            new() { Label = "Method", Value = dto.Method },
+                            new() { Label = "Date", Value = dto.PaymentDate.ToString("yyyy-MM-dd") }
+                        };
+                        if (!string.IsNullOrWhiteSpace(dto.Reference)) fields.Add(new() { Label = "Reference", Value = dto.Reference });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "add_payment", Title = "Record payment", Summary = $"Record Rs {dto.Amount:N0} received on {inv.InvoiceNumber}.",
+                            Method = "POST", Url = "/billing/payments", Payload = dto, ConfirmLabel = "Record payment", Fields = fields,
+                            Note = "This records money received against this invoice."
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 
@@ -1599,9 +1724,62 @@ namespace Backend.Controllers
                     {
                         var all = await _matRequests.GetAllAsync();
                         var pending = all.Where(r => r.Status == "Pending")
-                            .Select(r => new { project = r.ProjectTitle, material = r.MaterialName, quantity = r.Quantity, unit = r.Unit, requested_by = r.RequestedByName, available_stock = r.AvailableStock })
+                            .Select(r => new { id = r.RequestID, project = r.ProjectTitle, material = r.MaterialName, quantity = r.Quantity, unit = r.Unit, requested_by = r.RequestedByName, available_stock = r.AvailableStock })
                             .ToList();
                         return new { count = pending.Count, requests = pending };
+                    }));
+            }
+
+            // Approve or reject a site material request (prepared for the user to confirm)
+            if (canMatReqManage)
+            {
+                tools.Add(new AiTool("draft_resolve_material_request",
+                    "Prepare approving or rejecting a site material request, for the user to confirm. Use material_requests for the request id. Approving issues the stock. Never say it is done, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            request_id = new { type = "integer", description = "The request id, from material_requests" },
+                            decision = new { type = "string", @enum = new[] { "approve", "reject" } },
+                            reason = new { type = "string", description = "Optional note, shown to the requester (useful when rejecting)" }
+                        },
+                        required = new[] { "request_id", "decision" }
+                    },
+                    async (args, __) =>
+                    {
+                        var id = (int)Num(args, "request_id", 0);
+                        var all = await _matRequests.GetAllAsync();
+                        var r = all.FirstOrDefault(x => x.RequestID == id);
+                        if (r == null)
+                            return new { prepared = false, message = "I couldn't find that request. Use material_requests to list the pending ones." };
+
+                        var approve = Str(args, "decision", "approve").Trim().ToLowerInvariant() != "reject";
+                        var reason = StrOrNull(args, "reason");
+                        var fields = new List<AiActionField>
+                        {
+                            new() { Label = "Material", Value = $"{r.Quantity} {r.Unit} {r.MaterialName}" },
+                            new() { Label = "Project", Value = r.ProjectTitle },
+                            new() { Label = "Requested by", Value = r.RequestedByName }
+                        };
+                        if (!string.IsNullOrWhiteSpace(reason)) fields.Add(new() { Label = "Note", Value = reason });
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = approve ? "approve_request" : "reject_request",
+                            Title = approve ? "Approve request" : "Reject request",
+                            Summary = approve
+                                ? $"Approve and issue {r.Quantity} {r.Unit} {r.MaterialName} for {r.ProjectTitle}."
+                                : $"Reject the request for {r.Quantity} {r.Unit} {r.MaterialName}.",
+                            Method = "POST",
+                            Url = approve ? $"/materialrequests/{id}/approve" : $"/materialrequests/{id}/reject",
+                            Payload = approve ? null : new ResolveRequestDto { Note = reason },
+                            ConfirmLabel = approve ? "Approve" : "Reject",
+                            Danger = !approve,
+                            Note = approve ? "Approving will issue this material from stock." : null,
+                            Fields = fields
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 
