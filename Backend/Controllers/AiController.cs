@@ -308,8 +308,6 @@ namespace Backend.Controllers
             var canExpDelete = await CanDo("Expenses", "Delete");
             var canAttMark = await CanDo("Attendance", "Mark");
             var canMatReqManage = await CanDo("MaterialRequests", "Manage");
-            var canBillView = await Can("Billing");
-            var canBillManage = await CanDo("Billing", "Manage");
             var canApprovalsManage = await CanDo("Approvals", "Manage");
             var noArgs = new { type = "object", properties = new { } };
             var tools = new List<AiTool>();
@@ -978,6 +976,83 @@ namespace Backend.Controllers
                         };
                         return new { prepared = true, summary = _proposed.Summary };
                     }));
+
+                tools.Add(new AiTool("list_project_workers",
+                    "List the workers assigned to a project (optionally on a given date). Use find_project for the project_id. For questions like who was available on a date, and before marking a whole project's attendance.",
+                    new { type = "object", properties = new { project_id = new { type = "integer", description = "The project's id, from find_project" }, date = new { type = "string", description = "YYYY-MM-DD, optional; defaults to today" } }, required = new[] { "project_id" } },
+                    async (args, __) =>
+                    {
+                        var projId = (int)Num(args, "project_id", 0);
+                        var day = ParseDate(StrOrNull(args, "date")) ?? AppTime.Now.Date;
+                        var all = await _assignments.GetAllAsync();
+                        var active = all.Where(a => a.ProjectID == projId && a.Status == "Active"
+                                && a.StartDate.Date <= day && (!a.EndDate.HasValue || a.EndDate.Value.Date >= day))
+                            .Select(a => new { assignment_id = a.AssignmentID, worker = a.EmployeeName, role = a.Role })
+                            .ToList();
+                        return new { date = day.ToString("yyyy-MM-dd"), count = active.Count, workers = active };
+                    }));
+            }
+
+            // Mark a whole project's day (all active workers, or a chosen subset)
+            if (canAttMark)
+            {
+                tools.Add(new AiTool("draft_mark_day_attendance",
+                    "Prepare marking every active worker on a project present or absent for a day, for the user to confirm. Use find_project for the project_id. Optionally pass assignment_ids to mark only some of them. The confirm card lists everyone being marked. Never say it is marked, the user must confirm.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            project_id = new { type = "integer", description = "The project's id, from find_project" },
+                            status = new { type = "string", @enum = new[] { "Present", "Absent" } },
+                            date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
+                            assignment_ids = new { type = "array", items = new { type = "integer" }, description = "Optional: only these assignment ids (from list_project_workers). Omit to mark all active workers." }
+                        },
+                        required = new[] { "project_id", "status" }
+                    },
+                    async (args, __) =>
+                    {
+                        var projId = (int)Num(args, "project_id", 0);
+                        var status = Str(args, "status", "").Trim();
+                        if (status != "Present" && status != "Absent")
+                            return new { prepared = false, message = "Please say whether to mark them Present or Absent." };
+                        var day = ParseDate(StrOrNull(args, "date")) ?? AppTime.Now.Date;
+
+                        var only = new List<int>();
+                        if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty("assignment_ids", out var av) && av.ValueKind == JsonValueKind.Array)
+                            foreach (var el in av.EnumerateArray())
+                                if (el.ValueKind == JsonValueKind.Number) only.Add(el.GetInt32());
+
+                        var all = await _assignments.GetAllAsync();
+                        var active = all.Where(a => a.ProjectID == projId && a.Status == "Active"
+                                && a.StartDate.Date <= day && (!a.EndDate.HasValue || a.EndDate.Value.Date >= day))
+                            .ToList();
+                        if (only.Count > 0) active = active.Where(a => only.Contains(a.AssignmentID)).ToList();
+                        if (active.Count == 0)
+                            return new { prepared = false, message = "No active workers on that project for that date." };
+
+                        var payload = new MarkAttendanceDto
+                        {
+                            Date = day,
+                            Entries = active.Select(a => new AttendanceEntryDto { AssignmentID = a.AssignmentID, Status = status }).ToList()
+                        };
+                        var names = active.Select(a => a.EmployeeName).ToList();
+                        var namesText = names.Count <= 6 ? string.Join(", ", names) : string.Join(", ", names.Take(5)) + $" +{names.Count - 5} more";
+
+                        _proposed = new AiProposedAction
+                        {
+                            Kind = "mark_attendance", Title = "Mark day attendance", Summary = $"Mark {active.Count} worker(s) {status} on {active[0].ProjectTitle} for {day:yyyy-MM-dd}.",
+                            Method = "POST", Url = $"/attendance/{projId}", Payload = payload, ConfirmLabel = "Mark " + status,
+                            Fields = new()
+                            {
+                                new() { Label = "Project", Value = active[0].ProjectTitle },
+                                new() { Label = "Date", Value = day.ToString("yyyy-MM-dd") },
+                                new() { Label = "Status", Value = status },
+                                new() { Label = $"Workers ({active.Count})", Value = namesText }
+                            }
+                        };
+                        return new { prepared = true, summary = _proposed.Summary };
+                    }));
             }
 
             // Billing
@@ -995,76 +1070,6 @@ namespace Backend.Controllers
                             received = o.PaidAmount, outstanding = o.UnpaidAmount, overdue_amount = o.OverdueAmount,
                             projects = o.Projects.Select(p => new { project = p.Title, client = p.ClientName, billed = p.Billed, received = p.Received, outstanding = p.Outstanding, overdue_count = p.OverdueCount })
                         };
-                    }));
-
-                tools.Add(new AiTool("list_project_invoices",
-                    "List a project's invoices with their ids, totals and what is still due. Use find_project first for the project_id, then this to get an invoice id before recording a payment.",
-                    new { type = "object", properties = new { project_id = new { type = "integer", description = "The project's id, from find_project" } }, required = new[] { "project_id" } },
-                    async (args, __) =>
-                    {
-                        var projId = (int)Num(args, "project_id", 0);
-                        var b = await _billing.GetProjectBillingAsync(projId);
-                        if (b == null) return new { found = false, message = "No project matches that id." };
-                        var invs = b.Invoices.Select(i => new { id = i.InvoiceID, number = i.InvoiceNumber, total = i.Total, paid = i.Paid, due = i.Due, status = i.Status }).ToList();
-                        return new { project = b.Title, outstanding = b.Outstanding, count = invs.Count, invoices = invs };
-                    }));
-            }
-
-            // Record an invoice payment (money received; prepared for the user to confirm)
-            if (canBillManage)
-            {
-                tools.Add(new AiTool("draft_record_payment",
-                    "Prepare recording a payment received against an invoice, for the user to confirm. Use list_project_invoices for the invoice_id. Never say it is recorded, the user must confirm.",
-                    new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            invoice_id = new { type = "integer", description = "The invoice's id, from list_project_invoices" },
-                            amount = new { type = "number", description = "Amount received, in Rupees" },
-                            method = new { type = "string", @enum = new[] { "Cash", "Bank Transfer", "Cheque", "Online" }, description = "How it was paid, default Cash" },
-                            payment_date = new { type = "string", description = "YYYY-MM-DD, defaults to today" },
-                            reference = new { type = "string", description = "Cheque or transaction number, optional" }
-                        },
-                        required = new[] { "invoice_id", "amount" }
-                    },
-                    async (args, __) =>
-                    {
-                        var invId = (int)Num(args, "invoice_id", 0);
-                        var inv = await _billing.DescribeInvoiceAsync(invId);
-                        if (inv == null)
-                            return new { prepared = false, message = "I couldn't find that invoice. Use list_project_invoices to get the right one." };
-
-                        var amount = (decimal)Num(args, "amount", 0);
-                        if (amount <= 0)
-                            return new { prepared = false, message = "Please tell me the amount received." };
-                        var method = Str(args, "method", "Cash").Trim();
-                        var dto = new RecordPaymentDto
-                        {
-                            InvoiceID = invId,
-                            Amount = amount,
-                            PaymentDate = ParseDate(StrOrNull(args, "payment_date")) ?? AppTime.Now.Date,
-                            Method = method.Length == 0 ? "Cash" : method,
-                            Reference = StrOrNull(args, "reference")
-                        };
-
-                        var fields = new List<AiActionField>
-                        {
-                            new() { Label = "Invoice", Value = $"{inv.InvoiceNumber} ({inv.ProjectTitle})" },
-                            new() { Label = "Invoice total", Value = $"Rs {inv.Total:N0}" },
-                            new() { Label = "Payment", Value = $"Rs {dto.Amount:N0}" },
-                            new() { Label = "Method", Value = dto.Method },
-                            new() { Label = "Date", Value = dto.PaymentDate.ToString("yyyy-MM-dd") }
-                        };
-                        if (!string.IsNullOrWhiteSpace(dto.Reference)) fields.Add(new() { Label = "Reference", Value = dto.Reference });
-
-                        _proposed = new AiProposedAction
-                        {
-                            Kind = "add_payment", Title = "Record payment", Summary = $"Record Rs {dto.Amount:N0} received on {inv.InvoiceNumber}.",
-                            Method = "POST", Url = "/billing/payments", Payload = dto, ConfirmLabel = "Record payment", Fields = fields,
-                            Note = "This records money received against this invoice."
-                        };
-                        return new { prepared = true, summary = _proposed.Summary };
                     }));
             }
 
