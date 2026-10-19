@@ -55,6 +55,32 @@ namespace Backend.Migrations
                     b.ToTable("AiConversations");
                 });
 
+            modelBuilder.Entity("Backend.Models.Entities.AiSetting", b =>
+                {
+                    b.Property<int>("AiSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AiSettingID"));
+
+                    b.Property<bool>("ErpEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PublicEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("AiSettingID");
+
+                    b.ToTable("AiSettings");
+                });
+
             modelBuilder.Entity("Backend.Models.Entities.Alert", b =>
                 {
                     b.Property<int>("AlertID")

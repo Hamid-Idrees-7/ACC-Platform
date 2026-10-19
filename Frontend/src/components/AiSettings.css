@@ -1,0 +1,46 @@
+/* Matches the toggle rows used elsewhere in Settings (eg Notifications) for consistency. */
+.ais { display: flex; flex-direction: column; gap: 10px; }
+.ais-note { font-size: 13.5px; color: var(--color-text-muted); }
+
+.ais-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    min-width: 0;
+}
+.ais-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ais-row-text label { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.ais-row-text span { font-size: 12.5px; color: var(--color-text-muted); line-height: 1.45; }
+.ais-row.off .ais-row-text label { color: var(--color-text-muted); }
+
+.ais-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--color-track);
+    cursor: pointer;
+    transition: background 0.18s ease;
+}
+.ais-switch.on { background: var(--color-primary); }
+.ais-switch:disabled { cursor: not-allowed; opacity: 0.5; }
+.ais-switch:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.ais-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.25);
+    transition: transform 0.18s ease;
+}
+.ais-switch.on .ais-knob { transform: translateX(18px); }

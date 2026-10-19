@@ -188,6 +188,7 @@ function AiAssistant() {
     );
   }
 
+
   const persist = async (allMessages) => {
     const title = (allMessages.find((m) => m.role === "user")?.text || "").slice(0, 120);
     const payload = { title, messages: allMessages.map((m) => ({ role: m.role, text: m.text })) };

@@ -43,6 +43,7 @@ namespace Backend.Data
         // Visitor demo databases (only ever filled in the main database).
         public DbSet<DemoSession> DemoSessions { get; set; }
         public DbSet<AiConversation> AiConversations { get; set; }
+        public DbSet<AiSetting> AiSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -36,6 +36,7 @@ namespace Backend.Controllers
         private readonly IPermissionService _permissions;
         private readonly IAiConversationRepository _conversations;
         private readonly IProjectExpenseService _projectExpenses;
+        private readonly IAiSettingRepository _aiSettings;
 
         // Set by a draft_ tool when the assistant prepares an action for the user to confirm.
         // Lives for one request (the controller is scoped), and is returned with the reply.
@@ -46,7 +47,8 @@ namespace Backend.Controllers
             IProjectService projects, IMaterialService materials, IAttendanceService attendance,
             IBillingService billing, ISalaryService salaries, IClientService clients, IEmployeeService employees,
             IAssignmentService assignments, IPendingActionService approvals, IMaterialRequestService matRequests,
-            IPermissionService permissions, IAiConversationRepository conversations, IProjectExpenseService projectExpenses)
+            IPermissionService permissions, IAiConversationRepository conversations, IProjectExpenseService projectExpenses,
+            IAiSettingRepository aiSettings)
         {
             _ai = ai;
             _options = options.Value;
@@ -66,6 +68,7 @@ namespace Backend.Controllers
             _permissions = permissions;
             _conversations = conversations;
             _projectExpenses = projectExpenses;
+            _aiSettings = aiSettings;
         }
 
         // GET: /api/ai/ping  = check the AI link works (Admin only).
@@ -92,7 +95,8 @@ namespace Backend.Controllers
         [EnableRateLimiting(SecurityOptions.AiPublicRateLimitPolicy)]
         public async Task<IActionResult> Chat([FromBody] AiChatRequestDto dto, CancellationToken ct)
         {
-            if (!_options.Enabled)
+            var aiSettings = await _aiSettings.GetAsync();
+            if (!_options.Enabled || !aiSettings.PublicEnabled)
                 return Ok(new { reply = "The assistant is turned off right now. Please use the contact form and our team will reply within 24 hours." });
 
             var message = (dto.Message ?? "").Trim();
@@ -113,7 +117,8 @@ namespace Backend.Controllers
         [EnableRateLimiting(SecurityOptions.AiPublicRateLimitPolicy)]
         public async Task<IActionResult> Assistant([FromBody] AiChatRequestDto dto, CancellationToken ct)
         {
-            if (!_options.Enabled)
+            var aiSettings = await _aiSettings.GetAsync();
+            if (!_options.Enabled || !aiSettings.ErpEnabled)
                 return Ok(new { reply = "The assistant is turned off right now." });
 
             var message = (dto.Message ?? "").Trim();
@@ -126,6 +131,41 @@ namespace Backend.Controllers
                 + $"\n\nToday's date is {AppTime.Now:yyyy-MM-dd} ({AppTime.Now:dddd}). Use this for any relative date the user gives, like today, tomorrow, or \"in 2 days\".";
             var reply = await _ai.ChatAsync(systemPrompt, history, message, tools, ct);
             return ReplyOrBusy(reply);
+        }
+
+        // GET: /api/ai/public-status  = whether the public website chat is on (no sign-in).
+        [HttpGet("public-status")]
+        [AllowAnonymous]
+        [UseMainDatabase]
+        public async Task<IActionResult> PublicStatus()
+        {
+            var s = await _aiSettings.GetAsync();
+            return Ok(new { enabled = _options.Enabled && s.PublicEnabled });
+        }
+
+        // GET: /api/ai/settings  = the AI on/off switches (Admin only).
+        [HttpGet("settings")]
+        [Authorize]
+        [AdminOnly]
+        public async Task<IActionResult> GetSettings()
+        {
+            var s = await _aiSettings.GetAsync();
+            return Ok(new AiSettingsDto { PublicEnabled = s.PublicEnabled, ErpEnabled = s.ErpEnabled });
+        }
+
+        // PUT: /api/ai/settings  = turn the assistants on or off for everyone (Admin only).
+        [HttpPut("settings")]
+        [Authorize]
+        [AdminOnly]
+        public async Task<IActionResult> UpdateSettings([FromBody] AiSettingsDto dto)
+        {
+            var s = await _aiSettings.GetAsync();
+            s.PublicEnabled = dto.PublicEnabled;
+            s.ErpEnabled = dto.ErpEnabled;
+            s.UpdatedAt = AppTime.Now;
+            s.UpdatedBy = User.FindFirst("fullName")?.Value ?? User.Identity?.Name;
+            await _aiSettings.UpdateAsync(s);
+            return Ok(new AiSettingsDto { PublicEnabled = s.PublicEnabled, ErpEnabled = s.ErpEnabled });
         }
 
         // Saved conversations (the ERP assistant's history). Each belongs to the signed-in user.

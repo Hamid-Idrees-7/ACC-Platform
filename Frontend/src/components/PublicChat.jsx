@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import api from "../services/api";
+import { aiService } from "../services/aiService";
 import { renderMarkdown } from "../utils/markdown";
 import "./PublicChat.css";
 
@@ -59,8 +60,19 @@ function PublicChat() {
   const [helloHidden, setHelloHidden] = useState(() => load(HELLO_KEY, false));
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [enabled, setEnabled] = useState(null);
   const listRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Hide the bubble if an admin has turned the public assistant off. Default to showing it
+  // (null), and only hide once we know it's off, so the common case has no delay.
+  useEffect(() => {
+    let active = true;
+    aiService.publicStatus()
+      .then((r) => { if (active) setEnabled(r?.enabled !== false); })
+      .catch(() => { if (active) setEnabled(true); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => { save(MSG_KEY, messages); }, [messages]);
   useEffect(() => { save(OPEN_KEY, open); }, [open]);
@@ -140,6 +152,8 @@ function PublicChat() {
 
   const showWelcome = messages.length === 1 && !sending;
   const showHello = !open && !helloHidden;
+
+  if (enabled === false) return null;
 
   return (
     <div className="pc-root">

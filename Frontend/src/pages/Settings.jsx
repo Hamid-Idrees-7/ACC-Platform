@@ -11,6 +11,7 @@ import LetterheadSettings from "../components/LetterheadSettings";
 import SecuritySettings from "../components/SecuritySettings";
 import NotificationSettings from "../components/NotificationSettings";
 import AlertRules from "../components/AlertRules";
+import AiSettings from "../components/AiSettings";
 import PasswordStrength from "../components/PasswordStrength";
 import Toast, { useToast } from "../components/Toast";
 import { isEmail, isPkPhone, isName, focusField } from "../utils/validation";
@@ -22,8 +23,8 @@ import { SkeletonPage } from "../components/Skeleton";
 import { typePhone, typed } from "../utils/format";
 import { clickable } from "../utils/a11y";
 
-const SETTINGS_TABS = ["profile", "account", "security", "notifications", "alerts", "appearance", "calendar", "company", "letterhead"];
-const ADMIN_TABS = ["alerts", "calendar", "company", "letterhead"];
+const SETTINGS_TABS = ["profile", "account", "security", "ai", "notifications", "alerts", "appearance", "calendar", "company", "letterhead"];
+const ADMIN_TABS = ["ai", "alerts", "calendar", "company", "letterhead"];
 const BIO_MAX = 300;
 const PROFILE_FIELDS = ["fullName", "email", "phone", "secondaryPhone", "bio"];
 
@@ -309,6 +310,7 @@ function Settings() {
     { key: "profile", label: "Profile Management", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
     { key: "account", label: "Account Management", icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
     { key: "security", label: "Security", icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></> },
+    ...(isAdmin ? [{ key: "ai", label: "AI Assistant", icon: <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" /> }] : []),
     { key: "notifications", label: "Notifications", icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></> },
     ...(isAdmin ? [{ key: "alerts", label: "Alert rules", icon: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></> }] : []),
     { key: "appearance", label: "Appearance", icon: <><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></> },
@@ -500,6 +502,16 @@ function Settings() {
                 <p>Choose what reaches your bell, and whether new ones play a sound</p>
               </div>
               <NotificationSettings />
+            </div>
+          )}
+
+          {tab === "ai" && (
+            <div className="st-panel">
+              <div className="st-panel-head">
+                <h3>AI Assistant</h3>
+                <p>Turn the assistants on or off for everyone</p>
+              </div>
+              <AiSettings />
             </div>
           )}
 
