@@ -53,6 +53,10 @@ namespace Backend.Auth
         // tighter than ordinary requests.
         public const string AiPublicRateLimitPolicy = "ai-public";
 
+        // Rate limit on the ERP assistant, per signed-in user. These calls use AI quota too,
+        // so each user gets a bounded budget, separate from their ordinary request limit.
+        public const string AiErpRateLimitPolicy = "ai-erp";
+
         // Requests per minute for each signed-in user (all endpoints together)
         public const int RequestsPerMinute = 600;
         public const int DemoRequestsPerMinute = 240;

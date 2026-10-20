@@ -157,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(10),
                 QueueLimit = 0
             }));
+    // ERP assistant: per signed-in user (demo users are told apart by their database). AI calls
+    // use quota, so this is far tighter than the ordinary per-user request limit.
+    options.AddPolicy(SecurityOptions.AiErpRateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: (httpContext.User.FindFirst(DemoClaims.Database)?.Value ?? "main") + ":" +
+                          (httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? ClientPartition.For(httpContext)),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 40,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0
+            }));
     // Website contact form: a few messages per visitor is plenty.
     options.AddPolicy(SecurityOptions.ContactFormRateLimitPolicy, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -177,6 +189,7 @@ builder.Services.AddRateLimiter(options =>
             SecurityOptions.PasswordCheckRateLimitPolicy => "Too many password attempts. Please wait a few minutes and try again.",
             SecurityOptions.ContactFormRateLimitPolicy => "You have sent several messages already. Please wait a few minutes, or call us instead.",
             SecurityOptions.AiPublicRateLimitPolicy => "You've chatted a lot in a short time. Please wait a few minutes and try again.",
+            SecurityOptions.AiErpRateLimitPolicy => "You've asked the assistant a lot in a short time. Please wait a few minutes and try again.",
             DemoOptions.StartRateLimitPolicy => "Too many demo attempts from your network. Please wait a few minutes and try again.",
             _ => "You're going a bit fast. Please wait a moment and try again."
         };

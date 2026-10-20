@@ -114,7 +114,7 @@ namespace Backend.Controllers
         [HttpPost("assistant")]
         [Authorize]
         [RequirePermission("AI", "View")]
-        [EnableRateLimiting(SecurityOptions.AiPublicRateLimitPolicy)]
+        [EnableRateLimiting(SecurityOptions.AiErpRateLimitPolicy)]
         public async Task<IActionResult> Assistant([FromBody] AiChatRequestDto dto, CancellationToken ct)
         {
             var aiSettings = await _aiSettings.GetAsync();
