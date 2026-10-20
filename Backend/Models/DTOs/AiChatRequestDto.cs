@@ -19,6 +19,7 @@ namespace Backend.Models.DTOs
         [MaxLength(1000)]
         public string Message { get; set; } = string.Empty;
 
+        [MaxLength(50)]
         public List<AiChatTurnDto>? History { get; set; }
     }
 }

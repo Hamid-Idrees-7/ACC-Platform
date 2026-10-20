@@ -456,7 +456,7 @@ namespace Backend.Controllers
                             Description = StrOrNull(args, "description"),
                             StartDate = ParseDate(StrOrNull(args, "start_date")),
                             ExpectedEndDate = ParseDate(StrOrNull(args, "expected_end_date")),
-                            Budget = (decimal)Num(args, "budget", 0),
+                            Budget = Dec(args, "budget", 0),
                             CreateStandardPhases = GetBool(args, "create_standard_phases", true)
                         };
                         if (dto.Title.Length == 0 || dto.ProjectType.Length == 0 || dto.AreaSize.Length == 0 || dto.Location.Length == 0)
@@ -471,6 +471,7 @@ namespace Backend.Controllers
                             new() { Label = "Location", Value = dto.Location },
                             new() { Label = "Budget", Value = $"Rs {dto.Budget:N0}" }
                         };
+                        if (!string.IsNullOrWhiteSpace(dto.Description)) fields.Add(new() { Label = "Description", Value = dto.Description });
                         if (dto.StartDate.HasValue) fields.Add(new() { Label = "Start date", Value = dto.StartDate.Value.ToString("yyyy-MM-dd") });
                         if (dto.ExpectedEndDate.HasValue) fields.Add(new() { Label = "Expected end", Value = dto.ExpectedEndDate.Value.ToString("yyyy-MM-dd") });
                         fields.Add(new() { Label = "Standard phases", Value = dto.CreateStandardPhases ? "Yes" : "No" });
@@ -526,7 +527,7 @@ namespace Backend.Controllers
                         var budget = d.Budget;
                         if (HasNum(args, "budget"))
                         {
-                            var nb = (decimal)Num(args, "budget", (double)d.Budget);
+                            var nb = Dec(args, "budget", d.Budget);
                             if (nb != d.Budget) changes.Add(new AiActionField { Label = "Budget", From = $"Rs {d.Budget:N0}", To = $"Rs {nb:N0}", Changed = true });
                             budget = nb;
                         }
@@ -637,7 +638,7 @@ namespace Backend.Controllers
                         {
                             Category = Str(args, "category", "").Trim(),
                             Description = Str(args, "description", "").Trim(),
-                            Amount = (decimal)Num(args, "amount", 0),
+                            Amount = Dec(args, "amount", 0),
                             ExpenseDate = ParseDate(StrOrNull(args, "expense_date")) ?? AppTime.Now.Date,
                             PaidTo = StrOrNull(args, "paid_to"),
                             Reference = StrOrNull(args, "reference"),
@@ -709,7 +710,7 @@ namespace Backend.Controllers
                         var amount = ex.Amount;
                         if (HasNum(args, "amount"))
                         {
-                            var na = (decimal)Num(args, "amount", (double)ex.Amount);
+                            var na = Dec(args, "amount", ex.Amount);
                             if (na != ex.Amount) changes.Add(new AiActionField { Label = "Amount", From = $"Rs {ex.Amount:N0}", To = $"Rs {na:N0}", Changed = true });
                             amount = na;
                         }
@@ -830,8 +831,8 @@ namespace Backend.Controllers
                             Unit = Str(args, "unit", "").Trim(),
                             LowStockThreshold = (int)Num(args, "low_stock_threshold", 0),
                             Status = "Active",
-                            InitialStock = HasNum(args, "initial_stock") ? (decimal)Num(args, "initial_stock", 0) : null,
-                            InitialRate = HasNum(args, "initial_rate") ? (decimal)Num(args, "initial_rate", 0) : null
+                            InitialStock = HasNum(args, "initial_stock") ? Dec(args, "initial_stock", 0) : null,
+                            InitialRate = HasNum(args, "initial_rate") ? Dec(args, "initial_rate", 0) : null
                         };
                         if (dto.Name.Length == 0 || dto.Category.Length == 0 || dto.Unit.Length == 0)
                             return Task.FromResult<object>(new { prepared = false, message = "I still need the name, category and unit." });
@@ -1061,7 +1062,7 @@ namespace Backend.Controllers
                         var only = new List<int>();
                         if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty("assignment_ids", out var av) && av.ValueKind == JsonValueKind.Array)
                             foreach (var el in av.EnumerateArray())
-                                if (el.ValueKind == JsonValueKind.Number) only.Add(el.GetInt32());
+                                if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var aid)) only.Add(aid);
 
                         var all = await _assignments.GetAllAsync();
                         var active = all.Where(a => a.ProjectID == projId && a.Status == "Active"
@@ -1559,7 +1560,7 @@ namespace Backend.Controllers
                         if (p == null) return new { prepared = false, message = "I need a valid project. Use find_project first." };
 
                         var wageType = Str(args, "wage_type", "Daily").Trim();
-                        var wage = (decimal)Num(args, "wage_amount", 0);
+                        var wage = Dec(args, "wage_amount", 0);
                         var start = ParseDate(StrOrNull(args, "start_date")) ?? AppTime.Now.Date;
                         var dto = new CreateAssignmentDto
                         {
@@ -1634,7 +1635,7 @@ namespace Backend.Controllers
                         var wage = a.WageAmount;
                         if (HasNum(args, "wage_amount"))
                         {
-                            var nw = (decimal)Num(args, "wage_amount", (double)a.WageAmount);
+                            var nw = Dec(args, "wage_amount", a.WageAmount);
                             if (nw != a.WageAmount) changes.Add(new AiActionField { Label = "Wage amount", From = $"Rs {a.WageAmount:N0}", To = $"Rs {nw:N0}", Changed = true });
                             wage = nw;
                         }
@@ -1863,11 +1864,11 @@ namespace Backend.Controllers
         {
             var dto = new CreateInquiryDto
             {
-                Name = Str(args, "name", ""),
-                Phone = Str(args, "phone", ""),
-                Email = StrOrNull(args, "email"),
-                Service = StrOrNull(args, "service"),
-                Message = Str(args, "message", "")
+                Name = Cut(Str(args, "name", ""), 50),
+                Phone = Cut(Str(args, "phone", ""), 15),
+                Email = StrOrNull(args, "email") is string em ? Cut(em, 50) : null,
+                Service = StrOrNull(args, "service") is string sv ? Cut(sv, 50) : null,
+                Message = Cut(Str(args, "message", ""), 500)
             };
 
             var (success, message) = await _inquiries.SubmitInquiryAsync(dto);
@@ -1887,8 +1888,21 @@ namespace Backend.Controllers
         private static double Num(JsonElement args, string name, double fallback) =>
             args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var v)
                 ? (v.ValueKind == JsonValueKind.Number ? v.GetDouble()
-                   : double.TryParse(v.GetString(), out var d) ? d : fallback)
+                   : v.ValueKind == JsonValueKind.String
+                     && double.TryParse(v.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d)
+                     ? d : fallback)
                 : fallback;
+
+        // A money/amount argument read as decimal, kept inside a safe range so an absurd value
+        // from the model can't overflow the decimal cast. The real endpoint still validates it.
+        private static decimal Dec(JsonElement args, string name, decimal fallback)
+        {
+            var n = Num(args, name, (double)fallback);
+            if (double.IsNaN(n) || double.IsInfinity(n)) return fallback;
+            if (n >= 1_000_000_000_000_000d) return 1_000_000_000_000_000m;
+            if (n <= -1_000_000_000_000_000d) return -1_000_000_000_000_000m;
+            return (decimal)n;
+        }
 
         private static string Str(JsonElement args, string name, string fallback) =>
             args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
@@ -1900,6 +1914,9 @@ namespace Backend.Controllers
             return string.IsNullOrWhiteSpace(s) ? null : s;
         }
 
+        // Keep a tool-supplied string within a column's length so a long value can't fail the save.
+        private static string Cut(string s, int max) => s.Length <= max ? s : s[..max];
+
         private static DateTime? ParseDate(string? s) =>
             !string.IsNullOrWhiteSpace(s)
                 && DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)
@@ -1910,7 +1927,13 @@ namespace Backend.Controllers
 
         private static bool GetBool(JsonElement args, string name, bool fallback) =>
             args.ValueKind == JsonValueKind.Object && args.TryGetProperty(name, out var v)
-                ? (v.ValueKind == JsonValueKind.True || (v.ValueKind == JsonValueKind.False ? false : fallback))
+                ? v.ValueKind switch
+                {
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.String => bool.TryParse(v.GetString(), out var b) ? b : fallback,
+                    _ => fallback
+                }
                 : fallback;
     }
 }
