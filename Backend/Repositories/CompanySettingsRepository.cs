@@ -51,7 +51,7 @@ namespace Backend.Repositories
             return row.LastInvoiceSeq;
         }
 
-        public string DatabaseName => _context.Database.GetDbConnection().Database;
+        public string DatabaseName => _context.Schema ?? "main";
 
         public async Task SaveWeeklyOffAsync(string days)
         {

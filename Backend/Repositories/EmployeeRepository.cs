@@ -6,7 +6,7 @@ namespace Backend.Repositories
 {
     public class EmployeeRepository : IEmployeeRepository
     {
-        public string DatabaseName => _context.Database.GetDbConnection().Database;
+        public string DatabaseName => _context.Schema ?? "main";
 
         private readonly AppDbContext _context;
 

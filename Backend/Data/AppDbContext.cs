@@ -1,13 +1,46 @@
 ﻿using Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Npgsql;
 
 namespace Backend.Data
 {
-    // EF Core context for the SQL Server database: the tables and how they relate.
+    // EF Core context for the PostgreSQL database: the tables and how they relate.
     public class AppDbContext : DbContext
     {
+        // The PostgreSQL schema this context works in. The main database uses the default
+        // schema (null, treated as "public"); a visitor demo uses its own schema. The value is
+        // read from the connection string's Search Path, which the demo connection resolver and
+        // the demo factory set to the visitor's schema name.
+        private readonly string? _schema;
+
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
+            _schema = ResolveSchema(options);
+        }
+
+        // Null on the main database, otherwise the visitor's demo schema name. Used for the
+        // dynamic default schema, for the per-visitor model cache key, and as the tenant tag for
+        // live updates and locks.
+        public string? Schema => _schema;
+
+        private static string? ResolveSchema(DbContextOptions options)
+        {
+            var connectionString = options.Extensions
+                .OfType<RelationalOptionsExtension>()
+                .FirstOrDefault()?.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+                return null;
+
+            var searchPath = new NpgsqlConnectionStringBuilder(connectionString).SearchPath;
+            if (string.IsNullOrWhiteSpace(searchPath))
+                return null;
+
+            // Search Path may be a comma separated list; the visitor schema is the first entry.
+            var first = searchPath.Split(',')[0].Trim();
+            return first.Length == 0 || string.Equals(first, "public", StringComparison.Ordinal)
+                ? null
+                : first;
         }
 
         public DbSet<Client> Clients { get; set; }
@@ -49,6 +82,16 @@ namespace Backend.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // On a visitor demo every table is built in that visitor's own schema, so
+            // EnsureCreated/CreateTables place them there and queries resolve them there. The
+            // demo seat registry (DemoSessions) is only ever read and written on the main
+            // database, so it is left out of the demo model entirely and stays in public.
+            if (_schema != null)
+            {
+                modelBuilder.HasDefaultSchema(_schema);
+                modelBuilder.Ignore<DemoSession>();
+            }
+
             // An expense belongs to a project. Restrict (not cascade): the database itself refuses
             // to delete a project that still has expenses, so cost history is never lost silently.
             modelBuilder.Entity<ProjectExpense>()
@@ -68,7 +111,7 @@ namespace Backend.Data
             modelBuilder.Entity<InvoiceItem>()
                 .HasIndex(i => i.ExpenseID)
                 .IsUnique()
-                .HasFilter("[ExpenseID] IS NOT NULL");
+                .HasFilter("\"ExpenseID\" IS NOT NULL");
 
             // Display settings belong to one user and go away with that user.
             modelBuilder.Entity<UserPreference>()
@@ -101,7 +144,7 @@ namespace Backend.Data
             modelBuilder.Entity<Alert>()
                 .HasIndex(a => a.Key)
                 .IsUnique()
-                .HasFilter("[Status] = 'Open'");
+                .HasFilter("\"Status\" = 'Open'");
             modelBuilder.Entity<Alert>().HasIndex(a => new { a.Status, a.ResolvedAt });
 
             // One record per thing, enforced by the database itself, so two saves at the same

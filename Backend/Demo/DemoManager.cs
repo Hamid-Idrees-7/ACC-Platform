@@ -3,6 +3,7 @@ using Backend.Auth;
 using Backend.Models.Entities;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
@@ -501,14 +502,19 @@ namespace Backend.Demo
             return session.ExpiresAt;
         }
 
-        // Creates the schema straight from the current model (fast, and these databases are
-        // throw-away, so they never need migration history) and fills in the demo company.
+        // Creates the visitor's schema and its tables straight from the current model (fast, and
+        // these schemas are throw-away, so they never need migration history) and fills in the
+        // demo company. EnsureCreated is not used here: the main database already has tables, so
+        // its "has any tables" check would skip creating the visitor's. CreateTables builds the
+        // model's tables unconditionally, into the context's default schema (the visitor schema).
         private async Task<bool> BuildDatabaseAsync(string databaseName, CancellationToken ct)
         {
             try
             {
+                await _factory.CreateSchemaAsync(databaseName, ct);
                 await using var db = _factory.CreateForDemo(databaseName);
-                await db.Database.EnsureCreatedAsync(ct);
+                await db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>()
+                    .CreateTablesAsync(ct);
                 await DemoSeeder.SeedAsync(db, ct);
                 return true;
             }

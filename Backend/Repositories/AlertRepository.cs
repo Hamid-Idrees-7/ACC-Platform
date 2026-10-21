@@ -14,7 +14,7 @@ namespace Backend.Repositories
             _context = context;
         }
 
-        public string DatabaseName => _context.Database.GetDbConnection().Database;
+        public string DatabaseName => _context.Schema ?? "main";
 
         public async Task<AlertFacts> LoadFactsAsync(DateTime now)
         {

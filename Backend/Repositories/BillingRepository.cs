@@ -53,7 +53,7 @@ namespace Backend.Repositories
                 .ToListAsync();
         }
 
-        public string DatabaseName => _context.Database.GetDbConnection().Database;
+        public string DatabaseName => _context.Schema ?? "main";
 
         // In one transaction, so a failed line never leaves an empty invoice behind.
         public async Task<int> AddInvoiceAsync(Invoice invoice, List<InvoiceItem> items)

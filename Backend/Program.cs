@@ -12,7 +12,13 @@ using Backend.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.OpenApi;
+
+// Store DateTime values as PostgreSQL "timestamp without time zone" (wall clock, no time zone),
+// matching the old SQL Server datetime2 behaviour. The app writes both Unspecified (AppTime.Now)
+// and Utc DateTime values; without this switch Npgsql rejects them against timestamptz columns.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,10 +82,12 @@ builder.Services.AddSingleton<LiveTransactionInterceptor>();
 builder.Services.AddSingleton<AlertScheduler>();
 builder.Services.AddHostedService<AlertWorker>();
 
-// SQL Server. The connection is chosen per request: the main database normally, or the
-// visitor's own database when the caller holds a demo token.
+// PostgreSQL. The connection is chosen per request: the main database normally, or the
+// visitor's own schema when the caller holds a demo token. The model cache key is keyed by
+// schema so each visitor schema gets its own cached model (see DemoSchemaModelCacheKeyFactory).
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-    options.UseSqlServer(serviceProvider.GetRequiredService<DemoConnectionResolver>().GetConnectionString())
+    options.UseNpgsql(serviceProvider.GetRequiredService<DemoConnectionResolver>().GetConnectionString())
+           .ReplaceService<IModelCacheKeyFactory, DemoSchemaModelCacheKeyFactory>()
            .AddInterceptors(
                serviceProvider.GetRequiredService<LiveChangeInterceptor>(),
                serviceProvider.GetRequiredService<LiveTransactionInterceptor>()));
@@ -338,6 +346,16 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Seed the main database once on startup: an administrator to sign in with and the sample company,
+// so a freshly deployed site is not empty. Does nothing if any user already exists. Uses the main
+// database directly (the per-visitor demo seeds its own schemas on demand).
+using (var scope = app.Services.CreateScope())
+{
+    var factory = scope.ServiceProvider.GetRequiredService<Backend.Demo.DemoDbFactory>();
+    await using var seedDb = factory.CreateMain();
+    await Backend.Data.MainSeeder.SeedAsync(seedDb, app.Configuration);
+}
 
 // Request pipeline
 if (useForwardedHeaders)

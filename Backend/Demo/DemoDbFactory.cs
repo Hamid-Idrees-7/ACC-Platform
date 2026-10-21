@@ -1,18 +1,24 @@
 using System.Text.RegularExpressions;
 using Backend.Data;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Backend.Demo
 {
-    // Builds AppDbContext instances for a specific database (the main one or a visitor's) and
-    // creates or drops visitor databases. The demo code uses it outside normal requests.
+    // Builds AppDbContext instances for a specific schema (the main one or a visitor's) and
+    // creates or drops visitor schemas. The demo code uses it outside normal requests.
+    //
+    // Every visitor lives in its own PostgreSQL schema inside the one main database, rather than
+    // in a separate database. The main database uses the default "public" schema; a visitor uses
+    // a schema named demo_<12 hex>. The connection string for a visitor is the main connection
+    // string with its Search Path set to that schema, so the context resolves tables there.
     public class DemoDbFactory
     {
-        public const string DatabasePrefix = "ACC_Demo_";
+        public const string SchemaPrefix = "demo_";
 
-        // Visitor databases always match this exact shape. Anything else is never touched here.
-        private static readonly Regex NamePattern = new("^ACC_Demo_[a-f0-9]{12}$", RegexOptions.Compiled);
+        // Visitor schemas always match this exact shape. Anything else is never touched here.
+        // Lowercase only: PostgreSQL folds unquoted identifiers to lowercase.
+        private static readonly Regex NamePattern = new("^demo_[a-f0-9]{12}$", RegexOptions.Compiled);
 
         private readonly string _mainConnectionString;
 
@@ -26,74 +32,93 @@ namespace Backend.Demo
 
         public static bool IsValidName(string? name) => name != null && NamePattern.IsMatch(name);
 
-        public static string NewDatabaseName() => DatabasePrefix + Guid.NewGuid().ToString("N")[..12];
+        public static string NewDatabaseName() => SchemaPrefix + Guid.NewGuid().ToString("N")[..12];
 
-        // Same server and credentials as the main database, different database name.
-        public string ConnectionStringFor(string databaseName)
+        // Same server, database and credentials as the main connection, with the Search Path
+        // pointed at the visitor's schema so every query resolves tables in that schema.
+        public string ConnectionStringFor(string schemaName)
         {
-            if (!IsValidName(databaseName))
-                throw new InvalidOperationException("Invalid demo database name.");
+            if (!IsValidName(schemaName))
+                throw new InvalidOperationException("Invalid demo schema name.");
 
-            var builder = new SqlConnectionStringBuilder(_mainConnectionString) { InitialCatalog = databaseName };
+            var builder = new NpgsqlConnectionStringBuilder(_mainConnectionString) { SearchPath = schemaName };
             return builder.ConnectionString;
         }
 
         public AppDbContext CreateMain() => Create(_mainConnectionString);
 
-        public AppDbContext CreateForDemo(string databaseName) => Create(ConnectionStringFor(databaseName));
+        public AppDbContext CreateForDemo(string schemaName) => Create(ConnectionStringFor(schemaName));
 
         private static AppDbContext Create(string connectionString)
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
+                .UseNpgsql(connectionString)
+                .ReplaceService<Microsoft.EntityFrameworkCore.Infrastructure.IModelCacheKeyFactory, DemoSchemaModelCacheKeyFactory>()
                 .Options;
             return new AppDbContext(options);
         }
 
-        // Every visitor database that physically exists on the server.
+        // Creates the empty schema for a visitor. The tables inside it are created elsewhere
+        // (DemoManager) against a context built with ConnectionStringFor(name), whose default
+        // schema is this one.
+        public async Task CreateSchemaAsync(string schemaName, CancellationToken ct = default)
+        {
+            if (!IsValidName(schemaName))
+                throw new InvalidOperationException("Invalid demo schema name.");
+
+            await using var connection = new NpgsqlConnection(_mainConnectionString);
+            await connection.OpenAsync(ct);
+            // The name is validated against the strict pattern above, so quoting it is safe.
+            await using var command = new NpgsqlCommand($"CREATE SCHEMA IF NOT EXISTS \"{schemaName}\"", connection);
+            await command.ExecuteNonQueryAsync(ct);
+        }
+
+        // Every visitor schema that physically exists on the server.
         public async Task<List<string>> ListDemoDatabasesAsync(CancellationToken ct = default)
         {
-            await using var db = CreateMain();
-            var names = await db.Database
-                .SqlQueryRaw<string>("SELECT name AS [Value] FROM sys.databases WHERE name LIKE 'ACC[_]Demo[_]%'")
-                .ToListAsync(ct);
+            var names = new List<string>();
+            await using var connection = new NpgsqlConnection(_mainConnectionString);
+            await connection.OpenAsync(ct);
+            // Backslash is PostgreSQL's default LIKE escape, so \_ matches a literal underscore.
+            await using var command = new NpgsqlCommand(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'demo\\_%'", connection);
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                names.Add(reader.GetString(0));
             return names.Where(IsValidName).ToList();
         }
 
-        // Drops one visitor database. The name is checked against the strict pattern first,
-        // so the main database (or any other) can never be dropped through this method.
-        public async Task DropDatabaseAsync(string databaseName, CancellationToken ct = default)
+        // Drops one visitor schema and everything in it. The name is checked against the strict
+        // pattern first, so public (or any other schema) can never be dropped through this method.
+        public async Task DropDatabaseAsync(string schemaName, CancellationToken ct = default)
         {
-            if (!IsValidName(databaseName))
-                throw new InvalidOperationException("Refusing to drop a database that is not a demo database.");
+            if (!IsValidName(schemaName))
+                throw new InvalidOperationException("Refusing to drop a schema that is not a demo schema.");
 
-            // Release this app's pooled connections to that database first.
-            SqlConnection.ClearPool(new SqlConnection(ConnectionStringFor(databaseName)));
+            // Release this app's pooled connections that target that schema first.
+            NpgsqlConnection.ClearPool(new NpgsqlConnection(ConnectionStringFor(schemaName)));
 
-            await using var db = CreateMain();
-            var exists = await db.Database
-                .SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM sys.databases WHERE name = {databaseName}")
-                .SingleAsync(ct);
-            if (exists == 0) return;
+            await using var connection = new NpgsqlConnection(_mainConnectionString);
+            await connection.OpenAsync(ct);
 
-            // The name has been validated above, so it is safe to place inside the brackets.
-            var closeConnections = "ALTER DATABASE [" + databaseName + "] SET SINGLE_USER WITH ROLLBACK IMMEDIATE";
-            var drop = "DROP DATABASE [" + databaseName + "]";
-
-            try
+            await using (var exists = new NpgsqlCommand(
+                "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = @name", connection))
             {
-                // Disconnect anything still attached (not supported on every host, so failures are ignored).
-                await db.Database.ExecuteSqlRawAsync(closeConnections, ct);
-            }
-            catch (SqlException)
-            {
+                exists.Parameters.AddWithValue("name", schemaName);
+                var count = Convert.ToInt32(await exists.ExecuteScalarAsync(ct));
+                if (count == 0) return;
             }
 
-            await db.Database.ExecuteSqlRawAsync(drop, ct);
+            // The name has been validated above, so it is safe to place inside the quotes.
+            // CASCADE removes the schema and everything in it in one statement.
+            await using (var drop = new NpgsqlCommand($"DROP SCHEMA IF EXISTS \"{schemaName}\" CASCADE", connection))
+            {
+                await drop.ExecuteNonQueryAsync(ct);
+            }
 
             // Nothing of that visitor stays behind: live connections close, its locks go.
-            Backend.Live.LiveConnections.AbortDatabase(databaseName);
-            Backend.Services.Locks.Forget(databaseName);
+            Backend.Live.LiveConnections.AbortDatabase(schemaName);
+            Backend.Services.Locks.Forget(schemaName);
         }
     }
 }

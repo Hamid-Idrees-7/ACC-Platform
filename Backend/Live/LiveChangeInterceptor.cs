@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Backend.Alerts;
+using Backend.Data;
 using Backend.Demo;
 using Backend.Models.Entities;
 using Microsoft.AspNetCore.SignalR;
@@ -135,16 +136,10 @@ namespace Backend.Live
             }
         }
 
+        // The tenant tag for live updates and alerts: the visitor's schema name, or null for the
+        // main database (treated as "main" by LiveGroups). On PostgreSQL every tenant shares one
+        // database, so the schema, not the database name, tells the visitors apart.
         private static string? DatabaseName(DbContext context)
-        {
-            try
-            {
-                return context.Database.GetDbConnection().Database;
-            }
-            catch
-            {
-                return DatabaseScope.DemoDatabase;
-            }
-        }
+            => context is AppDbContext app ? app.Schema : DatabaseScope.DemoDatabase;
     }
 }
