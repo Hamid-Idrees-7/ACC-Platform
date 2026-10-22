@@ -134,9 +134,12 @@ namespace Backend.Ai
                 try
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                    // Trim so a stray newline or space in the configured key (common when pasting into
-                    // a hosting dashboard) does not make the header invalid and throw before the call.
-                    request.Headers.Add("x-goog-api-key", _options.ApiKey?.Trim());
+                    // Strip any newline, carriage-return or NUL the key may have picked up when it was
+                    // pasted into a hosting dashboard. An API key never contains these, and leaving them
+                    // in makes the header invalid and throws before the call is even sent.
+                    var apiKey = (_options.ApiKey ?? string.Empty)
+                        .Replace("\r", "").Replace("\n", "").Replace("\0", "").Trim();
+                    request.Headers.Add("x-goog-api-key", apiKey);
                     request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
                     using var response = await http.SendAsync(request, ct);
