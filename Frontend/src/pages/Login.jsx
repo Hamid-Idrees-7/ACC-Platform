@@ -50,9 +50,13 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // After signing in, go back to the dashboard page that was asked for (if any).
+  // After signing in, go back to the dashboard page that was asked for (if any). A page left
+  // behind by someone else's session is ignored, so a new sign-in always starts at the dashboard.
   const requested = location.state?.from;
-  const afterLogin = typeof requested === "string" && requested.startsWith("/dashboard") ? requested : "/dashboard";
+  const requestedBy = location.state?.fromUser;
+  const wanted = typeof requested === "string" && requested.startsWith("/dashboard") ? requested : "/dashboard";
+  const afterLoginFor = (name) =>
+    !requestedBy || requestedBy.toLowerCase() === name.trim().toLowerCase() ? wanted : "/dashboard";
 
   // Refresh the status quietly. The visitor option is only hidden when the server says the
   // demo is switched off; if the server can't be reached, the button stays and shows an error on click.
@@ -117,7 +121,8 @@ function Login() {
       const data = await authService.login(username, password, keepSignedIn);
       login(data, { keepSignedIn });
       setSuccess("Login successful. Redirecting to your dashboard...");
-      setTimeout(() => navigate(afterLogin, { replace: true }), 800);
+      const goTo = afterLoginFor(data?.username || username);
+      setTimeout(() => navigate(goTo, { replace: true }), 800);
     } catch (err) {
       setError(err.response?.data?.message || "Invalid username or password. Please try again.");
       triggerShake();

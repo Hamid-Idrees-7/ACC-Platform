@@ -1,4 +1,4 @@
-import { Fragment, Suspense, useEffect } from "react";
+import { Fragment, Suspense, useEffect, useRef } from "react";
 import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -38,13 +38,22 @@ function SignedInBoundary() {
   const location = useLocation();
   const signedIn = !!user;
 
+  // Who was signed in just before this: the username, or "demo" for a visitor. Stays null when
+  // nobody was, which is the case for a link opened straight from outside.
+  const lastUser = useRef(null);
+  useEffect(() => {
+    if (user) lastUser.current = user.demo ? "demo" : user.username;
+  }, [user]);
+
   useEffect(() => {
     if (signedIn) prefetchDashboardPages();
   }, [signedIn]);
 
   if (!user) {
     if (exitTo) return <Navigate to={exitTo} replace />;
-    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+    // A demo that has ended leaves nothing behind, so the next person starts at the dashboard.
+    if (lastUser.current === "demo") return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}`, fromUser: lastUser.current }} />;
   }
 
   const identity = `${user.userID}:${user.username}`;
