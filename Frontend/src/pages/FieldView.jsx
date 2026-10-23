@@ -488,7 +488,7 @@ function FieldView() {
         /* My sites list */
         <>
           <div className="fv-hello">
-            <h2>Here's your work, {data.employeeName?.split(" ")[0] || "Engineer"}</h2>
+            <h2>Here's your work</h2>
             <p>{data.designation || "Site Engineer"} · {prettyToday()}</p>
           </div>
 
