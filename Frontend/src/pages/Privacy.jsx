@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AccLogo } from "./Home";
 import "./Home.css";
 import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
+import { SITE_CONTACT } from "../config/siteContact";
 
 function Privacy() {
   usePageTitle("Privacy policy", SITE_NAME);
@@ -139,9 +140,9 @@ function Privacy() {
                 <p>If you have any questions or concerns about this Privacy Policy or how we handle your information, please get in touch:</p>
                 <div className="privacy-contact-info">
                   <p><strong>Anonymous Construction Co.</strong></p>
-                  <p>Email: info@acc.com.pk</p>
-                  <p>Phone: +92 300 1234567</p>
-                  <p>Office: Lahore, Pakistan</p>
+                  <p>Email: {SITE_CONTACT.email}</p>
+                  <p>Phone: {SITE_CONTACT.phone}</p>
+                  <p>Office: {SITE_CONTACT.city}</p>
                 </div>
               </div>
 
