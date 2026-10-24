@@ -289,9 +289,17 @@ if (string.Equals(aiProvider, "gemini", StringComparison.OrdinalIgnoreCase))
 else
     throw new InvalidOperationException($"Unknown Ai:Provider '{aiProvider}'. Supported: gemini.");
 
-// Forgot password (email link)
+// Forgot password (email link). The provider is chosen here (Email:Provider), so the rest of the
+// app depends only on IEmailSender. Hosts often block the SMTP ports, so a live site uses resend.
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
-builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+builder.Services.AddHttpClient("email", client => client.Timeout = TimeSpan.FromSeconds(20));
+var emailProvider = builder.Configuration["Email:Provider"] ?? "smtp";
+if (string.Equals(emailProvider, "resend", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IEmailSender, ResendEmailSender>();
+else if (string.Equals(emailProvider, "smtp", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+else
+    throw new InvalidOperationException($"Unknown Email:Provider '{emailProvider}'. Supported: smtp, resend.");
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
