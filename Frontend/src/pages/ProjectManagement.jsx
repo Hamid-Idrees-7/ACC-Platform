@@ -20,10 +20,12 @@ const slug = (s) => (s || "").toLowerCase().replace(/\s+/g, "");
 
 function ProjectManagement() {
   const navigate = useNavigate();
-  const { can } = usePermissions();
+  const { can, needsApproval } = usePermissions();
   const canAdd = can("Projects", "Add");
   const canEdit = can("Projects", "Edit");
   const canDelete = can("Projects", "Delete");
+  // Some people's deletes go to the admin first, so the confirm box says what will really happen.
+  const deleteNeedsApproval = needsApproval("Projects", "Delete");
 
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
@@ -294,8 +296,12 @@ function ProjectManagement() {
             <div className="proj-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
             </div>
-            <h3>Delete this project?</h3>
-            <p><strong>{confirmDelete.title}</strong> and all its phases will be permanently deleted. This cannot be undone.</p>
+            <h3>{deleteNeedsApproval ? "Request to delete this project?" : "Delete this project?"}</h3>
+            <p>
+              {deleteNeedsApproval
+                ? <>A request to delete <strong>{confirmDelete.title}</strong> and all its phases goes to the administrator. Nothing is removed until they approve it.</>
+                : <><strong>{confirmDelete.title}</strong> and all its phases will be permanently deleted. This cannot be undone.</>}
+            </p>
             <div className="proj-confirm-actions">
               <button className="proj-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="proj-confirm-delete" onClick={() => handleDelete(confirmDelete.projectID)} disabled={busy}>Delete</button>

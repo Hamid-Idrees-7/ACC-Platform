@@ -16,10 +16,12 @@ import { useToast } from "../components/Toast";
 import { clickable } from "../utils/a11y";
 
 function Clients() {
-  const { can } = usePermissions();
+  const { can, needsApproval } = usePermissions();
   const canAdd = can("Clients", "Add");
   const canEdit = can("Clients", "Edit");
   const canDelete = can("Clients", "Delete");
+  // Some people's deletes go to the admin first, so the confirm box says what will really happen.
+  const deleteNeedsApproval = needsApproval("Clients", "Delete");
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -321,8 +323,12 @@ function Clients() {
             <div className="cl-confirm-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
             </div>
-            <h3>Delete this client?</h3>
-            <p><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</p>
+            <h3>{deleteNeedsApproval ? "Request to delete this client?" : "Delete this client?"}</h3>
+            <p>
+              {deleteNeedsApproval
+                ? <>A request to delete <strong>{confirmDelete.fullName}</strong> goes to the administrator. Nothing is removed until they approve it.</>
+                : <><strong>{confirmDelete.fullName}</strong> will be permanently deleted. This cannot be undone.</>}
+            </p>
             <div className="cl-confirm-actions">
               <button className="cl-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="cl-confirm-delete" onClick={() => handleDelete(confirmDelete.clientID)} disabled={busy}>Delete</button>

@@ -20,10 +20,12 @@ const wageSuffix = (type) =>
   type === "Monthly" ? "/month · Monthly" : type === "Contract" ? "(contract) · Contract" : "/day · Daily";
 
 function Assignments() {
-  const { can } = usePermissions();
+  const { can, needsApproval } = usePermissions();
   const canAdd = can("Assignments", "Add");
   const canEdit = can("Assignments", "Edit");
   const canDelete = can("Assignments", "Delete");
+  // Some people's deletes go to the admin first, so the confirm box says what will really happen.
+  const deleteNeedsApproval = needsApproval("Assignments", "Delete");
 
   const [assignments, setAssignments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -303,8 +305,12 @@ function Assignments() {
             <div className="asn-confirm-icon del">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </div>
-            <h3>Delete this assignment?</h3>
-            <p><strong>{confirmDelete.employeeName} → {confirmDelete.projectTitle}</strong> will be permanently removed.</p>
+            <h3>{deleteNeedsApproval ? "Request to delete this assignment?" : "Delete this assignment?"}</h3>
+            <p>
+              {deleteNeedsApproval
+                ? <>A request to remove <strong>{confirmDelete.employeeName} → {confirmDelete.projectTitle}</strong> goes to the administrator. Nothing is removed until they approve it.</>
+                : <><strong>{confirmDelete.employeeName} → {confirmDelete.projectTitle}</strong> will be permanently removed.</>}
+            </p>
             <div className="asn-confirm-actions">
               <button className="asn-confirm-cancel" data-close onClick={() => setConfirmDelete(null)}>Cancel</button>
               <button className="asn-confirm-delete" onClick={() => handleDelete(confirmDelete.assignmentID)} disabled={busy}>Delete</button>
