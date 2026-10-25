@@ -48,9 +48,11 @@ function Clients() {
       // Newest first (IDs only go up).
       data.sort((a, b) => b.clientID - a.clientID);
       setClients(data);
-    } catch {
+    } catch (err) {
       if (quiet) showToast("Could not refresh. Please reload the page.", "error");
-      else setError("Could not load clients. Please try again.");
+      else setError(err?.response?.status === 403
+        ? "You don't have access to clients. Ask your administrator if you need it."
+        : "Could not load clients. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -203,7 +205,7 @@ function Clients() {
       {/* Cards grid */}
       {loading ? (
         <SkeletonCards count={6} />
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="cl-empty">
           <div className="cl-empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>

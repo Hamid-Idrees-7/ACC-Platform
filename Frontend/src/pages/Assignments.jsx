@@ -53,9 +53,11 @@ function Assignments() {
       const data = await assignmentService.getAll();
       data.sort((a, b) => b.assignmentID - a.assignmentID);
       setAssignments(data);
-    } catch {
+    } catch (err) {
       if (quiet) showToast("Could not refresh. Please reload the page.", "error");
-      else setError("Could not load assignments. Please try again.");
+      else setError(err?.response?.status === 403
+        ? "You don't have access to assignments. Ask your administrator if you need it."
+        : "Could not load assignments. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -201,7 +203,7 @@ function Assignments() {
 
       {loading ? (
         <SkeletonRows count={6} />
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="asn-empty">
           <div className="asn-empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>

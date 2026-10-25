@@ -52,9 +52,11 @@ function Users() {
       const data = await userService.getAll();
       data.sort((a, b) => b.userID - a.userID);
       setUsers(data);
-    } catch {
+    } catch (err) {
       if (quiet) showToast("Could not refresh. Please reload the page.", "error");
-      else setError("Could not load users. Please try again.");
+      else setError(err?.response?.status === 403
+        ? "You don't have access to users. Ask your administrator if you need it."
+        : "Could not load users. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -236,7 +238,7 @@ function Users() {
       {/* Cards grid */}
       {loading ? (
         <SkeletonCards count={6} />
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="us-empty">
           <div className="us-empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>

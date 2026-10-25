@@ -51,9 +51,11 @@ function ProjectManagement() {
       const data = await projectService.getAll();
       data.sort((a, b) => b.projectID - a.projectID);
       setProjects(data);
-    } catch {
+    } catch (err) {
       if (quiet) showToast("Could not refresh. Please reload the page.", "error");
-      else setError("Could not load projects. Please try again.");
+      else setError(err?.response?.status === 403
+        ? "You don't have access to projects. Ask your administrator if you need it."
+        : "Could not load projects. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -209,7 +211,7 @@ function ProjectManagement() {
       {/* Cards grid */}
       {loading ? (
         <SkeletonCards count={6} />
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="proj-empty">
           <div className="proj-empty-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /></svg>
