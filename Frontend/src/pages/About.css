@@ -607,6 +607,7 @@
     border: 1px solid rgba(0,0,0,0.05);
 }
 .team-architect-photo {
+    background: linear-gradient(135deg, var(--charcoal), var(--dark-brown));
     background-size: cover;
     background-position: center top;
     min-height: 420px;

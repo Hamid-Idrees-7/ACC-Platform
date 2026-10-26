@@ -150,8 +150,8 @@ function Projects() {
           </div>
 
           <div className="projects-list">
-            {visible.map((p) => (
-              <ProjectRow key={p.id} project={p} />
+            {visible.map((p, i) => (
+              <ProjectRow key={p.id} project={p} first={i === 0} />
             ))}
           </div>
         </section>
@@ -201,7 +201,7 @@ function Projects() {
 }
 
 // One project row: image gallery on the left, details on the right.
-function ProjectRow({ project }) {
+function ProjectRow({ project, first = false }) {
   const [imgIndex, setImgIndex] = useState(0);
   const hasImages = project.images.length > 0;
   const multiple = project.images.length > 1;
@@ -213,7 +213,7 @@ function ProjectRow({ project }) {
     <div className={`project-row ${project.featured ? "featured" : ""}`}>
       <div className="project-row-media">
         {project.featured && <span className="project-row-flag">Featured</span>}
-        <LazyBackground className="project-row-image" src={hasImages ? project.images[imgIndex] : null}>
+        <LazyBackground className="project-row-image" src={hasImages ? project.images[imgIndex] : null} eager={first}>
           {!hasImages && <span className="project-row-badge">{project.category}</span>}
           {multiple && (
             <>

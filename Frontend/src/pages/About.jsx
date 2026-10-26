@@ -97,7 +97,7 @@ function About() {
         {/* Our story */}
         <section className="about-story-section">
           <div className="about-story-grid">
-            <LazyBackground className="about-story-visual reveal" src="/images/founder-story.webp">
+            <LazyBackground className="about-story-visual reveal" src="/images/founder-story.webp" eager>
               <div className="about-story-badge">
                 <span className="about-story-badge-year">Est. 2010</span>
                 <span className="about-story-badge-text">Lahore, Pakistan</span>

@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 
 // A block with a background photo that is only downloaded when it is close to scrolling
 // into view. Until then the block keeps its normal CSS background.
-function LazyBackground({ src, className, style, children, ...rest }) {
+// eager: the photo is the first thing a visitor sees on the page, so it starts downloading
+// straight away instead of waiting to be scrolled near.
+function LazyBackground({ src, className, style, children, eager = false, ...rest }) {
   const ref = useRef(null);
-  const [near, setNear] = useState(() => typeof IntersectionObserver === "undefined");
+  const [near, setNear] = useState(() => eager || typeof IntersectionObserver === "undefined");
 
   useEffect(() => {
     if (near || !ref.current) return;
@@ -15,7 +17,7 @@ function LazyBackground({ src, className, style, children, ...rest }) {
           observer.disconnect();
         }
       },
-      { rootMargin: "400px 0px" }
+      { rootMargin: "900px 0px" }
     );
     observer.observe(ref.current);
     return () => observer.disconnect();
