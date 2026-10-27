@@ -106,7 +106,7 @@
 
 /* Mission and vision */
 .about-mv-section {
-    padding: 0 40px var(--section-padding-bottom, 100px);
+    padding: 0 var(--page-gutter, 40px) var(--section-padding-bottom, 100px);
     background: var(--white);
     padding-bottom: 100px;
 }
@@ -580,16 +580,16 @@
 .timeline-dot { transition: var(--transition); }
 
 /* Responsive: team, certifications and testimonials */
-@media (max-width: 1024px) {
-    .testimonials-track .testimonial-card { flex: 0 0 calc((100% - 26px) / 2); }
-}
+/* The card width and the gap both come from --cards-per-page and --card-gap, which
+   About.jsx sets from the window width and also uses for the slide transform. Any
+   width or margin hardcoded per breakpoint here would disagree with that transform
+   and drift the track a few pixels on every press, so there is nothing to override. */
 @media (max-width: 900px) {
     .team-founder { grid-template-columns: 1fr; text-align: center; justify-items: center; padding: 30px 24px; }
     .team-grid { grid-template-columns: 1fr; max-width: 400px; }
     .certs-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
-    .testimonials-track .testimonial-card { flex: 0 0 100%; margin-right: 26px; }
     .testimonial-arrow { width: 40px; height: 40px; }
 }
 @media (max-width: 500px) {
@@ -686,4 +686,108 @@
     .testimonial-card { padding: 22px 20px; border-radius: 16px; }
     .testimonial-arrow { width: 40px; height: 40px; }
     .testimonials-slider { gap: 8px; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Phone type and spacing scale for the About page.
+   Same reason as Home.css: the clamp() floors were desktop sizes, so nothing
+   scaled down on a phone. Last in the file so source order lets it win.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .about-hero { padding: 96px 24px 56px; }
+    .about-hero-content h1 { font-size: 28px; line-height: 1.2; }
+    .about-hero-content p { font-size: 15.5px; }
+    .about-story-content h2 { font-size: 25px; line-height: 1.22; }
+    .about-story-content p { font-size: 15px; }
+    .about-mv-card { padding: 30px 26px; }
+    .about-mv-card h3 { font-size: 19px; }
+    .about-mv-card p { font-size: 14px; }
+    .about-stats-section { padding: 52px 24px; }
+    .about-stat-num { font-size: 38px; }
+    .team-founder-info h3 { font-size: 24px; }
+    .team-architect-info h3 { font-size: 24px; }
+    .cert-card { padding: 26px 20px; }
+    .cert-card h4 { font-size: 15.5px; }
+    .testimonial-text { font-size: 14.5px; line-height: 1.7; }
+}
+
+@media (max-width: 560px) {
+    /* Page heroes sit under a 56px fixed header, so 140px of top padding was
+       roughly a third of the screen before a word appeared. */
+    .about-hero { padding: 72px 16px 40px; }
+    .about-hero-content h1 { font-size: 24px; line-height: 1.18; }
+    .about-hero-content p { font-size: 14px; line-height: 1.55; }
+
+    .about-story-grid { gap: 24px; }
+    .about-story-visual { height: 220px; }
+    .about-story-content h2 { font-size: 21px; line-height: 1.22; }
+    .about-story-content p { font-size: 14px; line-height: 1.62; margin-bottom: 12px; }
+    .about-story-badge { padding: 11px 16px; }
+    .about-story-badge-year { font-size: 19px; }
+    .about-story-badge-text { font-size: 10px; letter-spacing: 0.6px; }
+
+    .about-mv-grid { gap: 14px; }
+    .about-mv-card { padding: 22px 20px; border-radius: 14px; }
+    .about-mv-icon { width: 46px; height: 46px; margin-bottom: 13px; }
+    .about-mv-icon svg { width: 24px; height: 24px; }
+    .about-mv-card h3 { font-size: 17px; margin-bottom: 9px; }
+    .about-mv-card p { font-size: 13.5px; line-height: 1.6; }
+
+    /* The dot sits 12px from the left and is 16px across, so the card starts at 44px
+       to stay clear of it. */
+    .timeline-item { padding: 12px 0 12px 44px; }
+    .timeline-content { padding: 15px 17px; }
+    .timeline-year { font-size: 16.5px; margin-bottom: 4px; }
+    .timeline-content h4 { font-size: 15px; margin-bottom: 5px; }
+    .timeline-content p { font-size: 13px; line-height: 1.55; }
+
+    .about-stats-section { padding: 32px 16px; }
+    /* Four numbers stacked one per row ran the length of the screen; two by two reads
+       as one block of figures instead. */
+    .about-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
+    .about-stat-num { font-size: 29px; margin-bottom: 5px; }
+    .about-stat-label { font-size: 11.5px; letter-spacing: 0.4px; }
+
+    .team-founder { padding: 20px 16px; }
+    .team-founder-tag { font-size: 10.5px; padding: 4px 11px; margin-bottom: 9px; }
+    .team-founder-info h3 { font-size: 20px; }
+    .team-role { font-size: 13px; margin-bottom: 10px; }
+    .team-desc { font-size: 13.5px; line-height: 1.65; }
+    .team-grid, .team-grid-two { gap: 14px; }
+    .team-grid-two { margin-bottom: 22px; }
+    .team-card-info { padding: 15px 15px 17px; }
+    .team-card-info h4 { font-size: 16px; }
+    .team-card-info .team-role { font-size: 12.5px; margin-bottom: 7px; }
+    .team-card-info .team-desc { font-size: 13px; }
+
+    .team-architect-photo { min-height: 230px; }
+    .team-architect-info { padding: 22px 18px; }
+    .team-architect-tag { font-size: 10.5px; padding: 5px 13px; margin-bottom: 10px; }
+    .team-architect-info h3 { font-size: 20px; }
+    .team-architect-info .team-role { font-size: 13px; margin-bottom: 11px; }
+    .team-architect-info .team-desc { font-size: 13.5px; line-height: 1.65; margin-bottom: 14px; }
+    .team-architect-points { gap: 9px; }
+    .team-architect-points li { font-size: 13px; line-height: 1.5; }
+
+    .certs-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .cert-card { padding: 18px 15px; border-radius: 14px; }
+    .cert-icon { width: 44px; height: 44px; }
+    .cert-icon svg { width: 22px; height: 22px; }
+    .cert-card h4 { font-size: 14.5px; margin-bottom: 5px; }
+    .cert-card p { font-size: 12.5px; line-height: 1.55; }
+
+    /* The testimonial was the tallest card on the site: a big quote mark, 15px text at
+       1.8 line-height, then a 52px avatar block. All three come down together. */
+    .testimonial-card { padding: 18px 16px; border-radius: 14px; }
+    .testimonial-quote { margin-bottom: 10px; }
+    .testimonial-quote svg { width: 26px; height: 26px; }
+    .testimonial-text { font-size: 13.5px; line-height: 1.65; margin-bottom: 15px; }
+    .testimonial-avatar { width: 42px; height: 42px; font-size: 0.95rem; }
+    .testimonial-avatar.official { font-size: 0.72rem; }
+    .testimonial-author-info strong { font-size: 13.5px; }
+    .testimonial-author-info span { font-size: 12px; }
+    .testimonial-arrow { width: 36px; height: 36px; }
+    .testimonials-dots { gap: 6px; }
+    .testimonial-dot { width: 8px; height: 8px; }
 }

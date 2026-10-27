@@ -15,10 +15,19 @@
     --dark-brown: #1F1410;
     --container-width: 1440px;
     --section-padding: 110px 40px;
+    --page-gutter: 40px;
     --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
     --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
     --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The gutter shrinks with the screen, so the words keep the width instead of the margin. */
+@media (max-width: 900px) {
+    :root { --section-padding: 80px 24px; --page-gutter: 24px; }
+}
+@media (max-width: 560px) {
+    :root { --section-padding: 64px 18px; --page-gutter: 18px; }
 }
 
 * {
@@ -221,6 +230,10 @@ a {
         top: 100%;
         left: 0;
         right: 0;
+        /* The drawer is a grid item, and a grid item that is centred shrinks to fit its
+           own text even when left and right are both 0. Stretching it back makes the
+           drawer span the screen instead of floating as a narrow box over the hero. */
+        justify-self: stretch;
         background: var(--white);
         padding: 14px 25px 18px;
         box-shadow: var(--shadow-lg);
@@ -601,7 +614,7 @@ a {
     max-width: var(--container-width);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
     gap: 24px;
 }
 
@@ -1303,7 +1316,7 @@ a {
 
 /* Services (cream yellow) */
 .services-section { padding: var(--section-padding); background: var(--cream); }
-.services-grid { max-width: var(--container-width); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 24px; }
+.services-grid { max-width: var(--container-width); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 24px; }
 .service-card { background: var(--white); padding: 40px 32px; border-radius: 16px; box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.04); transition: var(--transition); }
 .service-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
 .service-icon { width: 68px; height: 68px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--white); margin-bottom: 24px; }
@@ -1313,7 +1326,7 @@ a {
 
 /* Projects (white) */
 .projects-section { padding: var(--section-padding); background: var(--white); }
-.projects-grid { max-width: var(--container-width); margin: 0 auto 50px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+.projects-grid { max-width: var(--container-width); margin: 0 auto 50px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 28px; }
 .project-card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: var(--transition); border: 1px solid #F0F0F0; }
 .project-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
 .project-card-image { height: 220px; background: linear-gradient(135deg, var(--charcoal) 0%, var(--dark-brown) 100%); background-size: cover; background-position: center; position: relative; display: flex; align-items: flex-start; justify-content: flex-start; padding: 16px; }
@@ -1423,4 +1436,138 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     font-size: 1.1rem;
     line-height: 1.7;
     margin-bottom: 32px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Phone type and spacing scale
+
+   The headings on this site are sized with clamp(), eg clamp(1.8rem, 3.5vw, 2.8rem).
+   On a 390px screen 3.5vw is only 13.6px, so clamp returns the 1.8rem floor and the
+   heading stays at its desktop size: nothing was scaling down on a phone at all.
+   Everything below sets the floor the phone actually needs, and tightens the vertical
+   rhythm so a section is a section rather than a screenful of padding.
+
+   This block is last in the file on purpose: it shares specificity with the rules it
+   replaces, so source order is what lets it win.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    /* Tablet: a step down, not the full phone treatment. */
+    .hero-section { padding: 84px 24px 68px; }
+    .section-header { margin-bottom: 44px; }
+    .about-visual-year { font-size: 4rem; }
+    .service-card { padding: 30px 26px; }
+    .value-card { padding: 32px 26px; }
+    .footer { padding: 56px 24px 26px; }
+    .footer-grid { margin-bottom: 36px; }
+}
+
+@media (max-width: 560px) {
+    :root {
+        --section-padding: 44px 16px;
+        --page-gutter: 16px;
+    }
+
+    /* Header: a fixed height, so the drawer below it and the page below that always
+       line up. Without it the bar is as tall as the Login button plus its padding,
+       which changes on scroll and leaves a gap under the fixed bar. */
+    .navbar,
+    .navbar.scrolled { height: 56px; padding: 0; display: flex; align-items: center; }
+    .acc-site main { margin-top: 56px; }
+    .logo-text { font-size: 20px; }
+    .logo-divider { height: 20px; }
+    .logo-tagline { font-size: 8.5px; }
+    .logo-byline { font-size: 8.5px; letter-spacing: 1px; }
+    .btn-login { padding: 0 14px; font-size: 13px; min-height: 40px; }
+    .navbar-toggler { min-height: 40px; }
+    .navbar-menu { padding: 8px 16px 12px; }
+
+    /* Hero */
+    .hero-section { padding: 56px 16px 48px; }
+    .hero-badge { font-size: 10px; padding: 5px 13px; margin-bottom: 14px; letter-spacing: 0.6px; }
+    .hero-title { font-size: 25px; line-height: 1.16; margin-bottom: 0.6rem; }
+    .hero-subtitle { font-size: 15px; line-height: 1.45; margin-bottom: 0.55rem; }
+    .hero-description { font-size: 14px; line-height: 1.55; margin-bottom: 1.4rem; }
+    .hero-buttons { gap: 10px; }
+    .btn-primary,
+    .btn-secondary { padding: 12px 20px; font-size: 13.5px; }
+
+    /* Section headers: the 70px gap under a title was a third of a screen on its own. */
+    .section-header { margin-bottom: 24px; }
+    .section-tag { font-size: 10px; margin-bottom: 9px; letter-spacing: 0.8px; }
+    .section-title { font-size: 21px; line-height: 1.22; margin-bottom: 9px; }
+    .section-subtitle { font-size: 14px; line-height: 1.5; }
+
+    /* About block */
+    .about-grid { gap: 26px; }
+    .about-visual-content { padding: 22px; }
+    .about-visual-year { font-size: 44px; margin-bottom: 6px; }
+    .about-visual-text { font-size: 14px; margin-bottom: 18px; }
+    .about-visual-divider { margin: 14px 0; }
+    .about-visual-tagline { font-size: 13px; }
+    .about-content h2 { font-size: 21px; line-height: 1.22; margin-bottom: 11px; }
+    .about-content > p { font-size: 14.5px; line-height: 1.6; margin-bottom: 12px; }
+    .about-points { gap: 14px; }
+    .about-point h4 { font-size: 14.5px; }
+    .about-point p { font-size: 13px; line-height: 1.55; }
+
+    /* Services */
+    .services-grid { gap: 14px; }
+    .service-card { padding: 22px 20px; border-radius: 14px; }
+    .service-icon { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 14px; }
+    .service-icon svg { width: 24px; height: 24px; }
+    .service-card h3 { font-size: 16px; margin-bottom: 8px; }
+    .service-card p { font-size: 13.5px; line-height: 1.6; }
+
+    /* Projects */
+    .projects-grid { gap: 16px; margin-bottom: 26px; }
+    .project-card { border-radius: 14px; }
+    .project-card-image { height: 168px; }
+    .project-card-body { padding: 16px 16px 18px; }
+    .project-card-body h3 { font-size: 16px; margin-bottom: 6px; }
+    .project-card-location { font-size: 13px; }
+    .project-card-badge { font-size: 10.5px; padding: 5px 11px; }
+
+    /* Why us */
+    .values-grid { gap: 14px; }
+    .value-card { padding: 22px 20px; border-radius: 14px; }
+    .value-card h3 { font-size: 16px; margin-bottom: 8px; }
+    .value-card p { font-size: 13.5px; line-height: 1.6; }
+
+    /* Contact */
+    .contact-wrapper { border-radius: 16px; }
+    .contact-left { padding: 26px 18px; }
+    .contact-left h2 { font-size: 20px; margin: 11px 0 10px; }
+    .contact-left p { font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; }
+    .contact-info-list { gap: 13px; }
+    .contact-info-item { font-size: 13px; gap: 11px; }
+    .contact-info-item strong { font-size: 11.5px; }
+    .contact-info-icon { width: 36px; height: 36px; border-radius: 9px; }
+    .contact-right { padding: 24px 18px; }
+    .contact-form-header { margin-bottom: 16px; }
+    .contact-form-header h3 { font-size: 17px; }
+    .contact-form-header p { font-size: 13px; }
+    .contact-form .form-group { margin-bottom: 12px; }
+    .contact-form-row { gap: 12px; }
+    .form-label { font-size: 12.5px; margin-bottom: 6px; }
+    .contact-form .form-input { padding: 11px 14px; font-size: 14px; }
+    .contact-textarea { min-height: 72px; }
+    .btn-submit { padding: 13px; font-size: 14px; }
+
+    /* Closing call to action, shared with the About and Projects pages */
+    .about-cta-section { padding: 48px 16px; }
+    .about-cta-content h2 { font-size: 20px; line-height: 1.22; margin-bottom: 10px; }
+    .about-cta-content p { font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+
+    /* Footer */
+    .footer { padding: 36px 16px 20px; }
+    .footer-grid { gap: 24px; margin-bottom: 22px; }
+    .footer-brand .logo-text { font-size: 23px; margin-bottom: 10px; }
+    .footer-brand .footer-company { font-size: 12.5px; margin-bottom: 13px; }
+    .footer-brand p { font-size: 13px; line-height: 1.6; }
+    .footer-contact { gap: 13px; }
+    .footer-contact-item { font-size: 13px; }
+    .footer-contact-item strong { font-size: 11.5px; }
+    .footer-bottom { font-size: 12.5px; }
+    .btn-text-link { font-size: 14px; margin-top: 18px; }
 }

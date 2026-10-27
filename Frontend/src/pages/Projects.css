@@ -248,3 +248,43 @@
     .project-row-image { min-height: 260px; }
     .project-row-info { padding: 32px 28px; }
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Phone type and spacing scale for the Projects page.
+   Last in the file so source order lets it win over the clamp() floors above.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .projects-hero { padding: 96px 24px 56px; }
+    .projects-hero-content h1 { font-size: 28px; line-height: 1.2; }
+    .projects-hero-content p { font-size: 15.5px; }
+    .project-row-info { padding: 26px 22px; }
+    .project-row-info h3 { font-size: 21px; }
+    .project-row-story { font-size: 14px; }
+}
+
+@media (max-width: 560px) {
+    .projects-hero { padding: 72px 16px 40px; }
+    .projects-hero-content h1 { font-size: 24px; line-height: 1.18; }
+    .projects-hero-content p { font-size: 14px; line-height: 1.55; }
+
+    .projects-filters { gap: 8px; margin-bottom: 22px; }
+    .projects-filter { padding: 8px 15px; font-size: 12.5px; }
+
+    .projects-list { gap: 18px; }
+    .project-row { border-radius: 14px; }
+    /* A 260px photo plus a 32px-padded wall of story filled the screen twice over. */
+    .project-row-image { min-height: 190px; }
+    .project-row-info { padding: 18px 16px 20px; }
+    .project-row-meta { gap: 8px; margin-bottom: 9px; }
+    .project-row-cat { font-size: 10.5px; padding: 3px 10px; }
+    .project-row-year { font-size: 12px; }
+    .project-row-info h3 { font-size: 17px; line-height: 1.25; }
+    .project-row-location { font-size: 12.5px; }
+    .project-row-story { font-size: 13.5px; line-height: 1.65; }
+    .project-row-highlights { gap: 7px; }
+    .project-row-highlights li { padding: 5px 12px; font-size: 12px; }
+    .project-row-flag { font-size: 10.5px; padding: 5px 12px; }
+    .project-row-badge { font-size: 10.5px; padding: 5px 11px; }
+    .project-img-arrow { width: 32px; height: 32px; }
+}
