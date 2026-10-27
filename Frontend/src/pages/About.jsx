@@ -24,8 +24,28 @@ function About() {
     { initial: "UBL", name: "United Bank Limited", project: "Branch Construction, Lahore", text: "ACC delivered our new branch to the exact standards a bank requires — quality finishing, strict timelines, and full compliance. A reliable construction partner.", official: true },
   ];
 
-  const perPage = 4;
+  // How many cards fit side by side. Four only ever fitted on a desktop: on a phone that
+  // squeezed every card down to about 50px wide, so none of them could be read.
+  const cardsThatFit = () => {
+    if (typeof window === "undefined") return 4;
+    if (window.innerWidth <= 640) return 1;
+    if (window.innerWidth <= 1024) return 2;
+    return 4;
+  };
+  const [perPage, setPerPage] = useState(cardsThatFit);
+  useEffect(() => {
+    const onResize = () => setPerPage(cardsThatFit());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // One card on a phone sits closer to its neighbour than four do on a desktop.
+  const cardGap = perPage === 1 ? 14 : 26;
   const maxIndex = Math.max(0, testimonials.length - perPage);
+  useEffect(() => {
+    setTestimonialIndex((i) => Math.min(i, Math.max(0, testimonials.length - perPage)));
+  }, [perPage, testimonials.length]);
+
   const nextTestimonials = () => setTestimonialIndex((i) => Math.min(i + 1, maxIndex));
   const prevTestimonials = () => setTestimonialIndex((i) => Math.max(i - 1, 0));
 
@@ -289,7 +309,11 @@ function About() {
             <div className="testimonials-viewport">
               <div
                 className="testimonials-track"
-                style={{ transform: `translateX(calc(-${testimonialIndex} * (100% / ${perPage})))` }}
+                style={{
+                  "--cards-per-page": perPage,
+                  "--card-gap": `${cardGap}px`,
+                  transform: `translateX(calc(-${testimonialIndex} * (100% + ${cardGap}px) / ${perPage}))`,
+                }}
               >
                 {testimonials.map((t, i) => (
                   <div className="testimonial-card" key={i}>

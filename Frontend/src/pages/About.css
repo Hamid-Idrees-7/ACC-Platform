@@ -442,12 +442,14 @@
     overflow: hidden;
 }
 .testimonials-track {
+    --cards-per-page: 4;
+    --card-gap: 26px;
     display: flex;
     transition: transform 0.5s ease;
 }
 .testimonials-track .testimonial-card {
-    flex: 0 0 calc((100% - 3 * 26px) / 4);
-    margin-right: 26px;
+    flex: 0 0 calc((100% - (var(--cards-per-page) - 1) * var(--card-gap)) / var(--cards-per-page));
+    margin-right: var(--card-gap);
     box-sizing: border-box;
 }
 .testimonials-track .testimonial-card:last-child { margin-right: 0; }
@@ -676,4 +678,12 @@
     .team-architect { grid-template-columns: 1fr; max-width: 420px; }
     .team-architect-photo { min-height: 360px; }
     .team-architect-info { padding: 32px 28px; }
+}
+
+/* Phones: one card at a time, so it gets the room. The padding comes in and the arrows
+   shrink, which leaves the words the width they need. */
+@media (max-width: 640px) {
+    .testimonial-card { padding: 22px 20px; border-radius: 16px; }
+    .testimonial-arrow { width: 40px; height: 40px; }
+    .testimonials-slider { gap: 8px; }
 }
