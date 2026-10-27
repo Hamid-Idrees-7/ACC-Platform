@@ -148,5 +148,7 @@
 @media (max-width: 480px) {
     .pc-root { right: 16px; bottom: 16px; }
     .pc-panel { width: calc(100vw - 24px); height: calc(100vh - 104px); right: -4px; }
-    .pc-hello { width: 210px; }
+    /* On a phone the greeting sits on top of the buttons underneath it, so only the
+       chat button itself is shown. */
+    .pc-hello { display: none; }
 }
