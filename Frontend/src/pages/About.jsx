@@ -103,6 +103,16 @@ function About() {
         </div>
       </header>
 
+      {/* Pressing the page behind the open menu closes it. */}
+      {menuOpen && (
+        <button
+          type="button"
+          className="navbar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       <main>
         {/* Page hero */}
         <section className="about-hero">

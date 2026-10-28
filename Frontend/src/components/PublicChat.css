@@ -155,10 +155,30 @@
     .pc-panel {
         width: calc(100vw - 24px);
         right: -4px;
-        height: calc(100vh - 160px);
-        height: calc(100dvh - 160px);
+        height: calc(100vh - 170px);
+        height: calc(100dvh - 170px);
         max-height: none;
     }
+
+    /* The whole assistant was built at desktop scale: a 62px button, a 40px crest in
+       its header and a 48px badge on the welcome screen, all on a 390px phone. */
+    .pc-bubble { width: 54px; height: 54px; }
+    .pc-head { padding: 11px 13px; }
+    .pc-head-ic { width: 34px; height: 34px; border-radius: 10px; }
+    .pc-head-ic .pc-crane { width: 21px; height: 21px; }
+    .pc-close { width: 28px; height: 28px; border-radius: 8px; }
+    .pc-avatar { width: 26px; height: 26px; border-radius: 8px; }
+    .pc-avatar .pc-crane { width: 16px; height: 16px; }
+    .pc-msg { font-size: 13.5px; padding: 10px 12px; }
+    .pc-welcome { padding: 14px 13px 12px; }
+    .pc-welcome-badge { width: 40px; height: 40px; border-radius: 12px; margin-bottom: 9px; }
+    .pc-welcome-badge .pc-crane { width: 23px; height: 23px; }
+    .pc-welcome-sub { font-size: 12px; margin-bottom: 12px; }
+    .pc-card-ic { width: 31px; height: 31px; }
+    .pc-input { padding: 9px 11px 8px; }
+    .pc-send { width: 34px; height: 34px; border-radius: 10px; }
+    /* The message box keeps its size from styles/global.css, which holds every field
+       at 16px below 640px so iOS Safari does not zoom the page in on focus. */
     /* On a phone the greeting sits on top of the buttons underneath it, so only the
        chat button itself is shown. */
     .pc-hello { display: none; }

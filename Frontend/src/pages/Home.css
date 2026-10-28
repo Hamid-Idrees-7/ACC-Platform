@@ -263,6 +263,24 @@ a {
     }
 }
 
+/* Pressing anywhere outside the open drawer closes it, which is how a menu on a phone
+   is expected to behave. It sits under the header (z-index 1000) so the drawer itself
+   and the Login button stay pressable. */
+.navbar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(26, 26, 26, 0.35);
+    cursor: pointer;
+}
+
+@media (min-width: 993px) {
+    .navbar-backdrop { display: none; }
+}
+
 /* Phones: keep logo, Login and the menu button on one row */
 @media (max-width: 560px) {
     .navbar-container {
@@ -1452,12 +1470,38 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
    ─────────────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-    /* Tablet: a step down, not the full phone treatment. */
+    /* Tablet and a narrowed desktop window: a step down, not the full phone treatment.
+       This range is the one a desktop browser lands in when it is dragged narrow, so it
+       needs its own sizes rather than inheriting the desktop ones. */
+    .navbar,
+    .navbar.scrolled { height: 64px; padding: 0; display: flex; align-items: center; }
+    .acc-site main { margin-top: 64px; }
+
     .hero-section { padding: 84px 24px 68px; }
-    .section-header { margin-bottom: 44px; }
+    .hero-title { font-size: 30px; line-height: 1.18; }
+    .hero-subtitle { font-size: 17px; }
+    .hero-description { font-size: 15.5px; line-height: 1.6; }
+
+    .section-header { margin-bottom: 40px; }
+    .section-title { font-size: 25px; line-height: 1.22; }
+    .section-subtitle { font-size: 15.5px; }
+
     .about-visual-year { font-size: 4rem; }
+    .about-content h2 { font-size: 25px; line-height: 1.22; }
+    .about-content > p { font-size: 15.5px; line-height: 1.65; }
+
     .service-card { padding: 30px 26px; }
     .value-card { padding: 32px 26px; }
+    .service-card h3,
+    .value-card h3,
+    .project-card-body h3 { font-size: 18px; }
+    .service-card p,
+    .value-card p { font-size: 14px; }
+
+    .contact-left h2 { font-size: 23px; }
+    .about-cta-content h2 { font-size: 23px; }
+    .about-cta-content p { font-size: 15.5px; }
+
     .footer { padding: 56px 24px 26px; }
     .footer-grid { margin-bottom: 36px; }
 }
@@ -1472,15 +1516,46 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
        line up. Without it the bar is as tall as the Login button plus its padding,
        which changes on scroll and leaves a gap under the fixed bar. */
     .navbar,
-    .navbar.scrolled { height: 56px; padding: 0; display: flex; align-items: center; }
-    .acc-site main { margin-top: 56px; }
+    .navbar.scrolled { height: 60px; padding: 0; display: flex; align-items: center; }
+    .acc-site main { margin-top: 60px; }
     .logo-text { font-size: 20px; }
     .logo-divider { height: 20px; }
     .logo-tagline { font-size: 8.5px; }
     .logo-byline { font-size: 8.5px; letter-spacing: 1px; }
     .btn-login { padding: 0 14px; font-size: 13px; min-height: 40px; }
     .navbar-toggler { min-height: 40px; }
-    .navbar-menu { padding: 8px 16px 12px; }
+
+    /* The drawer was a white sheet with four bare lines floating in it. Each
+       destination now sits in a container of its own, so the menu reads as a set of
+       things to press rather than as text that happens to be tappable. */
+    .navbar-menu { padding: 10px 14px 14px; }
+    .navbar-links { gap: 7px; }
+    .navbar-menu .nav-link {
+        min-height: 46px;
+        padding: 0 16px;
+        border-radius: 12px;
+        background: var(--light-gray);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        font-size: 14.5px;
+        font-weight: 600;
+        justify-content: flex-start;
+    }
+    .navbar-menu .nav-link.active {
+        background: rgba(246, 100, 53, 0.1);
+        border-color: rgba(246, 100, 53, 0.35);
+        color: var(--primary);
+    }
+    /* The sliding underline belongs to the desktop row; inside a container it would
+       draw a line across the bottom of the box. */
+    .navbar-menu .nav-link::after { display: none; }
+
+    /* A section scrolled to from the menu stops below the fixed header instead of
+       starting underneath it. */
+    .about-section,
+    .services-section,
+    .projects-section,
+    .why-us-section,
+    .contact-section { scroll-margin-top: 68px; }
 
     /* Hero */
     .hero-section { padding: 56px 16px 48px; }
@@ -1508,14 +1583,16 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .about-content h2 { font-size: 21px; line-height: 1.22; margin-bottom: 11px; }
     .about-content > p { font-size: 14.5px; line-height: 1.6; margin-bottom: 12px; }
     .about-points { gap: 14px; }
+    .about-point-icon { width: 38px; height: 38px; border-radius: 10px; }
+    .about-point-icon svg { width: 19px; height: 19px; }
     .about-point h4 { font-size: 14.5px; }
     .about-point p { font-size: 13px; line-height: 1.55; }
 
     /* Services */
     .services-grid { gap: 14px; }
     .service-card { padding: 22px 20px; border-radius: 14px; }
-    .service-icon { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 14px; }
-    .service-icon svg { width: 24px; height: 24px; }
+    .service-icon { width: 42px; height: 42px; border-radius: 11px; margin-bottom: 12px; }
+    .service-icon svg { width: 21px; height: 21px; }
     .service-card h3 { font-size: 16px; margin-bottom: 8px; }
     .service-card p { font-size: 13.5px; line-height: 1.6; }
 
@@ -1531,26 +1608,33 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     /* Why us */
     .values-grid { gap: 14px; }
     .value-card { padding: 22px 20px; border-radius: 14px; }
+    /* This circle was 80px across with a 36px glyph inside it: the single largest
+       piece of decoration on a phone screen. */
+    .value-icon { width: 44px; height: 44px; margin: 0 auto 12px; }
+    .value-icon svg { width: 22px; height: 22px; }
     .value-card h3 { font-size: 16px; margin-bottom: 8px; }
     .value-card p { font-size: 13.5px; line-height: 1.6; }
 
     /* Contact */
     .contact-wrapper { border-radius: 16px; }
+    /* Pressing "Contact Us" should land on the thing you came to do. On a phone the
+       form goes first and the address block follows it, so the menu arrives at
+       "Send us a message" rather than at the panel above it. */
+    .contact-right { order: -1; padding: 24px 18px; }
     .contact-left { padding: 26px 18px; }
     .contact-left h2 { font-size: 20px; margin: 11px 0 10px; }
     .contact-left p { font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; }
-    .contact-info-list { gap: 13px; }
-    .contact-info-item { font-size: 13px; gap: 11px; }
+    .contact-info-list { gap: 12px; }
+    .contact-info-item { font-size: 13px; gap: 10px; }
     .contact-info-item strong { font-size: 11.5px; }
-    .contact-info-icon { width: 36px; height: 36px; border-radius: 9px; }
-    .contact-right { padding: 24px 18px; }
+    .contact-info-icon { width: 32px; height: 32px; border-radius: 8px; }
     .contact-form-header { margin-bottom: 16px; }
     .contact-form-header h3 { font-size: 17px; }
     .contact-form-header p { font-size: 13px; }
     .contact-form .form-group { margin-bottom: 12px; }
     .contact-form-row { gap: 12px; }
     .form-label { font-size: 12.5px; margin-bottom: 6px; }
-    .contact-form .form-input { padding: 11px 14px; font-size: 14px; }
+    .contact-form .form-input { padding: 11px 14px; }
     .contact-textarea { min-height: 72px; }
     .btn-submit { padding: 13px; font-size: 14px; }
 
@@ -1560,14 +1644,38 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .about-cta-content p { font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
 
     /* Footer */
-    .footer { padding: 36px 16px 20px; }
-    .footer-grid { gap: 24px; margin-bottom: 22px; }
-    .footer-brand .logo-text { font-size: 23px; margin-bottom: 10px; }
-    .footer-brand .footer-company { font-size: 12.5px; margin-bottom: 13px; }
-    .footer-brand p { font-size: 13px; line-height: 1.6; }
-    .footer-contact { gap: 13px; }
-    .footer-contact-item { font-size: 13px; }
-    .footer-contact-item strong { font-size: 11.5px; }
-    .footer-bottom { font-size: 12.5px; }
-    .btn-text-link { font-size: 14px; margin-top: 18px; }
+    .footer { padding: 30px 16px 16px; }
+    .footer-grid { gap: 20px; margin-bottom: 18px; }
+    .footer-brand .logo-text { font-size: 21px; margin-bottom: 8px; }
+    .footer-brand .footer-company { font-size: 12px; margin-bottom: 10px; }
+    .footer-brand p { font-size: 12.5px; line-height: 1.55; }
+    .footer-contact { gap: 10px; }
+    .footer-contact-item { font-size: 12.5px; }
+    .footer-contact-item strong { font-size: 11px; }
+    .footer-contact-icon { width: 32px; height: 32px; border-radius: 7px; }
+    .footer-contact-icon svg { width: 15px; height: 15px; }
+    .footer-bottom { font-size: 12px; padding-top: 14px; }
+    .btn-text-link { font-size: 14px; margin-top: 16px; }
+
+    /* Login: the sign-in page and the panel on the home page share these classes. */
+    .login-left,
+    .login-right { padding: 24px 18px; }
+    .login-tag { font-size: 10.5px; padding: 5px 13px; margin-bottom: 13px; }
+    .login-left h2 { font-size: 20px; margin-bottom: 11px; }
+    .login-left p { font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; }
+    .login-info-list { gap: 10px; margin-top: 16px; }
+    .login-info-item { font-size: 13px; gap: 11px; }
+    .login-form-header { margin-bottom: 18px; }
+    .login-form-header h2 { font-size: 19px; }
+    .login-form-header p { font-size: 13px; }
+    .form-group { margin-bottom: 13px; }
+    .form-input { padding: 11px 14px; }
+    .form-options { font-size: 12.5px; }
+    .login-footer { font-size: 12.5px; }
+    .login-msg-box { padding: 11px 14px; font-size: 13px; margin-bottom: 16px; }
+
+    /* Field text is deliberately not set anywhere in this block: styles/global.css
+       already holds every input, select and textarea at 16px below 640px, because
+       iOS Safari zooms the page in on any field smaller than that. Padding is all a
+       field needs here. */
 }

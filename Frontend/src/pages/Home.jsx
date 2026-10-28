@@ -174,6 +174,16 @@ function Home() {
         </div>
       </header>
 
+      {/* Pressing the page behind the open menu closes it. */}
+      {menuOpen && (
+        <button
+          type="button"
+          className="navbar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       <main>
         {/* Hero */}
         <section id="home" className="hero-section">

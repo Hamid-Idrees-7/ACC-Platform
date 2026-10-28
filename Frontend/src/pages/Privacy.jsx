@@ -50,6 +50,16 @@ function Privacy() {
         </div>
       </header>
 
+      {/* Pressing the page behind the open menu closes it. */}
+      {menuOpen && (
+        <button
+          type="button"
+          className="navbar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
       <main>
         <section className="privacy-section">
           <div className="privacy-container">
