@@ -720,12 +720,13 @@
     .about-hero-content p { font-size: 14px; line-height: 1.55; }
 
     .about-story-grid { gap: 24px; }
-    .about-story-visual { height: 220px; }
+    /* The photo gets the room and the "EST 2010" tile stops competing with it. */
+    .about-story-visual { height: 285px; }
     .about-story-content h2 { font-size: 21px; line-height: 1.22; }
     .about-story-content p { font-size: 14px; line-height: 1.62; margin-bottom: 12px; }
-    .about-story-badge { padding: 11px 16px; }
-    .about-story-badge-year { font-size: 19px; }
-    .about-story-badge-text { font-size: 10px; letter-spacing: 0.6px; }
+    .about-story-badge { padding: 7px 11px; }
+    .about-story-badge-year { font-size: 15px; }
+    .about-story-badge-text { font-size: 8.5px; letter-spacing: 0.4px; }
 
     .about-mv-grid { gap: 14px; }
     .about-mv-card { padding: 22px 20px; border-radius: 14px; }

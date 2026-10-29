@@ -249,13 +249,15 @@ a {
             pointer-events: all;
         }
 
-    /* The drawer reads as a row of destinations rather than a stacked list: each one
-       sits in a container of its own and the row wraps when it runs out of width. */
+    /* The drawer is the desktop row moved below the header: the same words, the same
+       weight, the same orange rule sliding under the page you are on. Nothing is
+       boxed, tinted or rounded — the only change is that the row sits under the bar
+       instead of inside it. */
     .navbar-links {
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 8px;
+        gap: 16px 26px;
     }
 
     .navbar-menu .nav-link {
@@ -263,18 +265,13 @@ a {
         align-items: center;
         justify-content: center;
         min-height: 44px;
-        padding: 0 18px;
-        border-radius: 999px;
-        background: var(--cream);
-        border: 1px solid var(--cream-dark);
-        font-size: 15px;
-        font-weight: 600;
-        /* Each pill arrives a beat after the one before it, so opening the menu reads
-           as one movement instead of five things appearing at once. */
+        padding: 0;
+        /* Each word arrives a beat after the one before it, so opening the menu reads
+           as one movement rather than five things appearing at once. */
         opacity: 0;
         transform: translateY(-8px);
         transition: opacity 0.26s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1),
-                    background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+                    color 0.18s ease;
     }
 
     .navbar-menu.active .nav-link { opacity: 1; transform: none; }
@@ -284,24 +281,17 @@ a {
     .navbar-menu.active li:nth-child(4) .nav-link { transition-delay: 0.15s; }
     .navbar-menu.active li:nth-child(5) .nav-link { transition-delay: 0.19s; }
 
-    /* The page you are on is the solid one. Charcoal rather than orange, so it does
-       not compete with the Login button sitting just above it. */
-    .navbar-menu .nav-link.active {
-        background: var(--charcoal);
-        border-color: var(--charcoal);
-        color: var(--white);
-    }
-
-    /* The sliding underline belongs to the desktop row; inside a pill it would draw a
-       line across the bottom of the box. */
-    .navbar-menu .nav-link::after { display: none; }
+    /* The page you are on is marked exactly as it is on a desktop: the word turns
+       orange and the rule slides out underneath it. Drawn under the word itself
+       rather than under the 44px pressing area around it. */
+    .navbar-menu .nav-link::after { bottom: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .navbar-menu .nav-link {
         opacity: 1;
         transform: none;
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        transition: color 0.18s ease;
     }
 }
 
@@ -1587,9 +1577,9 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
        floating in the middle of it. Less height and slightly larger type puts the
        same words closer together and lets the next section show at the bottom. */
     .hero-section {
-        min-height: 66vh;
-        min-height: 66dvh;
-        padding: 48px 16px 44px;
+        min-height: 72vh;
+        min-height: 72dvh;
+        padding: 52px 16px 48px;
     }
     /* "Constructing Dreams Into" has to stay on one line with "Reality" under it, and
        the largest size that still does so depends on the screen: measured at 24px on a
