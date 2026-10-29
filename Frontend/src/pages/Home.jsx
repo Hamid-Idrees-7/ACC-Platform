@@ -191,7 +191,8 @@ function Home() {
           <div className="hero-overlay" />
           <div className="hero-content">
             <span className="hero-badge">Registered &amp; Licensed Contractor</span>
-            <h1 className="hero-title">Constructing Dreams <span className="highlight">Into Reality</span></h1>
+            {/* "Reality" is its own span so a phone can drop it to a second line. */}
+            <h1 className="hero-title">Constructing Dreams <span className="highlight">Into <span className="hero-last">Reality</span></span></h1>
             <p className="hero-subtitle">Where quality meets craftsmanship</p>
             <p className="hero-description">From family homes to commercial landmarks, we bring honest work and lasting quality to every project we take on.</p>
             <div className="hero-buttons">

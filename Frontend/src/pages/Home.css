@@ -1569,17 +1569,31 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
     /* The pills themselves are styled with the drawer, above; a phone only needs them
        a little tighter so the row wraps to two lines rather than three. */
-    .navbar-menu { padding: 12px 14px 14px; }
-    .navbar-links { gap: 7px; }
-    .navbar-menu .nav-link { min-height: 42px; padding: 0 15px; font-size: 14px; }
+    /* All five words on one line, as they are on a desktop: the row does not wrap and
+       the words share the width between them. */
+    .navbar-menu { padding: 10px 14px 12px; }
+    .navbar-links { flex-wrap: nowrap; justify-content: space-between; gap: 4px; width: 100%; }
+    .navbar-menu .nav-link { min-height: 42px; padding: 0 2px; font-size: 12px; }
+    .navbar-menu .nav-link::after { bottom: 7px; }
 
     /* The arrow added width to the busiest part of the header without saying
        anything the word did not already say. */
     .btn-login svg { display: none; }
 
-    /* The orange half of the headline takes its own line, so "Reality" is not left
-       stranded under it. */
-    .hero-title .highlight { display: block; }
+    /* The hero was set to 88vh, so on a phone it held a whole screen with the words
+       floating in the middle of it. Less height and slightly larger type puts the
+       same words closer together and lets the next section show at the bottom. */
+    .hero-section {
+        min-height: 58vh;
+        min-height: 58dvh;
+        padding: 44px 16px 40px;
+    }
+    .hero-title { font-size: 28px; line-height: 1.15; margin-bottom: 0.55rem; }
+    .hero-subtitle { font-size: 16px; margin-bottom: 0.5rem; }
+    .hero-description { font-size: 14.5px; line-height: 1.55; margin-bottom: 1.3rem; }
+    /* "Reality" drops to a line of its own; "Constructing Dreams Into" stays together
+       on the first. */
+    .hero-title .hero-last { display: block; }
 
     /* A section scrolled to from the menu stops below the fixed header instead of
        starting underneath it. */
@@ -1649,18 +1663,11 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
     /* Contact */
     .contact-wrapper { border-radius: 16px; }
-    /* Pressing "Contact Us" should land on the thing you came to do. On a phone the
-       form goes first and the address block follows it, so the menu arrives at
-       "Send us a message" rather than at the panel above it. */
-    .contact-right { order: -1; padding: 24px 18px; }
-    /* The form already announces itself as "Send Us a Message", so the heading and
-       the paragraph above it were saying the same thing twice. They go, and the part
-       that carries information stays: the address, the number and the email, which
-       are the things someone on a phone actually reaches for. */
-    .contact-left { padding: 20px 18px; }
-    .contact-left .login-tag,
-    .contact-left h2,
-    .contact-left p { display: none; }
+    .contact-right { padding: 24px 18px; }
+    /* The dark panel goes on a phone. Its heading repeated what the form already
+       says, and the address, number and email it carried are printed again in the
+       footer a little further down, so nothing is lost by dropping it here. */
+    .contact-left { display: none; }
     .contact-info-list { gap: 12px; }
     .contact-info-item { font-size: 13px; gap: 10px; }
     .contact-info-item strong { font-size: 11.5px; }
@@ -1695,19 +1702,11 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .btn-text-link { font-size: 14px; margin-top: 16px; }
 
     /* Login: the sign-in page and the panel on the home page share these classes.
-       Someone opening this page came to sign in, so the form goes first. The welcome
-       heading and its paragraph go the same way the contact ones did, but the three
-       points stay underneath: they are what tells a visitor who is not staff what
-       sits behind the login. */
-    .login-left,
+       The welcome panel goes on a phone the same way the contact one does. Someone
+       who opens this page came to sign in, and the form is now the whole page. */
+    .login-left { display: none; }
     .login-right { padding: 24px 18px; }
-    .login-right { order: -1; }
     .login-tag { font-size: 10.5px; padding: 5px 13px; margin-bottom: 13px; }
-    .login-left .login-tag,
-    .login-left > .login-left-content > h2,
-    .login-left > .login-left-content > p { display: none; }
-    .login-info-list { gap: 10px; margin-top: 0; }
-    .login-info-item { font-size: 13px; gap: 11px; }
     .login-form-header { margin-bottom: 18px; }
     .login-form-header h2 { font-size: 19px; }
     .login-form-header p { font-size: 13px; }
