@@ -1572,7 +1572,10 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     /* All five words on one line, as they are on a desktop: the row does not wrap and
        the words share the width between them. */
     .navbar-menu { padding: 10px 14px 12px; }
-    .navbar-links { flex-wrap: nowrap; justify-content: space-between; gap: 4px; width: 100%; }
+    /* Centred with even gaps, the way the row sits on a desktop — not pushed out to
+       both edges. The gap grows with the screen but never so much that the five words
+       fall onto a second line. */
+    .navbar-links { flex-wrap: nowrap; justify-content: center; gap: clamp(7px, 2.6vw, 22px); }
     .navbar-menu .nav-link { min-height: 42px; padding: 0 2px; font-size: 12px; }
     .navbar-menu .nav-link::after { bottom: 7px; }
 
@@ -1584,11 +1587,15 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
        floating in the middle of it. Less height and slightly larger type puts the
        same words closer together and lets the next section show at the bottom. */
     .hero-section {
-        min-height: 58vh;
-        min-height: 58dvh;
-        padding: 44px 16px 40px;
+        min-height: 66vh;
+        min-height: 66dvh;
+        padding: 48px 16px 44px;
     }
-    .hero-title { font-size: 28px; line-height: 1.15; margin-bottom: 0.55rem; }
+    /* "Constructing Dreams Into" has to stay on one line with "Reality" under it, and
+       the largest size that still does so depends on the screen: measured at 24px on a
+       320px phone and 29px on a 390px one. This tracks that line with a pixel to
+       spare, so the headline is as large as it can be without breaking into three. */
+    .hero-title { font-size: min(30px, calc(1px + 6.9vw)); line-height: 1.16; margin-bottom: 0.6rem; }
     .hero-subtitle { font-size: 16px; margin-bottom: 0.5rem; }
     .hero-description { font-size: 14.5px; line-height: 1.55; margin-bottom: 1.3rem; }
     /* "Reality" drops to a line of its own; "Constructing Dreams Into" stays together
@@ -1609,9 +1616,12 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .hero-title { font-size: 25px; line-height: 1.16; margin-bottom: 0.6rem; }
     .hero-subtitle { font-size: 15px; line-height: 1.45; margin-bottom: 0.55rem; }
     .hero-description { font-size: 14px; line-height: 1.55; margin-bottom: 1.4rem; }
-    .hero-buttons { gap: 10px; }
+    /* The two buttons step back so the headline above them carries the section. */
+    .hero-buttons { gap: 9px; }
     .btn-primary,
-    .btn-secondary { padding: 12px 20px; font-size: 13.5px; }
+    .btn-secondary { padding: 10px 17px; font-size: 12.5px; }
+    .btn-primary svg,
+    .btn-secondary svg { width: 15px; height: 15px; }
 
     /* Section headers: the 70px gap under a title was a third of a screen on its own. */
     .section-header { margin-bottom: 24px; }

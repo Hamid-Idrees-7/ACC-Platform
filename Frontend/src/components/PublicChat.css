@@ -164,22 +164,39 @@
     }
 
     /* The whole assistant was built at desktop scale: a 62px button, a 40px crest in
-       its header and a 48px badge on the welcome screen, all on a 390px phone. */
-    .pc-bubble { width: 54px; height: 54px; }
-    .pc-head { padding: 11px 13px; }
-    .pc-head-ic { width: 34px; height: 34px; border-radius: 10px; }
-    .pc-head-ic .pc-crane { width: 21px; height: 21px; }
-    .pc-close { width: 28px; height: 28px; border-radius: 8px; }
-    .pc-avatar { width: 26px; height: 26px; border-radius: 8px; }
-    .pc-avatar .pc-crane { width: 16px; height: 16px; }
-    .pc-msg { font-size: 13.5px; padding: 10px 12px; }
-    .pc-welcome { padding: 14px 13px 12px; }
-    .pc-welcome-badge { width: 40px; height: 40px; border-radius: 12px; margin-bottom: 9px; }
-    .pc-welcome-badge .pc-crane { width: 23px; height: 23px; }
-    .pc-welcome-sub { font-size: 12px; margin-bottom: 12px; }
-    .pc-card-ic { width: 31px; height: 31px; }
-    .pc-input { padding: 9px 11px 8px; }
-    .pc-send { width: 34px; height: 34px; border-radius: 10px; }
+       its header, a 48px badge on the welcome screen and 36px tiles on the shortcut
+       cards, all inside a panel that is now 440px tall. Everything inside comes down
+       together, so the panel reads as one small thing rather than a shrunken page. */
+    .pc-bubble { width: 50px; height: 50px; }
+
+    .pc-head { padding: 9px 11px; gap: 8px; }
+    .pc-head-ic { width: 30px; height: 30px; border-radius: 9px; }
+    .pc-head-ic .pc-crane { width: 18px; height: 18px; }
+    .pc-head-text strong { font-size: 13px; }
+    .pc-head-text span { font-size: 10px; gap: 5px; }
+    .pc-dot { width: 7px; height: 7px; }
+    .pc-close { width: 26px; height: 26px; border-radius: 7px; }
+
+    .pc-avatar { width: 24px; height: 24px; border-radius: 7px; }
+    .pc-avatar .pc-crane { width: 15px; height: 15px; }
+    .pc-msg { font-size: 13px; padding: 9px 11px; border-radius: 13px; }
+
+    .pc-welcome { padding: 12px 12px 10px; }
+    .pc-welcome-badge { width: 36px; height: 36px; border-radius: 11px; margin-bottom: 8px; }
+    .pc-welcome-badge .pc-crane { width: 21px; height: 21px; }
+    .pc-welcome-title { font-size: 14.5px; margin-bottom: 4px; }
+    .pc-welcome-sub { font-size: 11.5px; margin-bottom: 10px; }
+
+    .pc-cards { gap: 6px; }
+    .pc-card { padding: 8px 10px; gap: 10px; border-radius: 11px; }
+    .pc-card-ic { width: 28px; height: 28px; border-radius: 9px; }
+    .pc-card-label { font-size: 12.5px; }
+    .pc-card-hint { font-size: 10.5px; }
+
+    .pc-input { padding: 8px 10px 7px; }
+    .pc-input-inner { border-radius: 12px; padding: 4px 4px 4px 11px; gap: 7px; }
+    .pc-send { width: 32px; height: 32px; border-radius: 9px; }
+    .pc-foot { font-size: 9.5px; padding: 6px 8px 2px; }
     /* The message box keeps its size from styles/global.css, which holds every field
        at 16px below 640px so iOS Safari does not zoom the page in on focus. */
     /* On a phone the greeting sits on top of the buttons underneath it, so only the
