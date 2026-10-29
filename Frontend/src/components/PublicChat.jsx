@@ -85,7 +85,14 @@ function PublicChat() {
     el.scrollTop = messages.length <= 1 ? 0 : el.scrollHeight;
   }, [messages, open, sending]);
   useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
+    if (!open || !inputRef.current) return;
+    // On a phone, focusing the box throws the keyboard up over half the panel before
+    // the visitor has read a word of it. The cursor is only placed for a pointer
+    // that can hover, which is a mouse or a trackpad rather than a finger.
+    const pointer = typeof window.matchMedia === "function"
+      ? window.matchMedia("(hover: hover) and (pointer: fine)")
+      : null;
+    if (!pointer || pointer.matches) inputRef.current.focus();
   }, [open]);
 
   const grow = (el) => {

@@ -768,7 +768,9 @@
     /* Hassan's and Bilal's portraits are close to square, so a little more height
        keeps their heads inside the frame. */
     .team-card-photo { aspect-ratio: 4 / 3; height: auto; }
-    .team-founder-photo { width: 150px; height: 150px; border-radius: 16px; }
+    /* 150px left the founder looking smaller than everyone else on the page, since
+       the cards below him run the full width of the screen. */
+    .team-founder-photo { width: 210px; height: 210px; border-radius: 18px; }
     .team-architect-info { padding: 22px 18px; }
     .team-architect-tag { font-size: 10.5px; padding: 5px 13px; margin-bottom: 10px; }
     .team-architect-info h3 { font-size: 20px; }
