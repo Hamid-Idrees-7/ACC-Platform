@@ -4,8 +4,7 @@ import { aiService } from "../services/aiService";
 import { renderMarkdown } from "../utils/markdown";
 import "./PublicChat.css";
 
-// Website assistant for visitors. Talk only: it answers about the company and services
-// from the backend, which holds the company information. No sign-in, no private data.
+// Website assistant for visitors. Answers about the company only, no sign-in, no private data.
 const GREETING = "Welcome to ACC! How can i help.";
 const SUGGESTIONS = [
   { q: "What services do you offer?", label: "Our services", hint: "What we build", icon: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1M9 13h1m4 0h1M9 17h1m4 0h1" },
@@ -14,9 +13,7 @@ const SUGGESTIONS = [
   { q: "Contact us", label: "Contact the team", hint: "Talk to a person", icon: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" },
 ];
 
-// The chat is kept in sessionStorage, so it survives a page change or refresh in the same tab,
-// and clears on its own when the browser tab is closed. Reads and writes are guarded in case
-// storage is blocked (private windows), so the chat always works either way.
+// Kept in sessionStorage so it survives a refresh in the same tab. Guarded in case storage is blocked.
 const MSG_KEY = "acc-pc-messages";
 const OPEN_KEY = "acc-pc-open";
 const HELLO_KEY = "acc-pc-hello-hidden";
@@ -64,8 +61,7 @@ function PublicChat() {
   const listRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Hide the bubble if an admin has turned the public assistant off. Default to showing it
-  // (null), and only hide once we know it's off, so the common case has no delay.
+  // Hidden only once we know an admin turned it off, so the usual case has no delay
   useEffect(() => {
     let active = true;
     aiService.publicStatus()
@@ -77,8 +73,7 @@ function PublicChat() {
   useEffect(() => { save(MSG_KEY, messages); }, [messages]);
   useEffect(() => { save(OPEN_KEY, open); }, [open]);
 
-  // Keep the newest message in view. On the welcome screen (only the greeting) stay at the
-  // top so the header and welcome card are not scrolled out of sight.
+  // Keep the newest message in view, but stay at the top on the welcome screen
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -86,9 +81,7 @@ function PublicChat() {
   }, [messages, open, sending]);
   useEffect(() => {
     if (!open || !inputRef.current) return;
-    // On a phone, focusing the box throws the keyboard up over half the panel before
-    // the visitor has read a word of it. The cursor is only placed for a pointer
-    // that can hover, which is a mouse or a trackpad rather than a finger.
+    // Only place the cursor for a mouse; on a phone it throws the keyboard up over the panel
     const pointer = typeof window.matchMedia === "function"
       ? window.matchMedia("(hover: hover) and (pointer: fine)")
       : null;
@@ -114,8 +107,7 @@ function PublicChat() {
     if (inputRef.current) inputRef.current.style.height = "auto";
     setSending(true);
 
-    // One quiet retry: the very first call after a cold start can fail to connect, so we try
-    // again before showing anything. A 4xx (eg rate limit) is not retried.
+    // One quiet retry: the first call after a cold start can fail. A 4xx is not retried.
     const ask = async () => {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {

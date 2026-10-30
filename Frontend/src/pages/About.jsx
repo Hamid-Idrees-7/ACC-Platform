@@ -24,8 +24,7 @@ function About() {
     { initial: "UBL", name: "United Bank Limited", project: "Branch Construction, Lahore", text: "ACC delivered our new branch to the exact standards a bank requires — quality finishing, strict timelines, and full compliance. A reliable construction partner.", official: true },
   ];
 
-  // How many cards fit side by side. Four only ever fitted on a desktop: on a phone that
-  // squeezed every card down to about 50px wide, so none of them could be read.
+  // How many cards fit side by side. Four only ever fitted on a desktop.
   const cardsThatFit = () => {
     if (typeof window === "undefined") return 4;
     if (window.innerWidth <= 640) return 1;
@@ -389,7 +388,7 @@ function About() {
           <div className="about-cta-content reveal">
             <h2>Let's Build Something Together</h2>
             <p>Whether it's your dream home or your next commercial venture, we'd love to be part of it.</p>
-            <button className="btn-primary btn-large" onClick={() => goToSection("contact")}>
+            <button className="btn-primary" onClick={() => goToSection("contact")}>
               Get in Touch
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </button>

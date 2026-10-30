@@ -81,9 +81,7 @@
     padding: 5px 14px;
 }
 
-/* Phones: the photo gets the screen to itself. Moving between photos here is a swipe,
-   so the arrows are not drawn at all — they sat over the picture without being used.
-   The counter stays, because that is what says there is another photo to swipe to. */
+/* Phones swipe instead, so the arrows are not drawn. Counter stays. */
 @media (max-width: 640px) {
     .ilb { padding: 12px; }
     .ilb-img { border-radius: 4px; }

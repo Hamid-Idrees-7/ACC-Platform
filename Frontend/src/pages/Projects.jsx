@@ -171,7 +171,7 @@ function Projects() {
           <div className="about-cta-content">
             <h2>Have a Project in Mind?</h2>
             <p>Whether it's a home, a commercial space, or something larger — let's talk about how we can build it.</p>
-            <button className="btn-primary btn-large" onClick={() => goToSection("contact")}>
+            <button className="btn-primary" onClick={() => goToSection("contact")}>
               Get in Touch
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </button>
@@ -218,8 +218,7 @@ function ProjectRow({ project, first = false }) {
   const hasImages = project.images.length > 0;
   const multiple = project.images.length > 1;
 
-  // The arrows sit on top of the photo, which opens it when pressed. Without this a
-  // press on an arrow would change the photo and open it at the same time.
+  // The arrows sit on the photo, which opens it, so stop the press reaching both
   const step = (fn) => (e) => {
     e.stopPropagation();
     fn();

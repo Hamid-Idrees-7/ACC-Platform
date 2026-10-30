@@ -252,10 +252,7 @@
     .project-row-info { padding: 32px 28px; }
 }
 
-/* ───────────────────────────────────────────────────────────────────────────
-   Phone type and spacing scale for the Projects page.
-   Last in the file so source order lets it win over the clamp() floors above.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* Phone type and spacing for Projects. Last in the file so these win. */
 
 @media (max-width: 900px) {
     .projects-hero { padding: 96px 24px 56px; }

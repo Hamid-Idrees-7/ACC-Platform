@@ -147,26 +147,17 @@
 
 @media (max-width: 480px) {
     .pc-root { right: 16px; bottom: 16px; }
-    /* The panel grows upward from the chat button, so its height decides where its top
-       edge lands. At 100vh - 104px the top came out at 10px, which left the panel's own
-       "ACC Assistant" header behind the site header. Leaving 160px keeps that header
-       clear, and dvh is the height the phone actually shows, so the top of the panel is
-       not hidden behind the address bar either. */
+    /* Grows upward, so its height sets the top edge. 165px keeps the header clear. */
     .pc-panel {
         width: calc(100vw - 24px);
         right: -4px;
-        /* Capped as well as fitted: on a tall phone the panel used to run almost the
-           whole screen, which made a short conversation look like a full page. It
-           still shrinks on a short screen, and still clears the site header. */
+        /* Capped too, or it runs almost the whole screen on a tall phone */
         height: min(500px, calc(100vh - 165px));
         height: min(500px, calc(100dvh - 165px));
         max-height: none;
     }
 
-    /* The whole assistant was built at desktop scale: a 62px button, a 40px crest in
-       its header, a 48px badge on the welcome screen and 36px tiles on the shortcut
-       cards, all inside a panel that is now 440px tall. Everything inside comes down
-       together, so the panel reads as one small thing rather than a shrunken page. */
+    /* Everything inside comes down together, not just the panel */
     .pc-bubble { width: 50px; height: 50px; }
 
     .pc-head { padding: 8px 10px; gap: 7px; }

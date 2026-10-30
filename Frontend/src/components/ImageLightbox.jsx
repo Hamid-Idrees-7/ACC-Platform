@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./ImageLightbox.css";
 
-// A project's photos at full size, over the page.
-// Press or tap anywhere to close. With more than one photo: swipe sideways on a phone,
-// or use the arrows, the arrow keys and Escape anywhere else.
+// A project's photos at full size. Tap or click to close, swipe or use the arrows to move.
 function ImageLightbox({ images, startIndex = 0, onClose }) {
   const [index, setIndex] = useState(startIndex);
   const touch = useRef(null);
@@ -39,8 +37,7 @@ function ImageLightbox({ images, startIndex = 0, onClose }) {
     const dx = t.clientX - touch.current.x;
     const dy = t.clientY - touch.current.y;
     touch.current = null;
-    // A sideways drag moves to the next photo. A tap that barely moved closes, so a
-    // swipe is never mistaken for a tap.
+    // A sideways drag changes photo; a tap that barely moved closes
     if (many && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) next();
       else prev();

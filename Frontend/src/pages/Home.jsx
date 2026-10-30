@@ -102,7 +102,8 @@ function Home() {
     setTimeout(() => setShake(false), 500);
   };
 
-  const handleContactSubmit = async () => {
+  const handleContactSubmit = async (e) => {
+    if (e) e.preventDefault();
     // Required: name, phone, service and message.
     if (!form.name.trim() || !form.phone.trim() || !form.service.trim() || !form.message.trim()) {
       showError("Please fill in your name, phone, service, and message.");
@@ -372,7 +373,8 @@ function Home() {
                 <h3>Send Us a Message</h3>
                 <p>Fill out the form and we'll be in touch shortly</p>
               </div>
-              <div className={`contact-form ${shake ? "shake" : ""}`}>
+              {/* A real form, so Enter in any field sends it */}
+              <form className={`contact-form ${shake ? "shake" : ""}`} onSubmit={handleContactSubmit} noValidate>
                 {formError && (
                   <div className="login-msg-box login-msg-error" style={{ display: "flex" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
@@ -437,13 +439,13 @@ function Home() {
                   onChange={(e) => handleFormChange("website", e.target.value)}
                 />
 
-                <button type="button" className="btn-submit" onClick={handleContactSubmit} disabled={submitting}>
+                <button type="submit" className="btn-submit" disabled={submitting}>
                   {submitting ? "Sending..." : "Send Message"}
                   {!submitting && (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                   )}
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </section>

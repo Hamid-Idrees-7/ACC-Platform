@@ -580,10 +580,7 @@
 .timeline-dot { transition: var(--transition); }
 
 /* Responsive: team, certifications and testimonials */
-/* The card width and the gap both come from --cards-per-page and --card-gap, which
-   About.jsx sets from the window width and also uses for the slide transform. Any
-   width or margin hardcoded per breakpoint here would disagree with that transform
-   and drift the track a few pixels on every press, so there is nothing to override. */
+/* Width and gap come from the vars About.jsx sets; nothing to override here */
 @media (max-width: 900px) {
     .team-founder { grid-template-columns: 1fr; text-align: center; justify-items: center; padding: 30px 24px; }
     .team-grid { grid-template-columns: 1fr; max-width: 400px; }
@@ -688,11 +685,7 @@
     .testimonials-slider { gap: 8px; }
 }
 
-/* ───────────────────────────────────────────────────────────────────────────
-   Phone type and spacing scale for the About page.
-   Same reason as Home.css: the clamp() floors were desktop sizes, so nothing
-   scaled down on a phone. Last in the file so source order lets it win.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* Phone type and spacing for About. Last in the file so these win. */
 
 @media (max-width: 900px) {
     .about-hero { padding: 96px 24px 56px; }
@@ -762,9 +755,7 @@
     .team-card-info .team-role { font-size: 12.5px; margin-bottom: 7px; }
     .team-card-info .team-desc { font-size: 13px; }
 
-    /* The photo is a 3:4 portrait. Holding it in a short wide box cropped a band out
-       of the middle, which is why only a face came through. Matching the box to the
-       picture's own shape shows the whole photograph with nothing cut off. */
+    /* Box matches the photo's own 3:4, so nothing is cropped out */
     .team-architect-photo { aspect-ratio: 3 / 4; min-height: 0; }
     /* Hassan's and Bilal's portraits are close to square, so a little more height
        keeps their heads inside the frame. */

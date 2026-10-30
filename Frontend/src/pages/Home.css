@@ -230,9 +230,7 @@ a {
         top: 100%;
         left: 0;
         right: 0;
-        /* The drawer is a grid item, and a grid item that is centred shrinks to fit its
-           own text even when left and right are both 0. Stretching it back makes the
-           drawer span the screen instead of floating as a narrow box over the hero. */
+        /* Centred grid items shrink to fit, so stretch it back to full width */
         justify-self: stretch;
         background: var(--white);
         padding: 14px 25px 18px;
@@ -249,10 +247,7 @@ a {
             pointer-events: all;
         }
 
-    /* The drawer is the desktop row moved below the header: the same words, the same
-       weight, the same orange rule sliding under the page you are on. Nothing is
-       boxed, tinted or rounded — the only change is that the row sits under the bar
-       instead of inside it. */
+    /* Same row as the desktop nav, just moved below the bar */
     .navbar-links {
         flex-direction: row;
         flex-wrap: wrap;
@@ -281,9 +276,7 @@ a {
     .navbar-menu.active li:nth-child(4) .nav-link { transition-delay: 0.15s; }
     .navbar-menu.active li:nth-child(5) .nav-link { transition-delay: 0.19s; }
 
-    /* The page you are on is marked exactly as it is on a desktop: the word turns
-       orange and the rule slides out underneath it. Drawn under the word itself
-       rather than under the 44px pressing area around it. */
+    /* Orange rule under the word, not under the tap area */
     .navbar-menu .nav-link::after { bottom: 8px; }
 }
 
@@ -295,9 +288,7 @@ a {
     }
 }
 
-/* Pressing anywhere outside the open drawer closes it, which is how a menu on a phone
-   is expected to behave. It sits under the header (z-index 1000) so the drawer itself
-   and the Login button stay pressable. */
+/* Tap anywhere behind the drawer to close it. Sits under the header. */
 .navbar-backdrop {
     position: fixed;
     inset: 0;
@@ -1488,23 +1479,12 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     margin-bottom: 32px;
 }
 
-/* ───────────────────────────────────────────────────────────────────────────
-   Phone type and spacing scale
-
-   The headings on this site are sized with clamp(), eg clamp(1.8rem, 3.5vw, 2.8rem).
-   On a 390px screen 3.5vw is only 13.6px, so clamp returns the 1.8rem floor and the
-   heading stays at its desktop size: nothing was scaling down on a phone at all.
-   Everything below sets the floor the phone actually needs, and tightens the vertical
-   rhythm so a section is a section rather than a screenful of padding.
-
-   This block is last in the file on purpose: it shares specificity with the rules it
-   replaces, so source order is what lets it win.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* Phone type and spacing.
+   The clamp() floors were desktop sizes, so nothing shrank on a phone.
+   Last in the file so these win on source order. */
 
 @media (max-width: 900px) {
-    /* Tablet and a narrowed desktop window: a step down, not the full phone treatment.
-       This range is the one a desktop browser lands in when it is dragged narrow, so it
-       needs its own sizes rather than inheriting the desktop ones. */
+    /* Tablet and a narrowed window: a step down, not the full phone size */
     .navbar,
     .navbar.scrolled { height: 64px; padding: 0; display: flex; align-items: center; }
     .acc-site main { margin-top: 64px; }
@@ -1544,9 +1524,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
         --page-gutter: 16px;
     }
 
-    /* Header: a fixed height, so the drawer below it and the page below that always
-       line up. Without it the bar is as tall as the Login button plus its padding,
-       which changes on scroll and leaves a gap under the fixed bar. */
+    /* Fixed height, so the drawer and the page below it always line up */
     .navbar,
     .navbar.scrolled { height: 60px; padding: 0; display: flex; align-items: center; }
     .acc-site main { margin-top: 60px; }
@@ -1562,9 +1540,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     /* All five words on one line, as they are on a desktop: the row does not wrap and
        the words share the width between them. */
     .navbar-menu { padding: 10px 14px 12px; }
-    /* Centred with even gaps, the way the row sits on a desktop — not pushed out to
-       both edges. The gap grows with the screen but never so much that the five words
-       fall onto a second line. */
+    /* Centred with even gaps; never wraps to a second line */
     .navbar-links { flex-wrap: nowrap; justify-content: center; gap: clamp(7px, 2.6vw, 22px); }
     .navbar-menu .nav-link { min-height: 42px; padding: 0 2px; font-size: 12px; }
     .navbar-menu .nav-link::after { bottom: 7px; }
@@ -1573,18 +1549,13 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
        anything the word did not already say. */
     .btn-login svg { display: none; }
 
-    /* The hero was set to 88vh, so on a phone it held a whole screen with the words
-       floating in the middle of it. Less height and slightly larger type puts the
-       same words closer together and lets the next section show at the bottom. */
+    /* 88vh filled a whole phone screen with the words floating in it */
     .hero-section {
         min-height: 72vh;
         min-height: 72dvh;
         padding: 52px 16px 48px;
     }
-    /* "Constructing Dreams Into" has to stay on one line with "Reality" under it, and
-       the largest size that still does so depends on the screen: measured at 24px on a
-       320px phone and 29px on a 390px one. This tracks that line with a pixel to
-       spare, so the headline is as large as it can be without breaking into three. */
+    /* Largest size that keeps "Reality" on the second line: 24px at 320, 29px at 390 */
     .hero-title { font-size: min(30px, calc(1px + 6.9vw)); line-height: 1.16; margin-bottom: 0.6rem; }
     .hero-subtitle { font-size: 16px; margin-bottom: 0.5rem; }
     .hero-description { font-size: 14.5px; line-height: 1.55; margin-bottom: 1.3rem; }
@@ -1666,9 +1637,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     /* Contact */
     .contact-wrapper { border-radius: 16px; }
     .contact-right { padding: 24px 18px; }
-    /* The dark panel goes on a phone. Its heading repeated what the form already
-       says, and the address, number and email it carried are printed again in the
-       footer a little further down, so nothing is lost by dropping it here. */
+    /* Panel dropped on phones; the number and email are in the footer anyway */
     .contact-left { display: none; }
     .contact-info-list { gap: 12px; }
     .contact-info-item { font-size: 13px; gap: 10px; }
@@ -1684,9 +1653,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .contact-textarea { min-height: 72px; }
     .btn-submit { padding: 13px; font-size: 14px; }
 
-    /* Privacy policy: the page is mostly reading, so the two panels that frame it —
-       the cream note at the top and the dark contact block at the bottom — come in
-       to roughly the size of a paragraph rather than a section of their own. */
+    /* Privacy page is mostly reading, so both panels come in */
     .privacy-section { padding: 44px 16px 56px; }
     .privacy-container { padding: 22px 16px; border-radius: 14px; }
     .privacy-header { margin-bottom: 26px; padding-bottom: 18px; }
@@ -1724,9 +1691,7 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .footer-bottom { font-size: 12px; padding-top: 14px; }
     .btn-text-link { font-size: 14px; margin-top: 16px; }
 
-    /* Login: the sign-in page and the panel on the home page share these classes.
-       The welcome panel goes on a phone the same way the contact one does. Someone
-       who opens this page came to sign in, and the form is now the whole page. */
+    /* Shared by the login page and the home panel. Form first, welcome panel dropped. */
     .login-left { display: none; }
     .login-right { padding: 24px 18px; }
     .login-tag { font-size: 10.5px; padding: 5px 13px; margin-bottom: 13px; }
@@ -1739,8 +1704,5 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .login-footer { font-size: 12.5px; }
     .login-msg-box { padding: 11px 14px; font-size: 13px; margin-bottom: 16px; }
 
-    /* Field text is deliberately not set anywhere in this block: styles/global.css
-       already holds every input, select and textarea at 16px below 640px, because
-       iOS Safari zooms the page in on any field smaller than that. Padding is all a
-       field needs here. */
+    /* Field text stays at 16px from global.css, or iOS zooms the page in */
 }
