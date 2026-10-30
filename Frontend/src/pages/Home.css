@@ -1624,7 +1624,9 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .about-visual-content { padding: 22px; }
     .about-visual-year { font-size: 44px; margin-bottom: 6px; }
     .about-visual-text { font-size: 14px; margin-bottom: 18px; }
-    .about-visual-divider { margin: 14px 0; }
+    /* "margin: 14px 0" here quietly replaced the "margin: 0 auto" that centres this
+       rule on a desktop, which is why it sat against the left edge on a phone. */
+    .about-visual-divider { margin: 14px auto 16px; }
     .about-visual-tagline { font-size: 13px; }
     .about-content h2 { font-size: 21px; line-height: 1.22; margin-bottom: 11px; }
     .about-content > p { font-size: 14.5px; line-height: 1.6; margin-bottom: 12px; }
@@ -1681,6 +1683,27 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
     .contact-form .form-input { padding: 11px 14px; }
     .contact-textarea { min-height: 72px; }
     .btn-submit { padding: 13px; font-size: 14px; }
+
+    /* Privacy policy: the page is mostly reading, so the two panels that frame it —
+       the cream note at the top and the dark contact block at the bottom — come in
+       to roughly the size of a paragraph rather than a section of their own. */
+    .privacy-section { padding: 44px 16px 56px; }
+    .privacy-container { padding: 22px 16px; border-radius: 14px; }
+    .privacy-header { margin-bottom: 26px; padding-bottom: 18px; }
+    .privacy-title { font-size: 22px; margin: 8px 0; letter-spacing: -0.5px; }
+    .privacy-subtitle { font-size: 12.5px; }
+    .privacy-intro { padding: 14px 16px; border-radius: 10px; margin-bottom: 24px; border-left-width: 3px; }
+    .privacy-intro p { font-size: 13.5px; margin-bottom: 9px; }
+    .privacy-block { margin-bottom: 24px; }
+    .privacy-block h2 { font-size: 17px; margin-bottom: 10px; }
+    .privacy-block p, .privacy-block ul li { font-size: 13.5px; }
+    .privacy-contact { padding: 18px 16px; border-radius: 12px; margin-top: 30px; }
+    .privacy-contact h2 { font-size: 17px; margin-bottom: 10px; }
+    .privacy-contact p { font-size: 13.5px; margin-bottom: 10px; }
+    .privacy-contact-info { margin-top: 14px; padding-top: 14px; }
+    .privacy-contact-info p { font-size: 13px; margin-bottom: 6px; }
+    .privacy-contact-info p strong { font-size: 14px; }
+    .privacy-back { margin-top: 30px; }
 
     /* Closing call to action, shared with the About and Projects pages */
     .about-cta-section { padding: 48px 16px; }

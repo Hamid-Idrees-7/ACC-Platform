@@ -134,6 +134,9 @@
     opacity: 0.4;
 }
 .project-row-image[style*="background-image"]::before { display: none; }
+/* A photo that opens says so: the cursor changes and the keyboard can reach it. */
+.project-row-image.is-openable { cursor: zoom-in; }
+.project-row-image.is-openable:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
 .project-row-badge {
     position: relative;
     z-index: 1;

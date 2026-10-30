@@ -5,6 +5,7 @@ import "./Home.css";
 import "./Projects.css";
 import { usePageTitle, usePageDescription, SITE_NAME } from "../hooks/usePageTitle";
 import LazyBackground from "../components/LazyBackground";
+import ImageLightbox from "../components/ImageLightbox";
 import { clickable } from "../utils/a11y";
 import { SITE_CONTACT } from "../config/siteContact";
 
@@ -27,7 +28,7 @@ const projectList = [
     category: "Infrastructure",
     location: "Ghari Shahu, Lahore",
     year: "2024",
-    images: ["/images/proj-railway-1.webp"],
+    images: ["/images/proj-railway-1.webp", "/images/home-railway-cover.webp"],
     summary: "Reconstruction of a diesel engine shed facility for Pakistan Railways, delivered to strict operational standards.",
     story: "Commissioned by Pakistan Railways, this project involved the reconstruction of a diesel engine shed facility near Ghari Shahu, Lahore. A project of this scale demanded precise engineering, durable materials, and strict adherence to safety and operational requirements. Our team handled structural reconstruction while keeping the facility's functional needs at the center of every decision. The result was delivered to specification and on schedule.",
     highlights: ["Government contract", "Heavy structural work", "Delivered on time"],
@@ -213,9 +214,16 @@ function Projects() {
 // One project row: image gallery on the left, details on the right.
 function ProjectRow({ project, first = false }) {
   const [imgIndex, setImgIndex] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
   const hasImages = project.images.length > 0;
   const multiple = project.images.length > 1;
 
+  // The arrows sit on top of the photo, which opens it when pressed. Without this a
+  // press on an arrow would change the photo and open it at the same time.
+  const step = (fn) => (e) => {
+    e.stopPropagation();
+    fn();
+  };
   const next = () => setImgIndex((i) => (i + 1) % project.images.length);
   const prev = () => setImgIndex((i) => (i - 1 + project.images.length) % project.images.length);
 
@@ -223,14 +231,21 @@ function ProjectRow({ project, first = false }) {
     <div className={`project-row ${project.featured ? "featured" : ""}`}>
       <div className="project-row-media">
         {project.featured && <span className="project-row-flag">Featured</span>}
-        <LazyBackground className="project-row-image" src={hasImages ? project.images[imgIndex] : null} eager={first}>
+        <LazyBackground
+          className={`project-row-image ${hasImages ? "is-openable" : ""}`}
+          src={hasImages ? project.images[imgIndex] : null}
+          eager={first}
+          {...(hasImages
+            ? { ...clickable(() => setZoomed(true)), "aria-label": `View photos of ${project.title}` }
+            : {})}
+        >
           {!hasImages && <span className="project-row-badge">{project.category}</span>}
           {multiple && (
             <>
-              <button className="project-img-arrow prev" onClick={prev} aria-label="Previous image">
+              <button className="project-img-arrow prev" onClick={step(prev)} aria-label="Previous image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
               </button>
-              <button className="project-img-arrow next" onClick={next} aria-label="Next image">
+              <button className="project-img-arrow next" onClick={step(next)} aria-label="Next image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
               </button>
               <div className="project-img-dots">
@@ -242,6 +257,10 @@ function ProjectRow({ project, first = false }) {
           )}
         </LazyBackground>
       </div>
+
+      {zoomed && (
+        <ImageLightbox images={project.images} startIndex={imgIndex} onClose={() => setZoomed(false)} />
+      )}
 
       <div className="project-row-info">
         <div className="project-row-meta">
