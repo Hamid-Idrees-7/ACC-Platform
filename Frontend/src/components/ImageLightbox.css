@@ -81,15 +81,14 @@
     padding: 5px 14px;
 }
 
-/* Phones: the photo takes the screen and the arrows step aside, because moving
-   between photos here is a swipe rather than a press. */
+/* Phones: the photo gets the screen to itself. Moving between photos here is a swipe,
+   so the arrows are not drawn at all — they sat over the picture without being used.
+   The counter stays, because that is what says there is another photo to swipe to. */
 @media (max-width: 640px) {
     .ilb { padding: 12px; }
     .ilb-img { border-radius: 4px; }
     .ilb-close { top: 10px; right: 10px; width: 40px; height: 40px; }
-    .ilb-arrow { width: 38px; height: 38px; background: rgba(255, 255, 255, 0.07); }
-    .ilb-arrow.prev { left: 6px; }
-    .ilb-arrow.next { right: 6px; }
+    .ilb-arrow { display: none; }
     .ilb-count { bottom: 14px; font-size: 12px; padding: 4px 12px; }
 }
 
