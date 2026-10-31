@@ -415,3 +415,15 @@
     .pbl-modal-body { padding-left: 16px; padding-right: 16px; }
     .pbl-phasefill { padding: 14px; }
 }
+
+/* The line item row needs 374px of fixed columns, so on a phone the amount fell off
+   the right edge. The description takes a row of its own and the figures sit under it. */
+@media (max-width: 560px) {
+    .pbl-items-head { display: none; }
+    .pbl-item-row {
+        grid-template-columns: 1fr 1fr auto 34px;
+        gap: 8px;
+    }
+    .pbl-item-row .col-desc { grid-column: 1 / -1; }
+    .pbl-item-row .col-amt { font-size: 13px; }
+}

@@ -590,8 +590,8 @@ function ProjectBilling() {
                   return (
                     <div className={`pbl-item-row ${isExpense ? "expense" : ""}`} key={idx}>
                       <input className="col-desc" type="text" maxLength={200} placeholder="e.g. Foundation milestone" value={it.description} onChange={(e) => setItem(idx, "description", e.target.value)} title={isExpense ? "Reimbursement of a recoverable project expense" : undefined} />
-                      <input className={`col-qty ${badQty(it) ? "err" : ""}`} type="number" min="0" step="any" value={it.quantity} readOnly={isExpense} aria-invalid={badQty(it) || undefined} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
-                      <input className="col-rate" type="number" min="0" step="any" placeholder="0" value={it.rate} readOnly={isExpense} onChange={(e) => setItem(idx, "rate", e.target.value)} />
+                      <input className={`col-qty ${badQty(it) ? "err" : ""}`} type="number" min="0" step="any" placeholder="Qty" aria-label="Quantity" value={it.quantity} readOnly={isExpense} aria-invalid={badQty(it) || undefined} onChange={(e) => setItem(idx, "quantity", e.target.value)} />
+                      <input className="col-rate" type="number" min="0" step="any" placeholder="Rate" aria-label="Rate" value={it.rate} readOnly={isExpense} onChange={(e) => setItem(idx, "rate", e.target.value)} />
                       <span className="col-amt pbl-item-amt">{money(amt)}</span>
                       <button className="col-x pbl-item-x" onClick={() => removeItem(idx)} disabled={form.items.length === 1} title="Remove line">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
