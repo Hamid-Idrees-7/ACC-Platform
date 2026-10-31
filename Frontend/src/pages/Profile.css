@@ -173,3 +173,12 @@
     transition: background 0.18s ease;
 }
 .pf-view-close:hover { background: rgba(255,255,255,0.28); }
+
+/* Phones: this page had no mobile rules. Each field reads label over value instead
+   of label and value pushed to opposite edges. */
+@media (max-width: 560px) {
+    .pfv-card { padding: 0 18px 26px; }
+    .pfv-avatar-wrap, .pfv-avatar, .pfv-avatar-img { width: 104px; height: 104px; }
+    .pfv-info-row { flex-direction: column; align-items: flex-start; gap: 3px; padding: 11px 2px; }
+    .pfv-info-value { text-align: left; word-break: break-word; }
+}

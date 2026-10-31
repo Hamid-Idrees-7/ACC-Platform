@@ -334,3 +334,13 @@
     color: var(--color-text-muted);
     font-size: 13.5px;
 }
+
+/* Phones: this page had no mobile rules at all. The heading and its button stop
+   fighting for the same row, and the padding comes in. */
+@media (max-width: 560px) {
+    .ap-head { flex-direction: column; align-items: stretch; gap: 12px; }
+    .ap-head h2 { font-size: 18px; }
+    .ap-head p { font-size: 13px; }
+    .ap-card { padding: 14px; gap: 12px; }
+    .ap-list { gap: 10px; }
+}

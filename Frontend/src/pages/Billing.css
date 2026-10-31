@@ -121,3 +121,9 @@
     .bil-grid { grid-template-columns: minmax(0, 1fr); }
     .bil-stats { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the search takes a row of its own, the button follows underneath */
+@media (max-width: 560px) {
+    .bil-toolbar { flex-wrap: wrap; gap: 10px; }
+    .bil-search { flex: 1 1 100%; min-width: 0; height: 42px; }
+}

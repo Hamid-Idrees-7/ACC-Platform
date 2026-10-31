@@ -183,3 +183,10 @@
 @media (prefers-reduced-motion: reduce) {
     .al-spin { animation-duration: 2s; }
 }
+
+/* Phones: heading above its button rather than beside it */
+@media (max-width: 560px) {
+    .al-head { flex-direction: column; align-items: stretch; gap: 12px; }
+    .al-head h2 { font-size: 18px; }
+    .al-head p { font-size: 13px; }
+}
