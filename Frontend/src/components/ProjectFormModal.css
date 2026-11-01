@@ -153,3 +153,11 @@
     .pfm-overlay { padding: 12px; }
     .pfm-head, .pfm-body, .pfm-actions { padding-left: 16px; padding-right: 16px; }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .pfm-overlay { padding: 10px; }
+    .pfm-head { padding: 16px 16px 12px; }
+    .pfm-body { padding: 16px; }
+    .pfm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

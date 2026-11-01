@@ -138,3 +138,11 @@
 @media (max-width: 600px) {
     .cfm-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .cfm-overlay { padding: 10px; }
+    .cfm-head { padding: 16px 16px 12px; }
+    .cfm-body { padding: 16px; }
+    .cfm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

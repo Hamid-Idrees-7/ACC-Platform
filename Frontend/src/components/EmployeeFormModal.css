@@ -137,3 +137,11 @@
 @media (max-width: 600px) {
     .efm-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .efm-overlay { padding: 10px; }
+    .efm-head { padding: 16px 16px 12px; }
+    .efm-body { padding: 16px; }
+    .efm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

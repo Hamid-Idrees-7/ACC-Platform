@@ -124,3 +124,11 @@
 @media (max-width: 520px) {
     .mfm-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .mfm-overlay { padding: 10px; }
+    .mfm-head { padding: 16px 16px 12px; }
+    .mfm-body { padding: 16px; }
+    .mfm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

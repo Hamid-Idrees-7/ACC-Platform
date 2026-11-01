@@ -167,3 +167,11 @@
 @media (max-width: 600px) {
     .ufm-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .ufm-overlay { padding: 10px; }
+    .ufm-head { padding: 16px 16px 12px; }
+    .ufm-body { padding: 16px; }
+    .ufm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

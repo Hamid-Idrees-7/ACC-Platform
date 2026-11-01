@@ -105,3 +105,9 @@
 .crop-cancel:hover { background: var(--color-hover); }
 .crop-done { background: var(--color-primary); color: #fff; }
 .crop-done:hover { background: #d94f24; }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .crop-overlay { padding: 10px; }
+    .crop-actions { padding: 14px 16px 16px; gap: 8px; }
+}

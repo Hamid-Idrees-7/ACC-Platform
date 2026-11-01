@@ -191,3 +191,11 @@
     .stm-overlay { padding: 12px; }
     .stm-head, .stm-body, .stm-actions { padding-left: 16px; padding-right: 16px; }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .stm-overlay { padding: 10px; }
+    .stm-head { padding: 16px 16px 12px; }
+    .stm-body { padding: 16px; }
+    .stm-actions { padding: 14px 16px 16px; gap: 8px; }
+}

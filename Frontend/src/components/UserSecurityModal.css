@@ -101,3 +101,9 @@
     .usm-body { padding: 16px; }
     .usm-section-head { flex-direction: column; align-items: stretch; }
 }
+
+/* Phones: a little more room than the 640px rules give */
+@media (max-width: 560px) {
+    .usm-overlay { padding: 10px; }
+    .usm-body { padding: 14px; }
+}

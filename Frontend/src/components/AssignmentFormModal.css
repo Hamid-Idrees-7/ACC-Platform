@@ -168,3 +168,11 @@
     .afm-overlay { padding: 12px; }
     .afm-head, .afm-body, .afm-actions { padding-left: 16px; padding-right: 16px; }
 }
+
+/* Phones: the frame gave away 48px of a 320px screen before any field started */
+@media (max-width: 560px) {
+    .afm-overlay { padding: 10px; }
+    .afm-head { padding: 16px 16px 12px; }
+    .afm-body { padding: 16px; }
+    .afm-actions { padding: 14px 16px 16px; gap: 8px; }
+}
