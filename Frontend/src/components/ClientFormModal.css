@@ -142,6 +142,9 @@
 /* Phones: the frame gave away 48px of a 320px screen before any field started */
 @media (max-width: 560px) {
     .cfm-overlay { padding: 10px; }
+    /* A card in the middle of the screen that scrolls inside itself, so Save and
+       Cancel stay in view. vh ignores the address bar; dvh does not. */
+    .cfm-modal { max-height: min(560px, 82dvh); border-radius: 16px; }
     .cfm-head { padding: 16px 16px 12px; }
     .cfm-body { padding: 16px; }
     .cfm-actions { padding: 14px 16px 16px; gap: 8px; }

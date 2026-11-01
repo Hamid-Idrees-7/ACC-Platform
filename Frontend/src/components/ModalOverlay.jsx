@@ -27,7 +27,13 @@ function ModalOverlay({ className, onClose, label, children }) {
     const previous = document.activeElement;
 
     if (!node.contains(document.activeElement)) {
-      const field = [...node.querySelectorAll("input:not([type=hidden]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled])")].find(visible);
+      // Landing in the first field is a help with a mouse and a nuisance on a phone,
+      // where it throws the keyboard up over the form before anything has been read.
+      const mouse = typeof window.matchMedia !== "function"
+        || window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      const field = mouse
+        ? [...node.querySelectorAll("input:not([type=hidden]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled])")].find(visible)
+        : null;
       if (field) field.focus({ preventScroll: true });
       else node.focus({ preventScroll: true });
     }

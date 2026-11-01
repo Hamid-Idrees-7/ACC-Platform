@@ -106,4 +106,6 @@
 @media (max-width: 560px) {
     .usm-overlay { padding: 10px; }
     .usm-body { padding: 14px; }
+    /* A card in the middle of the screen rather than the whole of it */
+    .usm { max-height: min(560px, 82dvh); border-radius: 16px; }
 }

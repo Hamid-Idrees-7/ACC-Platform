@@ -171,6 +171,9 @@
 /* Phones: the frame gave away 48px of a 320px screen before any field started */
 @media (max-width: 560px) {
     .ufm-overlay { padding: 10px; }
+    /* A card in the middle of the screen that scrolls inside itself, so Save and
+       Cancel stay in view. vh ignores the address bar; dvh does not. */
+    .ufm-modal { max-height: min(560px, 82dvh); border-radius: 16px; }
     .ufm-head { padding: 16px 16px 12px; }
     .ufm-body { padding: 16px; }
     .ufm-actions { padding: 14px 16px 16px; gap: 8px; }
