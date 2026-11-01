@@ -390,3 +390,8 @@
     .mat-stat-label { font-size: 12px; margin-top: 2px; }
     .mat-stat.mat-stat-value-card { grid-column: 1 / -1; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; }
 }
+
+/* Phones: tighter card frame. The info rows stay side by side, their values are short. */
+@media (max-width: 560px) {
+    .mat-card { padding: 16px 14px 13px; }
+}

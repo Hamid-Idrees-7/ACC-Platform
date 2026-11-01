@@ -344,3 +344,8 @@
     .proj-stat-label { font-size: 12px; margin-top: 2px; }
     .proj-stat.proj-stat-budget { grid-column: 1 / -1; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; }
 }
+
+/* Phones: tighter card frame */
+@media (max-width: 560px) {
+    .proj-card { padding: 15px 14px; }
+}

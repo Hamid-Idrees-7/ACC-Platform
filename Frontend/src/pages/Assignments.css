@@ -368,3 +368,8 @@
     .asn-stat-value { font-size: 22px; }
     .asn-stat-label { font-size: 12px; margin-top: 2px; }
 }
+
+/* Phones: tighter card frame */
+@media (max-width: 560px) {
+    .asn-card { padding: 15px 14px 13px; }
+}
