@@ -109,3 +109,8 @@
     .rep-chart-card, .rep-kpi, .rep-table-wrap { break-inside: avoid; }
     #rep-print-area, #rep-print-area * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Phones: tighter chart cards. The tab bar already wraps and the tables already scroll. */
+@media (max-width: 560px) {
+    .rep-chart-card { padding: 15px 14px; }
+}

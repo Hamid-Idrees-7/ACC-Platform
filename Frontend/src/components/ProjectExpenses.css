@@ -270,3 +270,10 @@
     .pex-actions { margin-left: auto; }
     .pex-grid, .pex-choice { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: heading above its count and button, tighter rows */
+@media (max-width: 560px) {
+    .pex-head { flex-direction: column; align-items: stretch; gap: 10px; }
+    .pex-card { padding: 16px 14px; }
+    .pex-row { padding: 11px 12px; }
+}

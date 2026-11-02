@@ -514,3 +514,12 @@
     .pd-mat-grand { flex-wrap: wrap; gap: 8px; }
     .pd-modal, .pd-confirm { padding: 22px 18px; }
 }
+
+/* Phones: the banner and the status card stop splitting their row. The money rows
+   stay side by side, their amounts are short. */
+@media (max-width: 560px) {
+    .pd-banner { flex-direction: column; align-items: stretch; gap: 14px; }
+    .pd-status-card { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 16px; }
+    .pd-fin-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .pd-fin-card { padding: 16px 14px; }
+}
