@@ -292,3 +292,8 @@
     .mhist-row-main { flex-basis: calc(100% - 100px); }
     .mhist-row-amount { order: 3; flex-basis: 100%; padding-left: 46px; }
 }
+
+/* Phones: tighter rows */
+@media (max-width: 560px) {
+    .mhist-row { padding: 13px; }
+}

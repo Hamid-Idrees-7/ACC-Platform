@@ -385,3 +385,10 @@
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Phones: heading above its button, and label over value for long answers */
+@media (max-width: 560px) {
+    .q-header { flex-direction: column; align-items: stretch; gap: 12px; }
+    .q-card { padding: 15px 14px; }
+    .q-detail-row { flex-direction: column; align-items: flex-start; gap: 3px; }
+}

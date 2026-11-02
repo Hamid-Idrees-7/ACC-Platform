@@ -362,3 +362,9 @@
     .sal-card { padding: 16px; }
     .sal-c-top { flex-wrap: wrap; }
 }
+
+/* Phones: tighter cards, and the calculate box stacks instead of splitting the row */
+@media (max-width: 560px) {
+    .sal-card { padding: 15px 14px; }
+    .sal-calc { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+}
