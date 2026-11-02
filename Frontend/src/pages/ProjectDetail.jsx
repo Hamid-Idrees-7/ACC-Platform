@@ -12,6 +12,7 @@ import ModalOverlay from "../components/ModalOverlay";
 import { SkeletonPage } from "../components/Skeleton";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { hasPointer } from "../utils/focus";
 
 const STATUSES = ["In Progress", "On Hold", "Completed", "Cancelled"];
 const PHASE_STATUSES = ["Pending", "In Progress", "Completed"];
@@ -489,7 +490,7 @@ function ProjectDetail() {
             <h3>Add New Phase</h3>
             <p className="pd-modal-sub">For luxury homes you can add phases like Swimming Pool, Basement, Lift, Home Theater, etc.</p>
             <label className="pd-modal-label">Phase Name</label>
-            <input type="text" maxLength={100} value={phaseName} onChange={(e) => setPhaseName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.repeat && addPhase()} placeholder="e.g. Swimming Pool" autoFocus />
+            <input type="text" maxLength={100} value={phaseName} onChange={(e) => setPhaseName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.repeat && addPhase()} placeholder="e.g. Swimming Pool" autoFocus={hasPointer()} />
             <div className="pd-suggestions">
               {PHASE_SUGGESTIONS.map((s) => <button key={s} onClick={() => setPhaseName(s)}>{s}</button>)}
             </div>

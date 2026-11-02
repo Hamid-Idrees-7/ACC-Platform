@@ -17,6 +17,7 @@ import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
 import { loadFailure, NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
+import { hasPointer } from "../utils/focus";
 
 const fmtDate = (d) => formatDateShort(d, "—");
 
@@ -669,7 +670,7 @@ function ProjectBilling() {
               </div>
 
               <label className="pbl-modal-label">Amount ({currencySymbol()}) <span>*</span></label>
-              <input type="number" min="0" step="any" value={payForm.amount} onChange={(e) => { setPayForm((f) => ({ ...f, amount: e.target.value })); setPayError(""); }} className={payError ? "err" : ""} autoFocus />
+              <input type="number" min="0" step="any" value={payForm.amount} onChange={(e) => { setPayForm((f) => ({ ...f, amount: e.target.value })); setPayError(""); }} className={payError ? "err" : ""} autoFocus={hasPointer()} />
               {payError
                 ? <div className="pbl-pay-err">{payError}</div>
                 : payForm.amount !== "" && Number(payForm.amount) > 0 && <div className="pbl-words">= {amountInWords(payForm.amount)}</div>}

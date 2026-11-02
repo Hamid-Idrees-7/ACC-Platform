@@ -13,6 +13,7 @@ import Pagination from "../components/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
+import { hasPointer } from "../utils/focus";
 
 const FILTERS = ["Pending", "Approved", "Rejected", "All"];
 
@@ -161,7 +162,7 @@ function MaterialRequests() {
             <h3>Reject request?</h3>
             <p className="mrq-modal-sub">{formatQty(rejectModal.quantity)} {rejectModal.unit} of {rejectModal.materialName} for {rejectModal.projectTitle}.</p>
             <label className="mrq-label">Reason (optional)</label>
-            <input type="text" maxLength={255} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. order from central store instead" autoFocus />
+            <input type="text" maxLength={255} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. order from central store instead" autoFocus={hasPointer()} />
             <div className="mrq-modal-actions">
               <button className="mrq-modal-cancel" data-close onClick={() => setRejectModal(null)} disabled={busy}>Cancel</button>
               <button className="mrq-modal-danger" onClick={doReject} disabled={busy}>{busy ? "..." : "Reject"}</button>

@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { NO_ACCESS_TITLE, NO_ACCESS_TEXT } from "../utils/errors";
 import "./AiAssistant.css";
+import { hasPointer } from "../utils/focus";
 
 // Fallback confirmation text by action verb (used when the endpoint returns no message).
 const DONE_MESSAGE = {
@@ -241,7 +242,7 @@ function AiAssistant() {
       setMessages([...base, { role: "assistant", text: msg, error: true }]);
     } finally {
       setSending(false);
-      if (inputRef.current) inputRef.current.focus();
+      if (inputRef.current && hasPointer()) inputRef.current.focus();
     }
   };
 
@@ -257,7 +258,7 @@ function AiAssistant() {
     setMessages(freshChat());
     setInput("");
     setSidebarOpen(false);
-    if (inputRef.current) inputRef.current.focus();
+    if (inputRef.current && hasPointer()) inputRef.current.focus();
   };
 
   const openConversation = async (id) => {

@@ -8,6 +8,7 @@ import { LOGIN_NOTE_KEY } from "../config/sessionConfig";
 import "./Home.css";
 import "./Login.css";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { hasPointer } from "../utils/focus";
 
 // Last demo status seen by this browser, or an optimistic default (the demo is on in production).
 const readCachedDemoStatus = () => {
@@ -256,7 +257,7 @@ function Login() {
                       onChange={(e) => setResetLogin(e.target.value)}
                       autoComplete="username"
                       maxLength={100}
-                      autoFocus
+                      autoFocus={hasPointer()}
                     />
                   </div>
                 </div>

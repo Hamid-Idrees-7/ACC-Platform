@@ -13,6 +13,7 @@ import { usePagination } from "../hooks/usePagination";
 import { useLoader } from "../hooks/useLoader";
 import { useToast } from "../components/Toast";
 import { companyToday } from "../utils/dates";
+import { hasPointer } from "../utils/focus";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const rateLabel = (l) =>
@@ -316,7 +317,7 @@ function Salaries() {
             </div>
             <label className="sal-modal-label">Amount to Pay ({currencySymbol()}) <span>*</span></label>
             <input
-              type="number" min="0" step="any" value={finalAmount} autoFocus
+              type="number" min="0" step="any" value={finalAmount} autoFocus={hasPointer()}
               className={amountError ? "err" : ""}
               onChange={(e) => setFinalAmount(e.target.value)}
             />

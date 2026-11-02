@@ -8,6 +8,7 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import "./Home.css";
 import "./Login.css";
 import "./ResetPassword.css";
+import { hasPointer } from "../utils/focus";
 
 // The page behind the link in the "Reset your password" email.
 function ResetPassword() {
@@ -108,7 +109,7 @@ function ResetPassword() {
                   maxLength={128}
                   aria-invalid={!!errors.password}
                   aria-describedby="rsp-strength"
-                  autoFocus
+                  autoFocus={hasPointer()}
                 />
                 <button type="button" className="password-toggle" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}>
                   {show ? (

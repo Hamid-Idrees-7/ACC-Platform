@@ -3,6 +3,7 @@ import api from "../services/api";
 import { aiService } from "../services/aiService";
 import { renderMarkdown } from "../utils/markdown";
 import "./PublicChat.css";
+import { hasPointer } from "../utils/focus";
 
 // Website assistant for visitors. Answers about the company only, no sign-in, no private data.
 const GREETING = "Welcome to ACC! How can i help.";
@@ -82,10 +83,7 @@ function PublicChat() {
   useEffect(() => {
     if (!open || !inputRef.current) return;
     // Only place the cursor for a mouse; on a phone it throws the keyboard up over the panel
-    const pointer = typeof window.matchMedia === "function"
-      ? window.matchMedia("(hover: hover) and (pointer: fine)")
-      : null;
-    if (!pointer || pointer.matches) inputRef.current.focus();
+    if (hasPointer()) inputRef.current.focus();
   }, [open]);
 
   const grow = (el) => {
