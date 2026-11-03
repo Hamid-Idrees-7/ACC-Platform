@@ -115,3 +115,9 @@
 @media (max-width: 900px) {
     .att-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: tighter card frame. The meta row stays split, both sides are short. */
+@media (max-width: 560px) {
+    .att-card { padding: 15px 14px; }
+    .att-card-meta { padding-top: 12px; gap: 10px; }
+}

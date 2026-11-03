@@ -131,3 +131,8 @@
 @media (max-width: 600px) {
     .cu-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: tighter card frame */
+@media (max-width: 560px) {
+    .cu-card { padding: 16px 14px 14px; }
+}
