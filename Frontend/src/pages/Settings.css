@@ -461,3 +461,9 @@
 /* Username modal: the message sits right under its input */
 .st-modal-input.has-err input { border-color: var(--color-error); }
 .st-modal-err { margin: -10px 0 16px; text-align: left; }
+
+/* Phones: 30px of panel padding each side on a 320px screen left little for the fields */
+@media (max-width: 560px) {
+    .st-panel { padding: 16px 14px; }
+    .st-panel-head { margin-bottom: 16px; }
+}

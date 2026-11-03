@@ -44,3 +44,8 @@
     transition: transform 0.18s ease;
 }
 .ais-switch.on .ais-knob { transform: translateX(18px); }
+
+/* Phones: tighter rows. This file had no mobile rules. */
+@media (max-width: 560px) {
+    .ais-row { padding: 11px 12px; }
+}

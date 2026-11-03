@@ -111,3 +111,8 @@
     .nfs-section > .nfs-row .nfs-row-text { flex-basis: calc(100% - 60px); }
     .nfs-section > .nfs-row .nfs-test { order: 3; }
 }
+
+/* Phones: heading above its button */
+@media (max-width: 560px) {
+    .nfs-head { flex-direction: column; align-items: stretch; gap: 10px; }
+}

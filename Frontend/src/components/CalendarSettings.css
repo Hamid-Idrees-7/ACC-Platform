@@ -182,3 +182,8 @@
     .cal-dates { grid-template-columns: minmax(0, 1fr); }
     .cal-row { flex-wrap: wrap; }
 }
+
+/* Phones: one column. Two columns inside 292px left both of them unreadable. */
+@media (max-width: 560px) {
+    .cal-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}

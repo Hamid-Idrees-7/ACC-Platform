@@ -97,3 +97,8 @@
 @media (max-width: 420px) {
     .scs-idle { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: heading above its button */
+@media (max-width: 560px) {
+    .scs-head { flex-direction: column; align-items: stretch; gap: 10px; }
+}
