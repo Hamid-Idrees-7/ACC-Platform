@@ -166,6 +166,7 @@
     width: 100%;
     max-width: 580px;
     max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
     overflow-y: auto;
 }
 .pex-modal h3 { font-family: var(--font-heading); font-size: 20px; font-weight: 700; color: var(--color-text); margin: 0 0 4px; }
