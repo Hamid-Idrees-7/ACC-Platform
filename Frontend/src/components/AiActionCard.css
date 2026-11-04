@@ -50,3 +50,11 @@
 
 .aiac-result { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-success-strong); }
 .aiac-result svg { flex-shrink: 0; }
+
+/* Phones: tighter frame, and the label column stops taking a third of the card.
+   This file had no mobile rules. */
+@media (max-width: 560px) {
+    .aiac { padding: 12px 13px; }
+    .aiac-fields { padding: 9px 10px; }
+    .aiac-label { width: 88px; }
+}

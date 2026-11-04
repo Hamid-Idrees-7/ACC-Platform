@@ -306,3 +306,8 @@
     font-size: 14px;
     max-width: 380px;
 }
+
+/* Phones: the module cards were the only ones the 600px rules left at desktop padding */
+@media (max-width: 560px) {
+    .dash-mod-card { padding: 16px 14px; }
+}
