@@ -297,3 +297,13 @@
 @media (max-width: 560px) {
     .mhist-row { padding: 13px; }
 }
+
+/* Phones: a finger needs a bigger back link than a line of text */
+@media (max-width: 560px) {
+    .mhist-back { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* Phones: this cancel square was 32x32 */
+@media (max-width: 560px) {
+    .mhist-cancel-btn { width: 36px; height: 36px; }
+}

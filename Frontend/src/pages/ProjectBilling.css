@@ -427,3 +427,18 @@
     .pbl-item-row .col-desc { grid-column: 1 / -1; }
     .pbl-item-row .col-amt { font-size: 13px; }
 }
+
+/* Phones: a finger needs a bigger back link than a line of text */
+@media (max-width: 560px) {
+    .pbl-back { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* Phones: a card in the middle of the screen that scrolls inside itself, so the buttons
+   stay in view. vh ignores the address bar; dvh does not. Same as the other form modals. */
+@media (max-width: 560px) {
+    .pbl-overlay { padding: 10px; }
+    .pbl-modal, .pbl-confirm { max-height: min(560px, 82dvh); border-radius: 16px; }
+    .pbl-modal-head { padding: 16px 16px 12px; }
+    .pbl-modal-body { padding: 16px; }
+    .pbl-modal-actions { padding: 14px 16px 16px; gap: 8px; }
+}

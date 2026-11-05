@@ -193,3 +193,15 @@
     .ma-user-head { flex-direction: column; text-align: center; }
     .ma-save-note { position: static; }
 }
+
+/* Phones: a finger needs a bigger back link than a line of text */
+@media (max-width: 560px) {
+    .ma-back { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* Phones: the permission switches are only 46x26 and 40x23, so widen the hit area
+   without changing how they look */
+@media (max-width: 560px) {
+    .ma-toggle::after { content: ""; position: absolute; inset: -8px -5px; }
+    .ma-toggle.sm::after { inset: -9px -6px; }
+}

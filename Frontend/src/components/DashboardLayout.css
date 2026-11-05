@@ -48,9 +48,9 @@
 .dash-drawer-close {
     display: none;
     margin-left: auto;
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     background: rgba(255,255,255,0.08);
     color: rgba(255,255,255,0.75);
     align-items: center;
@@ -161,6 +161,7 @@
     color: var(--color-text);
     letter-spacing: -0.5px;
 }
+.dash-title-short { display: none; }
 
 .dash-hamburger {
     display: none;
@@ -378,15 +379,18 @@
 @media (max-width: 600px) {
     .dash-profile-info { display: none; }
     .dash-profile-btn { gap: 4px; padding: 4px; }
-    .dash-header { height: 64px; padding: 0 12px; }
-    .dash-header-left { gap: 10px; min-width: 0; }
-    .dash-header-right { gap: 8px; flex-shrink: 0; }
+    .dash-header { height: 64px; padding: 0 10px; }
+    .dash-header-left { gap: 8px; min-width: 0; }
+    .dash-header-right { gap: 6px; flex-shrink: 0; }
     .dash-title {
-        font-size: 18px;
+        font-size: 17px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    /* Long page names don't fit next to the icons, so swap in the sidebar's short name */
+    .dash-title-long { display: none; }
+    .dash-title-short { display: inline; }
     .dash-hamburger, .dash-bell { width: 40px; height: 40px; flex-shrink: 0; }
     .dash-alerts { width: 40px; height: 40px; padding: 0; justify-content: center; flex-shrink: 0; }
     .dash-alerts-label { display: none; }
@@ -394,6 +398,12 @@
     .dash-avatar, .dash-avatar-img { width: 36px; height: 36px; font-size: 14px; }
     .dash-content { padding: 16px 14px 24px; }
     .dash-sidebar { width: min(280px, 86vw); }
+}
+
+/* Very small phones (320px): three icons plus the title don't fit. Alerts moves out of the
+   header, it still sits in the menu with its own dot when something is open. */
+@media (max-width: 360px) {
+    .dash-alerts { display: none; }
 }
 .dash-leave-overlay {
     position: fixed;
@@ -426,4 +436,12 @@
 .dash-nav-item.active .dash-nav-badge {
     background: var(--color-surface);
     color: var(--color-primary);
+}
+
+/* Logout lives below the scrolling menu rather than inside it, so it is always in
+   reach and never slides over the items behind it. */
+.dash-nav-foot {
+    flex-shrink: 0;
+    padding: 8px 16px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
 }

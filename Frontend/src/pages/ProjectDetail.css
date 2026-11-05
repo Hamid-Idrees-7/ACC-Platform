@@ -523,3 +523,15 @@
     .pd-fin-head { flex-direction: column; align-items: flex-start; gap: 8px; }
     .pd-fin-card { padding: 16px 14px; }
 }
+
+/* Phones: a finger needs a bigger back link than a line of text */
+@media (max-width: 560px) {
+    .pd-back { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* Phones: phase and team controls were 16-32px, too small to hit */
+@media (max-width: 560px) {
+    .pd-add-phase { min-height: 38px; }
+    .pd-phase-actions button { width: 36px; height: 36px; }
+    .pd-manage-team { min-height: 38px; display: inline-flex; align-items: center; }
+}

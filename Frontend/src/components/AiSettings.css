@@ -49,3 +49,8 @@
 @media (max-width: 560px) {
     .ais-row { padding: 11px 12px; }
 }
+
+/* Phones: the switch itself is only 42x24, so widen the hit area without changing the look */
+@media (max-width: 560px) {
+    .ais-switch::after { content: ""; position: absolute; inset: -9px -5px; }
+}

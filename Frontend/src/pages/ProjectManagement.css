@@ -349,3 +349,8 @@
 @media (max-width: 560px) {
     .proj-card { padding: 15px 14px; }
 }
+
+/* Phones: View / Edit / Delete measured 36px tall */
+@media (max-width: 560px) {
+    .proj-btn-view, .proj-btn-edit, .proj-btn-delete { min-height: 40px; }
+}

@@ -184,13 +184,26 @@
   .dmb-error { display: none; }
 }
 
+/* Phones: the role buttons were 25px tall, too small to hit. 36px is the most the
+   48px bar can hold once the segment wrapper's own padding is counted. */
 @media (max-width: 560px) {
   .dmb-live-text { display: none; }
   .dmb-seg-name { max-width: 70px; }
-  .dmb-seg-btn { padding: 5px 8px; }
+  .dmb-seg-btn { padding: 5px 10px; min-height: 36px; }
   .dmb-seg-btn svg { display: none; }
+  .dmb-exit { min-width: 36px; min-height: 36px; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dmb-dot, .dmb-timer.critical { animation: none; }
+}
+
+/* Very small phones (320px): the role buttons, the timer and the exit button together
+   were wider than the bar, so the exit button fell off the right edge. */
+@media (max-width: 360px) {
+  .dmb { padding: 0 10px; gap: 6px; }
+  .dmb-seg-btn { padding: 5px 6px; font-size: 11.5px; }
+  .dmb-seg-name { max-width: 58px; }
+  .dmb-timer { font-size: 11.5px; }
+  .dmb-right { gap: 4px; }
 }

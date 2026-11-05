@@ -422,3 +422,19 @@
     .cl-detail-row { flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px 0; }
     .cl-detail-row strong { text-align: left; max-width: 100%; word-break: break-word; }
 }
+
+/* Phones: the edit square was 32x32 and the filter chips 35px */
+@media (max-width: 560px) {
+    .cl-card-edit { width: 40px; height: 40px; }
+    .cl-status-filter button { min-height: 40px; }
+}
+
+/* Phones: this close button measured 32-34px live */
+@media (max-width: 560px) {
+    .cl-detail-close { width: 40px; height: 40px; }
+}
+
+/* A finger has no hover, so the edit square has to be visible from the start */
+@media (hover: none) {
+    .cl-card-edit { opacity: 1; }
+}

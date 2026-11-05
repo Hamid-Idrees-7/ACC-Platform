@@ -792,3 +792,11 @@
     .testimonials-dots { gap: 6px; }
     .testimonial-dot { width: 8px; height: 8px; }
 }
+
+/* Phones: the carousel dots are 10px tall by design, so give them an invisible
+   hit area a finger can actually land on */
+@media (max-width: 560px) {
+    .testimonials-dots { gap: 12px; }
+    .testimonial-dot { position: relative; }
+    .testimonial-dot::after { content: ""; position: absolute; inset: -13px -6px; }
+}

@@ -373,3 +373,13 @@
 @media (max-width: 560px) {
     .asn-card { padding: 15px 14px 13px; }
 }
+
+/* Phones: the row of End / Edit / Delete measured 35px tall */
+@media (max-width: 560px) {
+    .asn-btn-end, .asn-btn-edit, .asn-btn-delete { min-height: 40px; }
+}
+
+/* Phones: long employee names were cut off at 155px, let them wrap instead */
+@media (max-width: 560px) {
+    .asn-card-name { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; overflow-wrap: anywhere; }
+}

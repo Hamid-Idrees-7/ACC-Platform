@@ -391,7 +391,11 @@
     .mat-stat.mat-stat-value-card { grid-column: 1 / -1; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; }
 }
 
-/* Phones: tighter card frame. The info rows stay side by side, their values are short. */
+/* Phones: tighter card frame. The info rows stay side by side, their values are short.
+   Footer buttons were 28-39px tall, too small for a finger. 36px keeps them tappable
+   without pushing the card much taller. */
 @media (max-width: 560px) {
     .mat-card { padding: 16px 14px 13px; }
+    .mat-foot-btn { min-height: 36px; }
+    .mat-btn-issue, .mat-btn-restock { min-height: 42px; }
 }

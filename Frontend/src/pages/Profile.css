@@ -147,6 +147,7 @@
 .pf-view-img {
     max-width: 90vw;
     max-height: 85vh;
+    max-height: 85dvh;
     border-radius: var(--radius-lg);
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     animation: pfviewin 0.25s ease;

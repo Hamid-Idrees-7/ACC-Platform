@@ -35,8 +35,11 @@ function Dashboard() {
   const showControlUnit = isAdmin;
   const showApprovals = isAdmin || canView("Approvals");
   const showMatRequests = isAdmin || can("MaterialRequests", "View");
+  // Field View is a site engineer's only module, so without this card their dashboard is empty.
+  // Admins reach it from the sidebar and don't need the card.
+  const showField = !isAdmin && canView("Field");
 
-  const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals || showMatRequests;
+  const anyCard = showMessages || showReports || showAI || showControlUnit || showApprovals || showMatRequests || showField;
 
   const [liveTick, setLiveTick] = useState(0);
   useLiveRefresh(["messages", "approvals", "material-requests", "users", "employees", "projects", "billing"], () => setLiveTick((t) => t + 1));
@@ -183,6 +186,18 @@ function Dashboard() {
               </div>
               <h3>Material Requests</h3>
               <p>Approve or reject site material requests</p>
+            </button>
+          )}
+
+          {showField && (
+            <button className="dash-mod-card" onClick={() => navigate("/dashboard/field")}>
+              <div className="dash-mod-top">
+                <div className="dash-mod-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18a10 10 0 0 1 20 0" /><line x1="1" y1="18" x2="23" y2="18" /><path d="M10 5a2 2 0 0 1 4 0v4" /><path d="M8 9V6" /><path d="M16 9V6" /></svg>
+                </div>
+              </div>
+              <h3>Field View</h3>
+              <p>Today's work on your own sites</p>
             </button>
           )}
 

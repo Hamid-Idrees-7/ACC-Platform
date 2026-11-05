@@ -310,6 +310,14 @@ function DashboardLayout({ title, children }) {
     return location.pathname.startsWith(path);
   };
 
+  // A phone header leaves about 160px for the title, so a long name like "Employee Management"
+  // gets cut off. On small screens we show the sidebar's own short name for the same page.
+  // Pages outside the sidebar fall back to the part before a dash, so "Control Unit — Access
+  // Management" becomes "Control Unit".
+  const shortTitle =
+    navSections.flatMap((section) => section.items).find((item) => item.path === location.pathname)?.label ||
+    String(title).split(/\s[—–-]\s/)[0];
+
   const go = (path) => {
     if (path === location.pathname) {
       setSidebarOpen(false);
@@ -368,16 +376,17 @@ function DashboardLayout({ title, children }) {
                   {item.id === "alerts" && openAlerts > 0 && <span className="dash-nav-dot" aria-label="Open alerts" />}
                 </button>
               ))}
-              {/* Logout sits inside the last section, with no gap of its own */}
-              {idx === visibleSections.length - 1 && (
-                <button className="dash-nav-item dash-nav-logout" onClick={handleLogout}>
-                  <span className="dash-nav-icon"><Icon name="logout" /></span>
-                  Logout
-                </button>
-              )}
             </div>
           ))}
         </nav>
+
+        {/* Logout sits below the scrolling menu, so it stays in view without covering it */}
+        <div className="dash-nav-foot">
+          <button className="dash-nav-item dash-nav-logout" onClick={handleLogout}>
+            <span className="dash-nav-icon"><Icon name="logout" /></span>
+            Logout
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
@@ -399,7 +408,10 @@ function DashboardLayout({ title, children }) {
             <button className="dash-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu" aria-expanded={sidebarOpen}>
               <Icon name="menu" />
             </button>
-            <h1 className="dash-title">{title}</h1>
+            <h1 className="dash-title">
+              <span className="dash-title-long">{title}</span>
+              <span className="dash-title-short">{shortTitle}</span>
+            </h1>
           </div>
 
           <div className="dash-header-right">

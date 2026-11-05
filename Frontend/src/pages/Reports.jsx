@@ -137,6 +137,21 @@ function pdfTables(tab, data) {
   return [];
 }
 
+// Pie slice names are drawn outside the circle, and on a phone they run off the screen.
+// There we shrink the pie and list the names in a legend underneath instead.
+function useNarrowScreen(max = 560) {
+  const query = `(max-width: ${max}px)`;
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = (e) => setNarrow(e.matches);
+    mq.addEventListener("change", onChange);
+    setNarrow(mq.matches);
+    return () => mq.removeEventListener("change", onChange);
+  }, [query]);
+  return narrow;
+}
+
 function Reports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -145,6 +160,7 @@ function Reports() {
   const { resolvedTheme } = usePreferences();
   const { company } = useCompany();
   const chart = useMemo(() => chartTheme(resolvedTheme), [resolvedTheme]);
+  const narrow = useNarrowScreen();
   const printAreaRef = useRef(null);
   // When the open tab appeared: the charts need their draw-in animation to finish before a PDF.
   const shownAt = useRef(0);
@@ -287,9 +303,10 @@ function Reports() {
                 {fin.projectStatus.length === 0 ? <div className="rep-nochart">No projects yet</div> : (
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
-                      <Pie data={fin.projectStatus} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={95} label={(e) => `${e.label} (${e.value})`}>
+                      <Pie data={fin.projectStatus} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={narrow ? 72 : 95} labelLine={!narrow} label={narrow ? false : (e) => `${e.label} (${e.value})`}>
                         {fin.projectStatus.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}
                       </Pie>
+                      {narrow && <Legend wrapperStyle={{ color: chart.text, fontSize: 12 }} />}
                       <Tooltip {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -391,9 +408,10 @@ function Reports() {
                 {mat.byCategory.length === 0 ? <div className="rep-nochart">No inventory yet</div> : (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={mat.byCategory} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={100} label={(e) => e.label}>
+                      <Pie data={mat.byCategory} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={narrow ? 72 : 100} labelLine={!narrow} label={narrow ? false : (e) => e.label}>
                         {mat.byCategory.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}
                       </Pie>
+                      {narrow && <Legend wrapperStyle={{ color: chart.text, fontSize: 12 }} />}
                       <Tooltip formatter={moneyTip} {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -476,10 +494,11 @@ function Reports() {
                 {(wf.presentCount + wf.absentCount) === 0 ? <div className="rep-nochart">No attendance marked yet</div> : (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={[{ label: "Present", value: wf.presentCount }, { label: "Absent", value: wf.absentCount }]} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={100} label={(e) => `${e.label} (${e.value})`}>
+                      <Pie data={[{ label: "Present", value: wf.presentCount }, { label: "Absent", value: wf.absentCount }]} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={narrow ? 72 : 100} labelLine={!narrow} label={narrow ? false : (e) => `${e.label} (${e.value})`}>
                         <Cell fill={C_GREEN} />
                         <Cell fill="#DC2626" />
                       </Pie>
+                      {narrow && <Legend wrapperStyle={{ color: chart.text, fontSize: 12 }} />}
                       <Tooltip {...chart.tooltip} />
                     </PieChart>
                   </ResponsiveContainer>

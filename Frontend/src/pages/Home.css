@@ -1706,3 +1706,8 @@ select.form-input { cursor: pointer; appearance: none; background-image: url("da
 
     /* Field text stays at 16px from global.css, or iOS zooms the page in */
 }
+
+/* Phones: the show-password eye was 26x26, too small for a finger */
+@media (max-width: 560px) {
+    .password-toggle { width: 36px; height: 36px; justify-content: center; padding: 0; }
+}

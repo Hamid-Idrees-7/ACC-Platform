@@ -93,6 +93,7 @@ function Payslip() {
       </div>
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
+      <p className="psl-swipe-hint">Swipe the payslip sideways to see all of it, or download the PDF.</p>
       <div className="psl-doc-scroll">
         <div className="psl-doc theme-paper" id="psl-print-area">
           <div className="psl-head">

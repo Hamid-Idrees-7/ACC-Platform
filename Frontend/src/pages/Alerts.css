@@ -190,3 +190,8 @@
     .al-head h2 { font-size: 18px; }
     .al-head p { font-size: 13px; }
 }
+
+/* Phones: filter chips were 29px tall, too small to tap */
+@media (max-width: 560px) {
+    .al-filters button { min-height: 36px; padding: 6px 14px; }
+}

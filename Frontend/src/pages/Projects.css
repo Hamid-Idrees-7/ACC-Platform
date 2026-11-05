@@ -269,7 +269,7 @@
     .projects-hero-content p { font-size: 14px; line-height: 1.55; }
 
     .projects-filters { gap: 8px; margin-bottom: 22px; }
-    .projects-filter { padding: 8px 15px; font-size: 12.5px; }
+    .projects-filter { padding: 8px 15px; font-size: 12.5px; min-height: 36px; }
 
     .projects-list { gap: 18px; }
     .project-row { border-radius: 14px; }
@@ -286,5 +286,5 @@
     .project-row-highlights li { padding: 5px 12px; font-size: 12px; }
     .project-row-flag { font-size: 10.5px; padding: 5px 12px; }
     .project-row-badge { font-size: 10.5px; padding: 5px 11px; }
-    .project-img-arrow { width: 32px; height: 32px; }
+    .project-img-arrow { width: 36px; height: 36px; }
 }

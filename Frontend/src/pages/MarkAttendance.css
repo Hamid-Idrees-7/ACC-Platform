@@ -305,3 +305,21 @@
     .mka-actions { width: 100%; display: flex; gap: 8px; }
     .mka-actions > button { flex: 1; min-width: 0; justify-content: center; padding-left: 10px; padding-right: 10px; }
 }
+
+/* Phones: a finger needs a bigger back link than a line of text */
+@media (max-width: 560px) {
+    .mka-back { min-height: 40px; display: inline-flex; align-items: center; }
+}
+/* Phones: this toggle measured 33px tall */
+@media (max-width: 560px) {
+    .mka-away-toggle { min-height: 38px; }
+}
+
+/* Very small phones (320px): a long wage like "Rs. 1.35 Lac/mo" pushed the Absent button
+   off the right edge, so the row tightens up and the wage is allowed to shrink. */
+@media (max-width: 360px) {
+    .mka-worker-right { gap: 8px; }
+    .mka-wage { min-width: 0; font-size: 12px; }
+    .mka-mark { gap: 6px; }
+    .mka-btn { padding: 9px 10px; font-size: 12.5px; min-height: 38px; }
+}

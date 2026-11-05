@@ -92,6 +92,7 @@ function InvoicePrint() {
       </div>
 
       {/* On phones the A4-style document scrolls sideways instead of squeezing */}
+      <p className="ivp-swipe-hint">Swipe the invoice sideways to see all of it, or download the PDF.</p>
       <div className="ivp-doc-scroll">
         <div className="ivp-doc theme-paper" id="ivp-print-area">
           <div className="ivp-head">

@@ -344,3 +344,13 @@
     .ap-card { padding: 14px; gap: 12px; }
     .ap-list { gap: 10px; }
 }
+
+/* Phones: this close button measured 32-34px live */
+@media (max-width: 560px) {
+    .ap-detail-close { width: 40px; height: 40px; }
+}
+
+/* Phones: the status tabs were 34px tall */
+@media (max-width: 560px) {
+    .ap-tabs button { min-height: 36px; }
+}

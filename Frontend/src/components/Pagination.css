@@ -40,3 +40,8 @@
     .pgn { justify-content: center; }
     .pgn-info { width: 100%; text-align: center; }
 }
+
+/* Phones: page numbers were 34x34 */
+@media (max-width: 560px) {
+    .pgn-btn { min-width: 40px; height: 40px; }
+}

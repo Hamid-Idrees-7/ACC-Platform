@@ -116,3 +116,9 @@
 @media (max-width: 560px) {
     .nfs-head { flex-direction: column; align-items: stretch; gap: 10px; }
 }
+
+/* Phones: the switch is only 42x24, and these buttons were 31px tall */
+@media (max-width: 560px) {
+    .nfs-switch::after { content: ""; position: absolute; inset: -9px -5px; }
+    .nfs-test, .nfs-reset { min-height: 38px; }
+}

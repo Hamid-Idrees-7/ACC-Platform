@@ -368,3 +368,8 @@
     .sal-card { padding: 15px 14px; }
     .sal-calc { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
 }
+
+/* Phones: Pay and Payslip measured 33px and 36px tall */
+@media (max-width: 560px) {
+    .sal-pay, .sal-payslip { min-height: 40px; }
+}

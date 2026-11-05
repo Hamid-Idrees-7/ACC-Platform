@@ -467,3 +467,19 @@
     .st-panel { padding: 16px 14px; }
     .st-panel-head { margin-bottom: 16px; }
 }
+
+/* Phones: the section tabs and the photo button measured 36-38px */
+@media (max-width: 560px) {
+    .st-nav-item { min-height: 42px; }
+    .st-photo-btn { min-height: 42px; }
+}
+
+/* Phones: this close button measured 32-34px live */
+@media (max-width: 560px) {
+    .st-modal-close { width: 40px; height: 40px; }
+}
+
+/* Phones: the show-password eye was 30x30 */
+@media (max-width: 560px) {
+    .st-pw-wrap button { width: 36px; height: 36px; }
+}

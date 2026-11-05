@@ -114,3 +114,8 @@
 @media (max-width: 560px) {
     .rep-chart-card { padding: 15px 14px; }
 }
+
+/* Phones: report tabs were 32px tall */
+@media (max-width: 560px) {
+    .rep-tab { min-height: 38px; }
+}

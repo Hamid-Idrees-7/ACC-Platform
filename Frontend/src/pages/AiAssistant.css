@@ -234,3 +234,14 @@
     .aia-composer { padding: 12px 14px 14px; }
     .aia-bar { padding: 11px 14px; }
 }
+
+/* Phones: this close button measured 32-34px live */
+@media (max-width: 560px) {
+    .aia-side-close { width: 40px; height: 40px; }
+}
+
+/* A finger has no hover, so the delete button has to be visible from the start,
+   and 30x30 is too small to hit */
+@media (hover: none) {
+    .aia-side-del { opacity: 1; width: 36px; height: 36px; }
+}

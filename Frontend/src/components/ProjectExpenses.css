@@ -278,3 +278,10 @@
     .pex-card { padding: 16px 14px; }
     .pex-row { padding: 11px 12px; }
 }
+
+/* Phones: the add button, the row icons and the filter chips were all under 36px */
+@media (max-width: 560px) {
+    .pex-add { min-height: 38px; }
+    .pex-actions button { width: 36px; height: 36px; }
+    .pex-filters button { min-height: 36px; }
+}
