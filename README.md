@@ -24,6 +24,18 @@ This is my first production project, taken all the way from an empty folder to a
 **Reports**
 ![Reports](screenshots/reports.jpg)
 
+### On a phone
+
+The whole platform works on a phone, not just the marketing site. The ERP uses the same code as on desktop, laid out for a narrow screen: the sidebar becomes a drawer, tables become cards, forms open as a card in the middle of the screen that scrolls inside itself, and charts drop their outside labels for a legend. Tested down to 320px wide.
+
+| Home | Menu | Dashboard |
+| --- | --- | --- |
+| ![Home on a phone](screenshots/mobile-home.jpg) | ![Menu on a phone](screenshots/mobile-menu.jpg) | ![Dashboard on a phone](screenshots/mobile-dashboard.jpg) |
+
+| Materials | Reports |
+| --- | --- |
+| ![Materials on a phone](screenshots/mobile-materials.jpg) | ![Reports on a phone](screenshots/mobile-reports.jpg) |
+
 ## What it does
 
 The platform has a public side and a signed-in side.
@@ -120,7 +132,7 @@ The frontend reads one variable, `VITE_API_ORIGIN`, which points at the backend.
 
 ## Status
 
-The platform is live and in active development. The core system, the public site, the demo, and both AI assistants are done. Next up is a custom domain and a portfolio page with the full case study.
+The platform is live and in active development. The core system, the public site, the demo, both AI assistants, the custom domain and the phone layout are done.
 
 ## Author
 
